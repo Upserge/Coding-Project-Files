@@ -1,0 +1,21 @@
+﻿body {
+    height: 100vh;
+    width: 100%;
+    background-color: azure;
+}
+
+.header {
+    height: 100px;
+    width: 100%;
+    text-align: center;
+}
+
+.inputBox {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.resultArea {
+    margin-top: 20px;
+    text-align: center;
+}
