@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>OG PokeDex</title>
+    <link rel="stylesheet" href="pokeDexStyles.css"/>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to your PokeDex</h1>
+        <h3>No special characters or letters (pls)</h3>
+    </div>
+    <!--Users will enter a Pokemons name or num here-->
+    <div class="inputBox">
+        <form id="pokeForm">
+            <label for="userInput">Enter Pokemon's Name or Number:</label>
+            <input id="userInput" placeholder="Bulbasaur or 1" />
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    <!--This is where users get their results-->
+    <div class="resultArea">
+        <h3 id="pokeNameResult"></h3>
+        <h3 id="pokeTypeResult"></h3>
+        <img id="pokeSpriteResult" />
+    </div>
+    <script src="pokeScript.js" defer></script>
+</body>
+</html>
