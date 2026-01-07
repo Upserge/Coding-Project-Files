@@ -1,43 +1,33 @@
 ﻿<!DOCTYPE html>
-
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <title>OG PokeDex</title>
     <link rel="stylesheet" href="pokeDexStyles.css"/>
 </head>
 <body>
-    <div class="header">
-        <h1>Welcome to your PokeDex</h1>
-    </div>
-    <!--Users will enter a Pokemons name or num here-->
+    <div class="header"><h1>Welcome to your PokeDex</h1></div>
+
     <div class="inputBox">
         <form id="pokeForm">
-            <label for="userInput">Enter Pokemon's Name or Number:</label>
+            <label for="userInput">Enter Pokémon name or number:</label>
             <input id="userInput" placeholder="Bulbasaur or 1" />
             <button type="submit">Submit</button>
         </form>
     </div>
-    <!--This is where users get their results-->
+
     <div class="resultArea">
         <div class="pokemon-card" aria-live="polite">
             <div class="card-header">
-                <div class="card-title">
-                    <h3 id="pokeNameResult"></h3>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div class="pokemon-id" id="pokeIdResult"></div>
-                </div>
+                <div class="card-title"><h3 id="pokeNameResult"></h3></div>
+                <div style="display:flex;align-items:center;gap:8px;"><div class="pokemon-id" id="pokeIdResult"></div></div>
             </div>
 
-            <div class="card-image">
-                <img id="pokeSpriteResult" alt="" />
-            </div>
+            <div class="card-image"><img id="pokeSpriteResult" alt="" /></div>
 
             <div class="card-body">
                 <div class="card-types" id="pokeTypeResult"></div>
                 <p class="poke-description" id="pokeDescResult"></p>
-
                 <div class="stats" id="pokeStats">
                     <div class="stat" id="statHP"><strong></strong><small></small></div>
                     <div class="stat" id="statAtk"><strong></strong><small></small></div>
@@ -51,18 +41,17 @@
             </div>
         </div>
 
-        <!-- More Details section to the right of the card -->
         <aside class="more-details" aria-label="More details">
             <div class="details-header">
                 <h4>More Details</h4>
-                <p class="details-sub">Even MORE about this Pokemon!</p>
+                <p class="details-sub">Even MORE about this Pokémon!</p>
             </div>
-
             <div class="details-panel">
                 <ul id="moreDetailsList" class="details-list" aria-live="polite"></ul>
             </div>
         </aside>
     </div>
+
     <script src="pokeScript.js" defer></script>
 </body>
 </html>
