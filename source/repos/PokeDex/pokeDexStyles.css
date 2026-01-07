@@ -1,33 +1,475 @@
 ﻿.header {
-    height: 100px;
+    height: 40px;
     width: 100%;
     text-align: center;
 }
+
+/* Page baseline */
 body {
     height: 100vh;
     width: 100%;
     background-color: ghostwhite;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: #222;
 }
 
+/* Input area container (aligns with card styling) */
 .inputBox {
-    margin-top: 10px;
+    margin-top: 18px;
     text-align: center;
-    border-radius: 50px;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
 }
 
+/* Form inside the input area: center and keep elements on one row */
+.inputBox form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(250,250,250,0.85));
+    padding: 12px;
+    border-radius: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+/* Label styling to match the modern card look */
+.inputBox label {
+    font-weight: 600;
+    margin-right: 8px;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+/* Make interactive elements inherit the nice base rules and override specifics below */
 button, input, select, textarea {
     font-family: inherit;
     font-size: 100%;
     box-sizing: border-box;
 }
 
-userInput {
-    margin-top: 10px;
-    text-align: center;
-    border-radius: 50px;
+/* Target the input by id used in markup */
+#userInput {
+    margin-top: 0;
+    text-align: left;
+    border-radius: 999px;
+    padding: 10px 16px;
+    min-width: 220px;
+    max-width: 420px;
+    border: 2px solid rgba(0,0,0,0.08);
+    background: linear-gradient(180deg,#ffffff,#fbfbfb);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+    transition: box-shadow 180ms ease, border-color 180ms ease, transform 120ms ease;
+    outline: none;
 }
 
+/* Focus state for the input */
+#userInput:focus {
+    border-color: rgba(0,0,0,0.18);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+}
+
+/* Submit button styled like a compact card action */
+.inputBox button[type="submit"] {
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(180deg,#ff8c4b,#ff6b2c);
+    box-shadow: 0 8px 22px rgba(255,108,44,0.14), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+/* Button hover / active */
+.inputBox button[type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(255,108,44,0.18);
+}
+.inputBox button[type="submit"]:active {
+    transform: translateY(0);
+    opacity: 0.95;
+}
+
+/* Subtle header card that visually aligns with the pokemon-card style */
+.header {
+    max-width: 720px;
+    margin: 18px auto 0;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: linear-gradient(180deg,#ffffff,#fff9f3);
+    border: 2px solid rgba(0,0,0,0.06);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+/* Header typography */
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: #222;
+}
+
+.header h3 {
+    margin: 4px 0 0;
+    font-weight: 500;
+    font-size: 0.92rem;
+    color: #666;
+}
+
+/* Result area: layout container for the Pokemon card */
 .resultArea {
     margin-top: 20px;
     text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 18px; /* space between card and details */
+    padding: 12px;
+    flex-wrap: wrap;
+}
+
+/* Pokemon-card styling */
+.pokemon-card {
+    width: 340px;
+    background: linear-gradient(180deg, #fffdfa 0%, #fff3f0 40%, #ffeacb 100%);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    border: 3px solid rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: #222;
+}
+
+/* Header (name, id, types) */
+.pokemon-card .card-header {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.25));
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+
+.card-title {
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: 0.2px;
+}
+
+.pokemon-id {
+    font-weight: 600;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Type badges */
+.card-types {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.type-badge {
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    text-transform: capitalize;
+}
+
+/* Example type colors you can override per-type in markup (e.g., .type-fire) */
+.type-fire { background: linear-gradient(180deg,#ffb86b,#ff8c4b); }
+.type-water { background: linear-gradient(180deg,#79bfff,#4aa3ff); }
+.type-grass { background: linear-gradient(180deg,#9fe39f,#57c77a); }
+.type-electric { background: linear-gradient(180deg,#fff386,#ffd24a); }
+
+/* Image area */
+.card-image {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 10px;
+    background: linear-gradient(180deg,#ffffff 0%, #fbfbfb 100%);
+}
+
+.card-image img {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+    image-rendering: optimizeQuality;
+    filter: drop-shadow(0 6px 18px rgba(0,0,0,0.12));
+}
+
+/* Body: stats / description */
+.card-body {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.poke-description {
+    color: #444;
+    line-height: 1.3;
+    font-size: 0.92rem;
+    margin-bottom: 6px;
+}
+
+/* Stats row */
+.stats {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat {
+    flex: 1;
+    background: rgba(0,0,0,0.03);
+    padding: 8px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #333;
+}
+
+.stat small {
+    display: block;
+    font-weight: 400;
+    color: #666;
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+/* --- attributes panel styles (visible by default at bottom of the card) --- */
+
+.attrs-panel {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(0,0,0,0.03);
+    background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,250,0.95));
+    max-height: 420px;
+    overflow: auto;
+}
+
+/* Attribute list */
+.attrs-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+/* Each attribute row */
+.attrs-list li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(0,0,0,0.02);
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+/* Attribute name is a button so users can expand to view details */
+.attr-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-weight: 700;
+    color: #222;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
+
+/* Small meta for primitive values */
+.attr-summary {
+    color: #444;
+    font-weight: 600;
+    font-size: 0.92rem;
+}
+
+/* Expanded attribute value (pre for formatted JSON) */
+.attr-value {
+    margin: 0;
+    white-space: pre-wrap;
+    background: rgba(255,255,255,0.9);
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: #222;
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid rgba(0,0,0,0.04);
+}
+
+/* small chevron indicator */
+.attr-chevron {
+    opacity: 0.8;
+    transition: transform 180ms ease;
+}
+.attr-toggle[aria-expanded="true"] .attr-chevron { transform: rotate(90deg); }
+
+/* Footer: flavor text or actions */
+.card-footer {
+    padding: 10px 16px;
+    background: rgba(0,0,0,0.02);
+    border-top: 1px solid rgba(0,0,0,0.03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #444;
+}
+
+/* Layout: place card and details side-by-side */
+.resultArea {
+    margin-top: 20px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 18px; /* space between card and details */
+    padding: 12px;
+    flex-wrap: wrap;
+}
+
+/* More details card (matches pokemon-card aesthetic) */
+.more-details {
+    width: 100%;
+    max-height: 72vh;
+    overflow: hidden;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff, #fff9f3);
+    border: 2px solid rgba(0,0,0,0.06);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6);
+    display: flex;
+    flex-direction: column;
+}
+
+/* details header */
+.details-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.details-header h4 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #222;
+}
+.details-sub {
+    margin: 4px 0 0;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+/* panel containing the list */
+.details-panel {
+    padding: 12px 16px;
+    overflow: auto;
+    background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,250,250,0.95));
+}
+
+/* reuse similar list layout but distinct naming */
+.details-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+/* each detail section */
+.details-list li {
+    background: rgba(0,0,0,0.02);
+    border-radius: 10px;
+    padding: 8px;
+    border: 1px solid rgba(0,0,0,0.03);
+    align-content: center;
+}
+
+/* toggle button for each section */
+.detail-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-weight: 700;
+    color: #222;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: left;
+}
+
+/* small meta summary on the right of the toggle */
+.detail-summary {
+    color: #444;
+    font-weight: 600;
+    font-size: 0.90rem;
+    align-content: center;
+}
+
+/* content area for expanded details */
+.detail-content {
+    margin-top: 8px;
+    background: rgba(255,255,255,0.9);
+    padding: 8px;
+    border-radius: 8px;
+    color: #222;
+    font-size: 0.9rem;
+    line-height: 1.3;
+    display: none; /* collapsed by default */
+}
+
+/* chevron rotation */
+.detail-chevron {
+    transition: transform 160ms ease;
+}
+.detail-toggle[aria-expanded="true"] .detail-chevron { transform: rotate(90deg); }
+
+/* make list readable (bulleted lists inside content) */
+.detail-content ul { margin: 6px 0 0 18px; }
+
+/* responsive adjustments */
+@media (max-width: 920px) {
+    .resultArea { gap: 12px; }
+    .more-details { width: 100%; max-height: none; order: 2; }
+    .pokemon-card { order: 1; }
+}
+
+@media (max-width: 640px) {
+    .inputBox form {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    #userInput {
+        width: 100%;
+        max-width: 360px;
+    }
+
+    .header {
+        margin: 12px;
+    }
+}
+
+@media (max-width: 420px) {
+    .pokemon-card { width: calc(100% - 32px); }
+    .card-image img { width: 140px; height: 140px; }
+    .attrs-panel { max-height: 360px; }
 }
