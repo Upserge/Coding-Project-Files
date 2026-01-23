@@ -1,0 +1,17 @@
+<h1>{{ title }}</h1>
+<p>{{ welcomeMessage }}</p>
+<p><strong>Goal:</strong>{{ goal }}</p>
+
+<h2>We're gonna test looping here:</h2>
+@for (pet of pets; track pet) {
+@if(pet.name !== 'Cat') {
+<div class="div-box clickable" (click) = "selectPet(pet.name)">
+  <p>{{pet | json}}</p>
+</div>
+}
+@else {
+<div class="cat-div-box clickable" (click) = "selectPet(pet.name)"> 
+  <p>{{pet | json}}</p>
+</div>
+}
+}
