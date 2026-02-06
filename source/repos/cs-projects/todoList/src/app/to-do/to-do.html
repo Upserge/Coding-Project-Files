@@ -1,0 +1,23 @@
+<form [formGroup]="formGroup">
+  <div class="header">
+    <h1>To-Do List</h1>
+  </div>
+
+  <div class="input-section">
+    <input placeholder="Enter your ToDo List Item"
+           formControlName="content" />
+
+    <button (click)="createToDo()">Add To-Do Item</button>
+  </div>
+
+  @for (todo of readAllTodos(); track todo.id){
+  <div class="todo-item">
+    <input type="checkbox" />
+    <p>{{ todo.content }}</p>
+  </div>
+  }
+  @if (readAllTodos().length == 0) {
+  <p>No To-Do items yet!</p>
+  }
+
+</form>

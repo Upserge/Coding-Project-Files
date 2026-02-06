@@ -8,5 +8,5 @@ import { RouterModule } from '@angular/router';
   styleUrl: './app.css'
 })
 export class App {
-  protected readonly title = signal('book-tracker');
+  protected readonly title = signal('todoList');
 }

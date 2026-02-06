@@ -1,0 +1,22 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.input-section {
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  padding-bottom: 15px;
+}
+
+
+.todo-item {
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  padding-top: 15px;
+  border: 1px solid #ccc;
+}
