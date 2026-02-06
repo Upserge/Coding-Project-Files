@@ -1,0 +1,18 @@
+<h1>My Books</h1>
+
+@if (bookService.books.length === 0) {
+<p>No books yet — add your first one!</p>
+}
+
+@for (book of bookService.books; track book) {
+<li><strong>Title:</strong> {{book.title}}</li>
+<li><strong>Author:</strong> {{book.author}}</li>
+<li><strong>ID:</strong> {{book.id}}</li>
+<li>--------------------------</li>
+}
+
+<nav>
+  <a routerLink="/Add">+ Add a Book</a>
+</nav>
+<hr />
+<router-outlet />

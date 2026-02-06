@@ -1,0 +1,37 @@
+.addBookPageTitle {
+  text-decoration: underline;
+  text-align: center;
+  color: black;
+  margin-top: 10px;
+  border: none;
+  border-radius: 4px;
+}
+.titleInput {
+  text-align: center;
+  color: black;
+  margin-top: 10px;
+  border: none;
+  border-radius: 4px;
+}
+.authorInput {
+  text-align: center;
+  color: black;
+  margin-top: 10px;
+  border: none;
+  border-radius: 4px;
+}
+.addBookButton {
+  text-align: center;
+  color: white;
+  margin-top: 10px;
+  border: none;
+  border-radius: 4px;
+}
+
+.booksAddedCounter {
+  text-align: center;
+  color: black;
+  margin-top: 10px;
+  border: none;
+  border-radius: 4px;
+}

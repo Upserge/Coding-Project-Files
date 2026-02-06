@@ -1,0 +1,9 @@
+<p>home works!</p>
+@for (pet of firstService.pets; track pet) {
+<li>{{pet}}</li>
+}
+<input type="text"
+       [(ngModel)]="newPet"
+       placeholder="Search Pets..." />
+
+<button (click)="addPet()">Search</button>

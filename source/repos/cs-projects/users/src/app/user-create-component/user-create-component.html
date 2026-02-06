@@ -1,0 +1,27 @@
+<h1>Create New Users</h1>
+
+<div class="nameInputFields">
+  <input type="text"
+         [(ngModel)]="usersService.newFirstName"
+         placeholder="First Name" required />
+  <input type="text"
+         [(ngModel)]="usersService.newLastName"
+         placeholder="Last Name" required />
+</div>
+
+<div class="addUserButton">
+  <button (click)="usersService.createUser(usersService.newFirstName,usersService.newLastName)">Add User</button>
+</div>
+
+<!--TODO: figure out why the users aren't showing up in the Create New Users page after being added-->
+<h3>Last User Added:</h3>
+{{usersService.users}}
+<!--{{usersService.User1.firstName}}-->
+
+
+<nav>
+  <a routerLink="/Users">View Existing Users</a> |
+  <a routerLink="/Edit">Edit Existing Users</a>
+</nav>
+<hr />
+<router-outlet />

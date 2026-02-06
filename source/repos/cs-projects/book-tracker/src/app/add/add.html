@@ -1,0 +1,24 @@
+<div class="addBookPageTitle">
+  <h1>Add a book</h1>
+</div>
+<div class="titleInput">
+  <h3>Enter Title Here</h3>
+  <input type="text"
+         [(ngModel)]="bookService.newTitle"
+         placeholder="Frankenstein..." required />
+</div>
+
+<div class="authorInput">
+  <h3>Enter Author Here</h3>
+  <input type="text"
+         [(ngModel)]="bookService.newAuthor"
+         placeholder="Mary Shelley..." required />
+</div>
+
+<div class="addBookButton">
+  <button (click)="bookService.addBook()">Add Book</button>
+</div>
+
+<div class="booksAddedCounter">
+  <strong>Total books added to My List: {{bookService.books.length}}</strong>
+</div>
