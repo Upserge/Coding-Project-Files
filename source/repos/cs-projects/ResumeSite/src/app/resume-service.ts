@@ -4,6 +4,7 @@ import { CursorSpotlight } from './cursor-spotlight';
 import { MagneticButtons } from './magnetic-buttons';
 import { PerformanceMonitor } from './performance-monitor';
 import { getTechSVG, getTechLink, getProjectSVG } from './tech-icons';
+import { ParticleField } from './particle-field';
 
 export interface ContactInfo {
   email: string;
@@ -56,8 +57,8 @@ export class ResumeService {
       { title: 'Book Tracker', description: 'Reading list manager for tracking books, progress, and reviews.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/book-tracker' },
     ],
     experience: [
-      { company: 'Valorant', role: 'QA Engineer III', startDate: '2022', endDate: undefined, description: '' },
-      { company: 'Valorant', role: 'QA Engineer II', startDate: '2020', endDate: '2022', description: '' },
+      { company: 'Riot Games', role: 'QA Engineer III | Premier | VALORANT', startDate: '2022', endDate: undefined, description: '' },
+      { company: 'Riot Games', role: 'QA Engineer II | Competitive | VALORANT', startDate: '2020', endDate: '2022', description: '' },
       { company: 'ReSci', role: 'Tech Support Analyst', startDate: '2019', endDate: '2020', description: '' },
       { company: 'Manageware Solutions', role: 'Software Analyst', startDate: '2018', endDate: '2019', description: '' },
       { company: 'Mobelisk', role: 'Software/Hardware Analyst', startDate: '2017', endDate: '2018', description: '' },
@@ -85,6 +86,7 @@ export class ResumeService {
   private cursorSpotlight: CursorSpotlight | null = null;
   private magneticButtons: MagneticButtons | null = null;
   private performanceMonitor: PerformanceMonitor | null = null;
+  private particleField: ParticleField | null = null;
 
   constructor() {
     this.initTheme();
@@ -247,6 +249,8 @@ export class ResumeService {
     this.cursorSpotlight = null;
     this.magneticButtons?.destroy();
     this.magneticButtons = null;
+    this.particleField?.destroy();
+    this.particleField = null;
   }
 
   // ===== Advanced Effects Initialization =====
@@ -266,6 +270,11 @@ export class ResumeService {
   initMagneticButtons() {
     this.magneticButtons = new MagneticButtons();
     this.magneticButtons.init();
+  }
+
+  initParticleField() {
+    this.particleField = new ParticleField();
+    this.particleField.init();
   }
 
   // ===== SVG Tech Icons =====

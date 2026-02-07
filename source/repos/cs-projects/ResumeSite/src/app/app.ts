@@ -48,6 +48,7 @@ export class App {
       // Initialize advanced effects
       this.resumeService.initCursorSpotlight();
       this.resumeService.initMagneticButtons();
+      this.resumeService.initParticleField();
       this.initKeyboardShortcuts();
     }, 120);
 

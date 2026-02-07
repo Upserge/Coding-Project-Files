@@ -1,44 +1,3 @@
-
-<nav class="top-nav" [class.hidden]="isNavHidden()">
-  <div class="container nav-inner">
-    <div class="nav-links">
-      <a [class.active]="highlightedSection() === 'summary'" (click)="scrollTo('summary')">Summary</a>
-      <a [class.active]="highlightedSection() === 'technologies'" (click)="scrollTo('technologies')">Technologies</a>
-      <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
-      <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
-    </div>
-    <div class="nav-actions">
-      <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
-      <button class="link-btn" (click)="scrollToTop()">Top</button>
-    </div>
-  </div>
-</nav>
-
-<header class="resume-header">
-  <div id="hero-container">
-    <div id="lottie-holder" aria-hidden="true"></div>
-  </div>
-  <div class="container">
-    <h1 class="fancy-title">
-      <span class="letter" style="--char-index: 0">J</span><span class="letter" style="--char-index: 1">a</span><span class="letter" style="--char-index: 2">s</span><span class="letter" style="--char-index: 3">o</span><span class="letter" style="--char-index: 4">n</span><span class="name-space"> </span><span class="letter" style="--char-index: 5">S</span><span class="letter" style="--char-index: 6">a</span><span class="letter" style="--char-index: 7">l</span><span class="letter" style="--char-index: 8">a</span><span class="letter" style="--char-index: 9">s</span>
-    </h1>
-    <p class="title">{{ resume().title }}</p>
-
-    <div class="contact">
-      <a href="mailto:{{ contact().email }}">{{ contact().email }}</a>
-      <span class="sep"> • </span>
-      <a href="tel:{{ contact().phone }}">{{ contact().phone }}</a>
-      <span class="sep"> • </span>
-      <span>{{ contact().location }}</span>
-    </div>
-
-    <div class="links">
-      <button class="link-btn" *ngFor="let l of links()" (click)="openLink(l.url)">{{ l.label }}</button>
-      <button class="link-btn copy" (click)="copyEmail()">Copy Email</button>
-    </div>
-  </div>
-</header>
-
 <main class="resume-main">
     <section id="summary" class="section" [class.highlighted]="highlightedSection() === 'summary'">
       <div class="container">
@@ -112,11 +71,3 @@
       </div>
     </section>
 </main>
-
-
-<footer class="resume-footer">
-  <div class="container">
-    <p class="wiggly-text">© <span class="wiggly-char" style="--char-index: 0">J</span><span class="wiggly-char" style="--char-index: 1">a</span><span class="wiggly-char" style="--char-index: 2">s</span><span class="wiggly-char" style="--char-index: 3">o</span><span class="wiggly-char" style="--char-index: 4">n</span> <span class="wiggly-char" style="--char-index: 5">S</span><span class="wiggly-char" style="--char-index: 6">a</span><span class="wiggly-char" style="--char-index: 7">l</span><span class="wiggly-char" style="--char-index: 8">a</span><span class="wiggly-char" style="--char-index: 9">s</span></p>
-  </div>
-</footer>
-

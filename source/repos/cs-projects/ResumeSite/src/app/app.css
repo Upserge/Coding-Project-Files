@@ -3,8 +3,13 @@
 /* App component styles inspired by zachjordan.io */
 
 .resume-header{
-  padding:76px 0 48px 0;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
   text-align:center;
+  padding:40px 0;
 }
 
 #hero-container{
@@ -27,11 +32,12 @@
 /* card and reveal styles with staggered timing */
 .card{
   background:linear-gradient(135deg, rgba(124,92,255,0.06), rgba(94,234,212,0.02));
-  padding:28px;
-  border-radius:14px;
+  padding:40px;
+  border-radius:18px;
   border:1px solid rgba(255,255,255,0.08);
   backdrop-filter:blur(10px);
   box-shadow:0 8px 24px rgba(0,0,0,0.1);
+  width:100%;
 }
 .reveal{
   opacity:0;
@@ -45,26 +51,41 @@
 .tech-label{display:block}
 
 /* project card */
-.projects-list{list-style:none;padding:0;margin:16px 0 0 0;display:flex;flex-direction:column;gap:12px}
+.projects-list{
+  list-style:none;
+  padding:0;
+  margin:16px 0 0 0;
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:16px;
+}
 .project-card{
   background:rgba(124,92,255,0.04);
-  padding:14px;
-  border-radius:10px;
+  padding:20px;
+  border-radius:14px;
   border:1px solid rgba(124,92,255,0.12);
-  transition:all .3s ease;
+  transition:all .3s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor:pointer;
+  display:flex;
+  flex-direction:column;
 }
 .project-card:hover{
   background:rgba(124,92,255,0.08);
   border-color:rgba(124,92,255,0.24);
-  transform:translateX(6px);
-  box-shadow:0 8px 20px rgba(124,92,255,0.12);
+  transform:translateY(-6px) scale(1.02);
+  box-shadow:0 12px 28px rgba(124,92,255,0.15);
 }
-.project-inner{display:flex;gap:12px;align-items:flex-start}
+.project-inner{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:flex-start;
+  height:100%;
+}
 .project-icon{
-  width:36px;
-  height:36px;
-  min-width:36px;
+  width:40px;
+  height:40px;
+  min-width:40px;
   color:var(--accent);
   display:flex;
   align-items:center;
@@ -80,13 +101,19 @@
   color:#5eead4;
   transform:scale(1.15);
 }
-.project-body strong{display:block;margin-bottom:4px;color:var(--text)}
-.project-desc{font-size:14px;color:var(--muted);margin:6px 0;line-height:1.4}
+.project-body{
+  display:flex;
+  flex-direction:column;
+  flex:1;
+}
+.project-body strong{display:block;margin-bottom:4px;color:var(--text);font-size:15px}
+.project-desc{font-size:13px;color:var(--muted);margin:4px 0 auto 0;line-height:1.5}
 .project-link{
   display:inline-block;
   color:var(--accent);
   font-weight:600;
   font-size:13px;
+  margin-top:10px;
   transition:all .2s ease;
 }
 .project-link:hover{text-decoration:underline;transform:translateX(2px)}
@@ -203,7 +230,7 @@
 
 .link-btn.copy{border-style:dashed;color:var(--muted)}
 
-.resume-main{padding:28px 0 40px 0;background:transparent}
+.resume-main{padding:0;background:transparent}
 .top-nav{
   position:sticky;
   top:0;
@@ -220,12 +247,42 @@
 .top-nav .nav-links a:hover{color:var(--text)}
 .top-nav .nav-links a.active{color:var(--accent);border-bottom-color:var(--accent)}
 
-/* sections: subtle left accent borders with soft backgrounds */
-.section{padding:36px;border-radius:14px;margin-bottom:28px;background:rgba(255,255,255,0.03);box-shadow:none;transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);}
-#summary{border-left:6px solid var(--accent)}
-#technologies{border-left:6px solid #5eead4}
-#experience{border-left:6px solid #8ea2ff}
-#projects{border-left:6px solid #f59e0b}
+/* sections: large discrete viewport-filling blocks */
+.section{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  padding:80px 0;
+  border-radius:0;
+  margin-bottom:0;
+  background:transparent;
+  box-shadow:none;
+  transition:all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position:relative;
+}
+
+.section:nth-child(even){
+  background:rgba(255,255,255,0.02);
+}
+
+/* Accent top-border stripe per section */
+.section::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:60px;
+  height:4px;
+  border-radius:2px;
+  opacity:0.6;
+}
+#summary::before{background:var(--accent)}
+#technologies::before{background:#5eead4}
+#experience::before{background:#8ea2ff}
+#projects::before{background:#f59e0b}
 
 /* Highlighted section underglow effect */
 .section.highlighted {
@@ -258,7 +315,13 @@
   }
 }
 
-.section h2{margin:0 0 12px 0;color:var(--text)}
+.section h2{
+  margin:0 0 32px 0;
+  color:var(--text);
+  font-size:clamp(28px, 4vw, 42px);
+  font-weight:700;
+  letter-spacing:-0.02em;
+}
 
 .tech-list{
   display:grid;
@@ -347,7 +410,7 @@
   font-size: 13px;
 }
 
-.resume-footer{padding:8px 0;text-align:center;color:var(--muted);background:transparent;margin-top:0}
+.resume-footer{padding:40px 0;text-align:center;color:var(--muted);background:transparent;margin-top:0}
 
 /* ===== Wiggling Footer Text ===== */
 .wiggly-text {
@@ -420,14 +483,7 @@
 }
 
 /* ===== Project Cards with Spotlight & Magnetic Effects ===== */
-.project-card {
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.project-card:hover {
-  transform: translateY(-4px) scale(1.02);
-}
+/* (tile hover styles consolidated above in project card section) */
 
 /* Keyboard hints widget moved to global styles */
 
