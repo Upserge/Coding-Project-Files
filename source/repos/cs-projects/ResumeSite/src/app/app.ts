@@ -1,0 +1,159 @@
+import { Component, signal, computed, inject } from '@angular/core';
+import { ResumeService } from './resume-service';
+import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Toast } from './toast';
+import { KeyboardHintsModal } from './keyboard-hints-modal';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './app.html',
+  styleUrls: ['./app.css'],
+})
+export class App {
+  // Inject the service which manages all business logic
+  private readonly resumeService = inject(ResumeService);
+  private readonly sanitizer = inject(DomSanitizer);
+  private keyboardHintsModal: KeyboardHintsModal | null = null;
+
+  // ===== Expose Service Signals =====
+  // UI State from service
+  protected readonly isDarkMode = computed(() => this.resumeService.isDarkMode());
+  protected readonly activeSection = computed(() => this.resumeService.activeSection());
+  protected readonly isNavHidden = computed(() => this.resumeService.isNavHidden());
+  protected readonly highlightedSection = this.resumeService.highlightedSection;
+  protected readonly selectedTechnologies = this.resumeService.selectedTechnologies;
+
+  // Resume Data from service
+  protected readonly title = signal('Jason Salas');
+  protected readonly resume = signal(this.resumeService.getResume());
+
+  protected readonly contact = computed(() => this.resume().contact);
+  protected readonly links = computed(() => this.resume().links);
+  protected readonly technologies = computed(() => this.resume().technologies);
+
+  protected readonly isTechSelected = (tech: string) => this.resumeService.isTechSelected(tech);
+
+  // ===== Component Lifecycle =====
+  constructor() {
+    // Initialize service observers and animations
+    setTimeout(() => {
+      this.resumeService.initReveal();
+      this.resumeService.initActiveSectionObserver();
+      this.resumeService.initScrollListener();
+      this.resumeService.initLottie();
+
+      // Initialize advanced effects
+      this.resumeService.initCursorSpotlight();
+      this.resumeService.initMagneticButtons();
+      this.initKeyboardShortcuts();
+    }, 120);
+
+    // Enable View Transitions API for theme changes
+    if ((document as any).startViewTransition) {
+      this.enableViewTransitions();
+    }
+  }
+
+  private initKeyboardShortcuts() {
+    this.resumeService.initKeyboardShortcuts({
+      'd': () => this.toggleDarkMode(),
+      'j': () => this.resumeService.highlightAndScroll('summary'),
+      'k': () => this.resumeService.highlightAndScroll('technologies'),
+      'l': () => this.resumeService.highlightAndScroll('experience'),
+      ';': () => this.resumeService.highlightAndScroll('projects'),
+      '?': () => this.showKeyboardHints(),
+      'Escape': () => this.closeKeyboardHints(),
+    });
+  }
+
+  private enableViewTransitions() {
+    const originalToggleDarkMode = this.toggleDarkMode.bind(this);
+    this.toggleDarkMode = () => {
+      if ((document as any).startViewTransition) {
+        (document as any).startViewTransition(() => {
+          originalToggleDarkMode();
+        });
+      } else {
+        originalToggleDarkMode();
+      }
+    };
+  }
+
+  private showKeyboardHints() {
+    if (!this.keyboardHintsModal) {
+      this.keyboardHintsModal = new KeyboardHintsModal();
+    }
+    this.keyboardHintsModal.show();
+  }
+
+  private closeKeyboardHints() {
+    this.keyboardHintsModal?.close();
+  }
+
+  // ===== User Interaction Handlers =====
+  toggleTechnology(tech: string) {
+    this.resumeService.toggleTechnology(tech);
+  }
+
+  openLink(url: string) {
+    window.open(url, '_blank', 'noopener');
+  }
+
+  async copyEmail() {
+    try {
+      await navigator.clipboard.writeText(this.contact().email);
+      Toast.show('Email copied!');
+      this.resume.set(this.resumeService.getResume());
+    } catch (e) {
+      Toast.show('Failed to copy email');
+    }
+  }
+
+  scrollTo(id: string) {
+    this.resumeService.scrollTo(id);
+  }
+
+  scrollToTop() {
+    this.resumeService.scrollToTop();
+  }
+
+  // ===== Service Delegation Methods =====
+  toggleDarkMode() {
+    this.resumeService.toggleDarkMode();
+  }
+
+  getTechIcon(tech: string) {
+    return this.resumeService.getTechIcon(tech);
+  }
+
+  getTechSVG(tech: string) {
+    return this.sanitizer.bypassSecurityTrustHtml(this.resumeService.getTechSVG(tech));
+  }
+
+  getTechLink(tech: string) {
+    return this.resumeService.getTechLink(tech);
+  }
+
+  openTechLink(tech: string) {
+    const link = this.resumeService.getTechLink(tech);
+    if (link) {
+      this.openLink(link);
+    }
+  }
+
+  addSampleProject() {
+    this.resumeService.addProject({
+      title: 'Sample Project',
+      description: 'Example project added via service.',
+    });
+    this.resume.set(this.resumeService.getResume());
+  }
+
+  ngOnDestroy(): void {
+    this.resumeService.dispose();
+    this.keyboardHintsModal?.destroy();
+  }
+}

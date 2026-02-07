@@ -1,0 +1,118 @@
+
+<nav class="top-nav" [class.hidden]="isNavHidden()">
+  <div class="container nav-inner">
+    <div class="nav-links">
+      <a [class.active]="highlightedSection() === 'summary'" (click)="scrollTo('summary')">Summary</a>
+      <a [class.active]="highlightedSection() === 'technologies'" (click)="scrollTo('technologies')">Technologies</a>
+      <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
+      <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
+    </div>
+    <div class="nav-actions">
+      <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
+      <button class="link-btn" (click)="scrollToTop()">Top</button>
+    </div>
+  </div>
+</nav>
+
+<header class="resume-header">
+  <div id="hero-container">
+    <div id="lottie-holder" aria-hidden="true"></div>
+  </div>
+  <div class="container">
+    <h1 class="fancy-title">
+      <span class="letter" style="--char-index: 0">J</span><span class="letter" style="--char-index: 1">a</span><span class="letter" style="--char-index: 2">s</span><span class="letter" style="--char-index: 3">o</span><span class="letter" style="--char-index: 4">n</span><span class="name-space"> </span><span class="letter" style="--char-index: 5">S</span><span class="letter" style="--char-index: 6">a</span><span class="letter" style="--char-index: 7">l</span><span class="letter" style="--char-index: 8">a</span><span class="letter" style="--char-index: 9">s</span>
+    </h1>
+    <p class="title">{{ resume().title }}</p>
+
+    <div class="contact">
+      <a href="mailto:{{ contact().email }}">{{ contact().email }}</a>
+      <span class="sep"> • </span>
+      <a href="tel:{{ contact().phone }}">{{ contact().phone }}</a>
+      <span class="sep"> • </span>
+      <span>{{ contact().location }}</span>
+    </div>
+
+    <div class="links">
+      <button class="link-btn" *ngFor="let l of links()" (click)="openLink(l.url)">{{ l.label }}</button>
+      <button class="link-btn copy" (click)="copyEmail()">Copy Email</button>
+    </div>
+  </div>
+</header>
+
+<main class="resume-main">
+  <div class="container">
+    <section id="summary" class="section" [class.highlighted]="highlightedSection() === 'summary'">
+      <div class="card reveal" style="--delay: 0.1s">
+        <h2>Summary</h2>
+        <p>
+            I be doing stuff
+        </p>
+      </div>
+    </section>
+
+    <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
+      <div class="card reveal" style="--delay: 0.2s">
+        <h2>Technologies</h2>
+        <ul class="tech-list">
+          <li *ngFor="let t of technologies(); let i = index">
+            <button class="tech-chip reveal" [style]="'--delay: ' + (0.3 + i * 0.05) + 's'" [class.selected]="isTechSelected(t)" (click)="openTechLink(t)" title="Learn more about {{ t }}">
+              <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
+              <span class="tech-label">{{ t }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="experience" class="section" [class.highlighted]="highlightedSection() === 'experience'">
+      <div class="card reveal" style="--delay: 0.25s">
+        <h2>Experience</h2>
+        <p *ngIf="!resume().experience || resume().experience!.length === 0">Add your work experience here.</p>
+
+        <div *ngIf="resume().experience && resume().experience!.length > 0" class="experience-timeline">
+          <div *ngFor="let e of resume().experience; let i = index; let last = last" class="timeline-entry reveal" [class.timeline-last]="last" [style]="'--delay: ' + (0.3 + i * 0.1) + 's'">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+              <span class="timeline-line" *ngIf="!last"></span>
+            </div>
+            <div class="timeline-content">
+              <span class="experience-dates">{{ e.startDate }} — {{ e.endDate || 'Present' }}</span>
+              <strong class="experience-role">{{ e.role }}</strong>
+              <span class="experience-company">@ {{ e.company }}</span>
+              <p *ngIf="e.description" class="experience-desc">{{ e.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
+      <div class="card reveal" style="--delay: 0.3s">
+        <h2>Projects</h2>
+        <p *ngIf="resume().projects.length === 0">Add your notable projects here. Link to GitHub repos in the relevant entries.</p>
+
+        <ul *ngIf="resume().projects.length > 0" class="projects-list">
+          <li *ngFor="let p of resume().projects; let i = index" class="project-card reveal" [style]="'--delay: ' + (0.35 + i * 0.08) + 's'">
+            <div class="project-inner">
+              <div class="project-icon">📁</div>
+              <div class="project-body">
+                <strong>{{ p.title }}</strong>
+                <div *ngIf="p.description" class="project-desc">{{ p.description }}</div>
+                <a *ngIf="p.url" [href]="p.url" target="_blank" rel="noopener" class="project-link">→ View Project</a>
+              </div>
+            </div>
+          </li>
+        </ul>
+
+        <button (click)="addSampleProject()">Add sample project</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="resume-footer">
+  <div class="container">
+    <p class="wiggly-text">© <span class="wiggly-char" style="--char-index: 0">J</span><span class="wiggly-char" style="--char-index: 1">a</span><span class="wiggly-char" style="--char-index: 2">s</span><span class="wiggly-char" style="--char-index: 3">o</span><span class="wiggly-char" style="--char-index: 4">n</span> <span class="wiggly-char" style="--char-index: 5">S</span><span class="wiggly-char" style="--char-index: 6">a</span><span class="wiggly-char" style="--char-index: 7">l</span><span class="wiggly-char" style="--char-index: 8">a</span><span class="wiggly-char" style="--char-index: 9">s</span></p>
+  </div>
+</footer>
+
