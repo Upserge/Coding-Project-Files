@@ -89,12 +89,11 @@
     <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
       <div class="card reveal" style="--delay: 0.3s">
         <h2>Projects</h2>
-        <p *ngIf="resume().projects.length === 0">Add your notable projects here. Link to GitHub repos in the relevant entries.</p>
 
         <ul *ngIf="resume().projects.length > 0" class="projects-list">
           <li *ngFor="let p of resume().projects; let i = index" class="project-card reveal" [style]="'--delay: ' + (0.35 + i * 0.08) + 's'">
             <div class="project-inner">
-              <div class="project-icon">📁</div>
+              <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
               <div class="project-body">
                 <strong>{{ p.title }}</strong>
                 <div *ngIf="p.description" class="project-desc">{{ p.description }}</div>
@@ -103,8 +102,6 @@
             </div>
           </li>
         </ul>
-
-        <button (click)="addSampleProject()">Add sample project</button>
       </div>
     </section>
   </div>

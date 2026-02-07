@@ -3,7 +3,7 @@ import { KeyboardShortcuts } from './keyboard-shortcuts';
 import { CursorSpotlight } from './cursor-spotlight';
 import { MagneticButtons } from './magnetic-buttons';
 import { PerformanceMonitor } from './performance-monitor';
-import { getTechSVG, getTechLink } from './tech-icons';
+import { getTechSVG, getTechLink, getProjectSVG } from './tech-icons';
 
 export interface ContactInfo {
   email: string;
@@ -47,7 +47,14 @@ export class ResumeService {
     summary:
       'Results-driven software developer experienced building web applications and backend services. Strong foundation in JavaScript, Angular, Python, and SQL. Comfortable working across the stack and delivering maintainable code.',
     technologies: ['JavaScript', 'Angular', 'Python', 'SQL', 'Postman', 'JQL', 'DataBricks', 'Jenkins', 'Swagger'],
-    projects: [],
+    projects: [
+      { title: 'Resume Site', description: 'Interactive portfolio built with Angular, featuring animated timeline, keyboard shortcuts, and WebGL effects.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/ResumeSite' },
+      { title: 'PokeDex', description: 'Pokémon encyclopedia app with search, filtering, and detailed stat breakdowns.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/PokeDex' },
+      { title: 'Deck of Cards', description: 'Card game engine with shuffle, draw, and hand management mechanics.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/deckOfCards' },
+      { title: 'Number Guesser', description: 'Number guessing game with difficulty levels and score tracking.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/NumberGuesser' },
+      { title: 'Array Algorithms', description: 'Visual implementations of sorting and searching algorithms with step-by-step animations.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/ArrayAlgorithms' },
+      { title: 'Book Tracker', description: 'Reading list manager for tracking books, progress, and reviews.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/book-tracker' },
+    ],
     experience: [
       { company: 'Valorant', role: 'QA Engineer III', startDate: '2022', endDate: undefined, description: '' },
       { company: 'Valorant', role: 'QA Engineer II', startDate: '2020', endDate: '2022', description: '' },
@@ -270,6 +277,10 @@ export class ResumeService {
     return getTechLink(tech);
   }
 
+  getProjectSVG(title: string): string {
+    return getProjectSVG(title);
+  }
+
   getPerformanceVitals() {
     return this.performanceMonitor?.getVitals() ?? {};
   }
@@ -316,10 +327,6 @@ export class ResumeService {
       technologies: [...this.data.technologies],
       projects: [...this.data.projects],
     };
-  }
-
-  addProject(project: { title: string; description?: string; url?: string }) {
-    this.data.projects.push(project);
   }
 
   updateContact(contact: Partial<ContactInfo>) {

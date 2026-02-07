@@ -114,3 +114,58 @@ export function getTechLink(tech: string): string {
   if (t.includes('swagger')) return TECH_LINKS['swagger'];
   return '';
 }
+
+// ===== Project SVG Icons =====
+export const PROJECT_ICONS: { [key: string]: string } = {
+  'resume site': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="12" width="60" height="76" rx="6" fill="none" stroke="currentColor" stroke-width="3" opacity="0.8"/>
+    <line x1="32" y1="30" x2="68" y2="30" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <line x1="32" y1="42" x2="60" y2="42" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <line x1="32" y1="52" x2="64" y2="52" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <line x1="32" y1="62" x2="56" y2="62" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <circle cx="68" cy="72" r="10" fill="currentColor" opacity="0.25"/>
+    <path d="M 65 72 L 68 68 L 71 72" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>`,
+  'pokedex': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" stroke-width="3" opacity="0.8"/>
+    <line x1="12" y1="50" x2="88" y2="50" stroke="currentColor" stroke-width="3" opacity="0.6"/>
+    <circle cx="50" cy="50" r="16" fill="none" stroke="currentColor" stroke-width="3" opacity="0.8"/>
+    <circle cx="50" cy="50" r="8" fill="currentColor" opacity="0.7"/>
+  </svg>`,
+  'deck of cards': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="16" width="48" height="68" rx="6" fill="currentColor" opacity="0.15" transform="rotate(-8 42 50)"/>
+    <rect x="28" y="14" width="48" height="68" rx="6" fill="currentColor" opacity="0.25" transform="rotate(4 52 48)"/>
+    <rect x="26" y="16" width="48" height="68" rx="6" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.8"/>
+    <path d="M 50 32 C 58 24 68 32 50 48 C 32 32 42 24 50 32" fill="currentColor" opacity="0.7"/>
+  </svg>`,
+  'number guesser': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="36" fill="none" stroke="currentColor" stroke-width="3" opacity="0.3"/>
+    <text x="50" y="46" text-anchor="middle" font-size="32" font-weight="bold" fill="currentColor" opacity="0.8">?</text>
+    <text x="34" y="78" font-size="16" font-weight="bold" fill="currentColor" opacity="0.4">0</text>
+    <text x="58" y="78" font-size="16" font-weight="bold" fill="currentColor" opacity="0.4">9</text>
+    <line x1="48" y1="74" x2="52" y2="74" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+  </svg>`,
+  'array algorithms': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <text x="14" y="62" font-size="42" font-weight="bold" fill="currentColor" opacity="0.4">[</text>
+    <text x="76" y="62" font-size="42" font-weight="bold" fill="currentColor" opacity="0.4">]</text>
+    <rect x="30" y="56" width="8" height="20" rx="2" fill="currentColor" opacity="0.5"/>
+    <rect x="42" y="40" width="8" height="36" rx="2" fill="currentColor" opacity="0.6"/>
+    <rect x="54" y="48" width="8" height="28" rx="2" fill="currentColor" opacity="0.7"/>
+    <rect x="66" y="32" width="8" height="44" rx="2" fill="currentColor" opacity="0.8"/>
+    <path d="M 34 28 L 42 20 L 50 28" stroke="currentColor" stroke-width="2" fill="none" opacity="0.5" stroke-linecap="round"/>
+    <path d="M 54 28 L 62 20 L 70 28" stroke="currentColor" stroke-width="2" fill="none" opacity="0.5" stroke-linecap="round"/>
+  </svg>`,
+  'book tracker': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 50 22 L 50 82" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+    <path d="M 50 22 C 50 22 38 18 22 22 L 22 74 C 38 70 50 74 50 74" fill="currentColor" opacity="0.15" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M 50 22 C 50 22 62 18 78 22 L 78 74 C 62 70 50 74 50 74" fill="currentColor" opacity="0.25" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+    <line x1="30" y1="36" x2="44" y2="34" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+    <line x1="30" y1="46" x2="44" y2="44" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+    <line x1="30" y1="56" x2="42" y2="54" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+  </svg>`,
+};
+
+export function getProjectSVG(title: string): string {
+  const t = title.toLowerCase();
+  return PROJECT_ICONS[t] || PROJECT_ICONS['resume site'];
+}

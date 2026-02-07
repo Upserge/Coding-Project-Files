@@ -137,19 +137,15 @@ export class App {
     return this.resumeService.getTechLink(tech);
   }
 
+  getProjectSVG(title: string) {
+    return this.sanitizer.bypassSecurityTrustHtml(this.resumeService.getProjectSVG(title));
+  }
+
   openTechLink(tech: string) {
     const link = this.resumeService.getTechLink(tech);
     if (link) {
       this.openLink(link);
     }
-  }
-
-  addSampleProject() {
-    this.resumeService.addProject({
-      title: 'Sample Project',
-      description: 'Example project added via service.',
-    });
-    this.resume.set(this.resumeService.getResume());
   }
 
   ngOnDestroy(): void {

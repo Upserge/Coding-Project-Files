@@ -61,7 +61,25 @@
   box-shadow:0 8px 20px rgba(124,92,255,0.12);
 }
 .project-inner{display:flex;gap:12px;align-items:flex-start}
-.project-icon{font-size:28px;min-width:28px}
+.project-icon{
+  width:36px;
+  height:36px;
+  min-width:36px;
+  color:var(--accent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .3s ease;
+}
+.project-icon svg{
+  width:100%;
+  height:100%;
+  filter:drop-shadow(0 2px 8px rgba(124,92,255,0.15));
+}
+.project-card:hover .project-icon{
+  color:#5eead4;
+  transform:scale(1.15);
+}
 .project-body strong{display:block;margin-bottom:4px;color:var(--text)}
 .project-desc{font-size:14px;color:var(--muted);margin:6px 0;line-height:1.4}
 .project-link{
