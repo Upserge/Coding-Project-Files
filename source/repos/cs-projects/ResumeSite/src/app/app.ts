@@ -61,10 +61,10 @@ export class App {
   private initKeyboardShortcuts() {
     this.resumeService.initKeyboardShortcuts({
       'd': () => this.toggleDarkMode(),
-      'j': () => this.resumeService.highlightAndScroll('summary'),
-      'k': () => this.resumeService.highlightAndScroll('technologies'),
-      'l': () => this.resumeService.highlightAndScroll('experience'),
-      ';': () => this.resumeService.highlightAndScroll('projects'),
+      'j': () => this.resumeService.scrollTo('summary'),
+      'k': () => this.resumeService.scrollTo('technologies'),
+      'l': () => this.resumeService.scrollTo('experience'),
+      ';': () => this.resumeService.scrollTo('projects'),
       '?': () => this.showKeyboardHints(),
       'Escape': () => this.closeKeyboardHints(),
     });
@@ -83,7 +83,7 @@ export class App {
     };
   }
 
-  private showKeyboardHints() {
+  showKeyboardHints() {
     if (!this.keyboardHintsModal) {
       this.keyboardHintsModal = new KeyboardHintsModal();
     }
@@ -95,10 +95,6 @@ export class App {
   }
 
   // ===== User Interaction Handlers =====
-  toggleTechnology(tech: string) {
-    this.resumeService.toggleTechnology(tech);
-  }
-
   openLink(url: string) {
     window.open(url, '_blank', 'noopener');
   }
@@ -107,7 +103,6 @@ export class App {
     try {
       await navigator.clipboard.writeText(this.contact().email);
       Toast.show('Email copied!');
-      this.resume.set(this.resumeService.getResume());
     } catch (e) {
       Toast.show('Failed to copy email');
     }
@@ -126,16 +121,8 @@ export class App {
     this.resumeService.toggleDarkMode();
   }
 
-  getTechIcon(tech: string) {
-    return this.resumeService.getTechIcon(tech);
-  }
-
   getTechSVG(tech: string) {
     return this.sanitizer.bypassSecurityTrustHtml(this.resumeService.getTechSVG(tech));
-  }
-
-  getTechLink(tech: string) {
-    return this.resumeService.getTechLink(tech);
   }
 
   getProjectSVG(title: string) {

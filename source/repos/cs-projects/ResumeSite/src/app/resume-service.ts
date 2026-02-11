@@ -2,7 +2,6 @@ import { Injectable, signal } from '@angular/core';
 import { KeyboardShortcuts } from './keyboard-shortcuts';
 import { CursorSpotlight } from './cursor-spotlight';
 import { MagneticButtons } from './magnetic-buttons';
-import { PerformanceMonitor } from './performance-monitor';
 import { getTechSVG, getTechLink, getProjectSVG } from './tech-icons';
 import { ParticleField } from './particle-field';
 
@@ -77,26 +76,14 @@ export class ResumeService {
   // reveal observer for element reveal-on-scroll
   private revealObserver: IntersectionObserver | null = null;
 
-  // hero animation tracking
-  private heroAnimationFrame: number | null = null;
-  private heroResizeHandler: (() => void) | null = null;
-
   // advanced effects
   private keyboardShortcuts: KeyboardShortcuts | null = null;
   private cursorSpotlight: CursorSpotlight | null = null;
   private magneticButtons: MagneticButtons | null = null;
-  private performanceMonitor: PerformanceMonitor | null = null;
   private particleField: ParticleField | null = null;
 
   constructor() {
     this.initTheme();
-    this.initPerformanceMonitoring();
-  }
-
-  private initPerformanceMonitoring() {
-    this.performanceMonitor = new PerformanceMonitor();
-    this.performanceMonitor.init();
-    PerformanceMonitor.enableCSSContainment();
   }
 
   // ===== View Animations (moved from App component) =====
@@ -108,82 +95,17 @@ export class ResumeService {
           const el = e.target as HTMLElement;
           if (e.isIntersecting) {
             el.classList.add('visible');
-            if (this.revealObserver) this.revealObserver.unobserve(el);
+          } else {
+            el.classList.remove('visible');
           }
         }
       },
-      { threshold: 0.12 }
+      { threshold: 0.15, rootMargin: '-60px 0px' }
     );
 
     setTimeout(() => {
       document.querySelectorAll('.reveal').forEach((el) => this.revealObserver?.observe(el));
     }, 50);
-  }
-
-  initHero() {
-    const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null;
-    if (!canvas) return;
-    const canvasEl: HTMLCanvasElement = canvas;
-    const ctx = canvasEl.getContext('2d');
-    if (!ctx) return;
-
-    const DPR = window.devicePixelRatio || 1;
-    const resize = () => {
-      const rect = canvasEl.getBoundingClientRect();
-      canvasEl.width = Math.max(1, Math.floor(rect.width * DPR));
-      canvasEl.height = Math.max(1, Math.floor(rect.height * DPR));
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-    this.heroResizeHandler = resize;
-
-    const particles: { x: number; y: number; vx: number; vy: number; r: number }[] = [];
-    const count = 40;
-    for (let i = 0; i < count; i++) {
-      particles.push({ x: Math.random(), y: Math.random(), vx: (Math.random() - 0.5) * 0.0008, vy: (Math.random() - 0.5) * 0.0008, r: 1 + Math.random() * 2 });
-    }
-
-    const render = () => {
-      const w = canvas.width / DPR;
-      const h = canvas.height / DPR;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.scale(DPR, DPR);
-
-      const g = ctx.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, 'rgba(111,92,255,0.06)');
-      g.addColorStop(1, 'rgba(94,234,212,0.03)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-
-      ctx.globalCompositeOperation = 'lighter';
-      particles.forEach(p => {
-        p.x += p.vx * w;
-        p.y += p.vy * h;
-        if (p.x < -0.05) p.x = 1.05;
-        if (p.x > 1.05) p.x = -0.05;
-        if (p.y < -0.05) p.y = 1.05;
-        if (p.y > 1.05) p.y = -0.05;
-
-        const px = p.x * w;
-        const py = p.y * h;
-        const rad = p.r * 2;
-        const rg = ctx.createRadialGradient(px, py, 0, px, py, rad * 4);
-        rg.addColorStop(0, 'rgba(255,255,255,0.7)');
-        rg.addColorStop(0.2, 'rgba(124,92,255,0.25)');
-        rg.addColorStop(1, 'rgba(124,92,255,0)');
-        ctx.fillStyle = rg;
-        ctx.beginPath();
-        ctx.arc(px, py, rad * 4, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      ctx.restore();
-      this.heroAnimationFrame = requestAnimationFrame(render);
-    };
-
-    render();
   }
 
   async initLottie() {
@@ -235,14 +157,6 @@ export class ResumeService {
   dispose() {
     this.revealObserver?.disconnect();
     this.revealObserver = null;
-    if (this.heroAnimationFrame !== null) {
-      cancelAnimationFrame(this.heroAnimationFrame);
-      this.heroAnimationFrame = null;
-    }
-    if (this.heroResizeHandler) {
-      window.removeEventListener('resize', this.heroResizeHandler);
-      this.heroResizeHandler = null;
-    }
     this.keyboardShortcuts?.destroy();
     this.keyboardShortcuts = null;
     this.cursorSpotlight?.destroy();
@@ -290,10 +204,6 @@ export class ResumeService {
     return getProjectSVG(title);
   }
 
-  getPerformanceVitals() {
-    return this.performanceMonitor?.getVitals() ?? {};
-  }
-
   // ===== User Interaction Methods =====
   toggleTechnology(tech: string) {
     const current = this.selectedTechnologies();
@@ -323,23 +233,14 @@ export class ResumeService {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  highlightAndScroll(id: string) {
-    this.scrollTo(id);
-  }
-
   // ===== Resume Data Methods =====
   getResume(): ResumeData {
-    // Return a shallow copy to avoid accidental external mutation
     return {
       ...this.data,
       links: [...this.data.links],
       technologies: [...this.data.technologies],
       projects: [...this.data.projects],
     };
-  }
-
-  updateContact(contact: Partial<ContactInfo>) {
-    this.data.contact = { ...this.data.contact, ...contact };
   }
 
   // ===== Dark Mode Management =====
@@ -408,14 +309,4 @@ export class ResumeService {
     });
   }
 
-  // ===== Technology Icon Mapping =====
-  getTechIcon(tech: string): string {
-    const t = tech.toLowerCase();
-    if (t.includes('javascript') || t === 'js') return '🟨';
-    if (t.includes('angular')) return '🅰️';
-    if (t.includes('python')) return '🐍';
-    if (t.includes('sql')) return '🗄️';
-    if (t.includes('postman')) return '📮';
-    return '🔧';
-  }
 }

@@ -1,6 +1,5 @@
 // Cursor-following spotlight effect for interactive depth
 export class CursorSpotlight {
-  private enabled = true;
   private spotlightEl: HTMLElement | null = null;
 
   init() {

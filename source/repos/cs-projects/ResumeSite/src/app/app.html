@@ -8,6 +8,7 @@
       <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
     </div>
     <div class="nav-actions">
+      <button class="link-btn" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
       <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
       <button class="link-btn" (click)="scrollToTop()">Top</button>
     </div>
@@ -42,49 +43,43 @@
 <main class="resume-main">
     <section id="summary" class="section" [class.highlighted]="highlightedSection() === 'summary'">
       <div class="container">
-        <div class="card reveal" style="--delay: 0.1s">
-          <h2>Summary</h2>
-          <p>
-              I be doing stuff
-          </p>
-        </div>
+        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Summary</h2>
+        <p class="reveal reveal-up" style="--delay: 0.2s">
+            I be doing stuff
+        </p>
       </div>
     </section>
 
     <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
       <div class="container">
-        <div class="card reveal" style="--delay: 0.2s">
-          <h2>Technologies</h2>
-          <ul class="tech-list">
-            <li *ngFor="let t of technologies(); let i = index">
-              <button class="tech-chip reveal" [style]="'--delay: ' + (0.3 + i * 0.05) + 's'" [class.selected]="isTechSelected(t)" (click)="openTechLink(t)" title="Learn more about {{ t }}">
-                <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
-                <span class="tech-label">{{ t }}</span>
-              </button>
-            </li>
-          </ul>
-        </div>
+        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
+        <ul class="tech-list">
+          <li *ngFor="let t of technologies(); let i = index">
+            <button class="tech-chip reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.05) + 's'" [class.selected]="isTechSelected(t)" (click)="openTechLink(t)" title="Learn more about {{ t }}">
+              <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
+              <span class="tech-label">{{ t }}</span>
+            </button>
+          </li>
+        </ul>
       </div>
     </section>
 
     <section id="experience" class="section" [class.highlighted]="highlightedSection() === 'experience'">
       <div class="container">
-        <div class="card reveal" style="--delay: 0.25s">
-          <h2>Experience</h2>
-          <p *ngIf="!resume().experience || resume().experience!.length === 0">Add your work experience here.</p>
+        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Experience</h2>
+        <p *ngIf="!resume().experience || resume().experience!.length === 0" class="reveal reveal-up" style="--delay: 0.2s">Add your work experience here.</p>
 
-          <div *ngIf="resume().experience && resume().experience!.length > 0" class="experience-timeline">
-            <div *ngFor="let e of resume().experience; let i = index; let last = last" class="timeline-entry reveal" [class.timeline-last]="last" [style]="'--delay: ' + (0.3 + i * 0.1) + 's'">
-              <div class="timeline-marker">
-                <span class="timeline-dot"></span>
-                <span class="timeline-line" *ngIf="!last"></span>
-              </div>
-              <div class="timeline-content">
-                <span class="experience-dates">{{ e.startDate }} &#8212; {{ e.endDate || 'Present' }}</span>
-                <strong class="experience-role">{{ e.role }}</strong>
-                <span class="experience-company">@ {{ e.company }}</span>
-                <p *ngIf="e.description" class="experience-desc">{{ e.description }}</p>
-              </div>
+        <div *ngIf="resume().experience && resume().experience!.length > 0" class="experience-timeline">
+          <div *ngFor="let e of resume().experience; let i = index; let last = last" class="timeline-entry reveal reveal-up" [class.timeline-last]="last" [style]="'--delay: ' + (0.2 + i * 0.1) + 's'">
+            <div class="timeline-marker">
+              <span class="timeline-dot"></span>
+              <span class="timeline-line" *ngIf="!last"></span>
+            </div>
+            <div class="timeline-content">
+              <span class="experience-dates">{{ e.startDate }} &#8212; {{ e.endDate || 'Present' }}</span>
+              <strong class="experience-role">{{ e.role }}</strong>
+              <span class="experience-company">@ {{ e.company }}</span>
+              <p *ngIf="e.description" class="experience-desc">{{ e.description }}</p>
             </div>
           </div>
         </div>
@@ -93,25 +88,24 @@
 
     <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
       <div class="container">
-        <div class="card reveal" style="--delay: 0.3s">
-          <h2>Projects</h2>
+        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Projects</h2>
 
-          <ul *ngIf="resume().projects.length > 0" class="projects-list">
-            <li *ngFor="let p of resume().projects; let i = index" class="project-card reveal" [style]="'--delay: ' + (0.35 + i * 0.08) + 's'">
-              <div class="project-inner">
-                <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
-                <div class="project-body">
-                  <strong>{{ p.title }}</strong>
-                  <div *ngIf="p.description" class="project-desc">{{ p.description }}</div>
-                  <a *ngIf="p.url" [href]="p.url" target="_blank" rel="noopener" class="project-link">&#8594; View Project</a>
-                </div>
+        <ul *ngIf="resume().projects.length > 0" class="projects-list">
+          <li *ngFor="let p of resume().projects; let i = index" class="project-card reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.08) + 's'">
+            <div class="project-inner">
+              <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
+              <div class="project-body">
+                <strong>{{ p.title }}</strong>
+                <div *ngIf="p.description" class="project-desc">{{ p.description }}</div>
+                <a *ngIf="p.url" [href]="p.url" target="_blank" rel="noopener" class="project-link">&#8594; View Project</a>
               </div>
-            </li>
-          </ul>
-        </div>
+            </div>
+          </li>
+        </ul>
       </div>
     </section>
 </main>
+
 
 
 <footer class="resume-footer">
