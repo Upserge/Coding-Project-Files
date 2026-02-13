@@ -30,6 +30,14 @@ export class App {
   protected readonly title = signal('Jason Salas');
   protected readonly resume = signal(this.resumeService.getResume());
 
+  // Typewriter
+  protected readonly typedRole = signal('');
+  private readonly roles = ['Software Developer', 'Full-Stack Engineer', 'Problem Solver', 'UI Craftsman'];
+  private roleIndex = 0;
+  private charIndex = 0;
+  private isDeleting = false;
+  private typeTimer: ReturnType<typeof setTimeout> | null = null;
+
   protected readonly contact = computed(() => this.resume().contact);
   protected readonly links = computed(() => this.resume().links);
   protected readonly technologies = computed(() => this.resume().technologies);
@@ -53,6 +61,33 @@ export class App {
     // Enable View Transitions API for theme changes
     if ((document as any).startViewTransition) {
       this.enableViewTransitions();
+    }
+
+    // Start typewriter after letter animations finish
+    setTimeout(() => this.typewriterTick(), 1200);
+  }
+
+  private typewriterTick() {
+    const current = this.roles[this.roleIndex];
+    if (this.isDeleting) {
+      this.charIndex--;
+      this.typedRole.set(current.substring(0, this.charIndex));
+      if (this.charIndex === 0) {
+        this.isDeleting = false;
+        this.roleIndex = (this.roleIndex + 1) % this.roles.length;
+        this.typeTimer = setTimeout(() => this.typewriterTick(), 400);
+        return;
+      }
+      this.typeTimer = setTimeout(() => this.typewriterTick(), 35);
+    } else {
+      this.charIndex++;
+      this.typedRole.set(current.substring(0, this.charIndex));
+      if (this.charIndex === current.length) {
+        this.isDeleting = true;
+        this.typeTimer = setTimeout(() => this.typewriterTick(), 2200);
+        return;
+      }
+      this.typeTimer = setTimeout(() => this.typewriterTick(), 70);
     }
   }
 
@@ -137,5 +172,6 @@ export class App {
   ngOnDestroy(): void {
     this.resumeService.dispose();
     this.keyboardHintsModal?.destroy();
+    if (this.typeTimer) clearTimeout(this.typeTimer);
   }
 }

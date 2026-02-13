@@ -1,6 +1,6 @@
-.resume-header{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0}
-#hero-container{position:relative;width:100%;height:100px;margin-bottom:24px;display:flex;align-items:center;justify-content:center}
-#lottie-holder{position:relative;width:100px;height:100px;z-index:2}
+.resume-header{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 0;position:relative;overflow:hidden}
+#hero-container{position:relative;width:100%;height:140px;margin-bottom:32px;display:flex;align-items:center;justify-content:center}
+#lottie-holder{position:relative;width:140px;height:140px;z-index:2}
 /* card styles removed — sections are now cardless with accent dividers */
 /* ===== Parallax Fade Variants ===== */
 .reveal{opacity:0;transform:translateY(40px);transition:opacity .8s cubic-bezier(0.16,1,0.3,1) var(--delay,0s),transform .8s cubic-bezier(0.16,1,0.3,1) var(--delay,0s)}
@@ -87,16 +87,42 @@
 .project-link{display:inline-block;color:var(--accent);font-weight:600;font-size:13px;margin-top:10px;transition:all .2s ease}
 .project-link:hover{text-decoration:underline;transform:translateX(2px)}
 .resume-header .container{display:block;text-align:center}
-.resume-header .title{background:linear-gradient(135deg,var(--accent),#5eead4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 6px rgba(124,92,255,0.25));font-size:clamp(16px,2vw,20px);font-weight:500;letter-spacing:0.5px;margin:12px 0 0 0}
-.fancy-title{font-weight:700;font-size:clamp(48px,6vw,64px)!important;margin:0 0 6px 0;letter-spacing:-0.02em;position:relative;display:inline-block}
-.fancy-title::after{content:'';position:absolute;bottom:-8px;left:50%;width:0;height:3px;background:linear-gradient(90deg,var(--accent),#5eead4);transform:translateX(-50%);animation:underlineGrow .8s cubic-bezier(0.34,1.56,0.64,1) .4s forwards;border-radius:2px}
+.resume-header .title{background:linear-gradient(135deg,var(--accent),#5eead4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 6px rgba(124,92,255,0.25));font-size:clamp(20px,3vw,30px);font-weight:500;letter-spacing:0.5px;margin:16px 0 0 0;min-height:1.4em}
+.fancy-title{font-weight:700;font-size:clamp(56px,8vw,96px)!important;margin:0 0 6px 0;letter-spacing:-0.03em;position:relative;display:inline-block}
+.fancy-title::after{content:'';position:absolute;bottom:-10px;left:50%;width:0;height:3px;background:linear-gradient(90deg,var(--accent),#5eead4);transform:translateX(-50%);animation:underlineGrow .8s cubic-bezier(0.34,1.56,0.64,1) .4s forwards;border-radius:2px}
 .letter{display:inline-block;background:linear-gradient(135deg,var(--accent),#5eead4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 8px rgba(124,92,255,0.3));animation:letterSlideIn .6s cubic-bezier(0.34,1.56,0.64,1) backwards;animation-delay:calc(var(--char-index) * .08s + .1s)}
 .name-space{display:inline-block;width:0.2em}
-.contact{color:var(--muted);display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+
+/* ===== Typewriter Cursor ===== */
+.typewriter-cursor{display:inline-block;color:var(--accent);font-weight:300;animation:cursorBlink 1s step-end infinite;margin-left:1px}
+@keyframes cursorBlink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ===== Hero Accent Bar ===== */
+.hero-accent-bar{width:80px;height:3px;margin:24px auto 28px;border-radius:2px;background:linear-gradient(90deg,var(--accent),#5eead4);position:relative;overflow:hidden;opacity:0;animation:barFadeIn .8s ease 1s forwards}
+.hero-accent-bar::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent);animation:barSweep 3s ease-in-out 1.5s infinite}
+@keyframes barFadeIn{to{opacity:1}}
+@keyframes barSweep{0%{left:-100%}50%{left:200%}100%{left:200%}}
+
+/* ===== Hero Staggered Entrance ===== */
+.hero-fade{opacity:0;transform:translateY(16px);animation:heroFadeUp .8s cubic-bezier(0.16,1,0.3,1) var(--hero-delay,1s) forwards}
+@keyframes heroFadeUp{to{opacity:1;transform:translateY(0)}}
+
+/* ===== Orbital Rings ===== */
+.hero-orbit-wrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;pointer-events:none;z-index:0}
+.hero-orbit{position:absolute;top:50%;left:50%;border-radius:50%;border:1px solid rgba(124,92,255,0.06);transform:translate(-50%,-50%)}
+.hero-orbit--1{width:320px;height:320px;animation:orbitSpin 30s linear infinite}
+.hero-orbit--2{width:460px;height:460px;border-color:rgba(94,234,212,0.05);animation:orbitSpin 45s linear infinite reverse}
+.hero-orbit--3{width:580px;height:580px;border-style:dashed;border-color:rgba(124,92,255,0.04);animation:orbitSpin 60s linear infinite}
+.hero-orbit::before{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:var(--accent);top:-3px;left:50%;transform:translateX(-50%);box-shadow:0 0 10px rgba(124,92,255,0.4);opacity:0.6}
+.hero-orbit--2::before{background:#5eead4;box-shadow:0 0 10px rgba(94,234,212,0.4);width:4px;height:4px;top:-2px}
+.hero-orbit--3::before{background:rgba(124,92,255,0.5);width:3px;height:3px;top:-1.5px;opacity:0.4}
+@keyframes orbitSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+.contact{color:var(--muted);display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;font-size:15px}
 .contact a{color:var(--muted)}
 .contact a:hover{color:var(--accent);text-decoration:underline}
-.links{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-.link-btn{background:transparent;border:1px solid rgba(124,92,255,0.14);color:var(--accent);padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600;transition:all .2s ease;position:relative}
+.links{margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.link-btn{background:transparent;border:1px solid rgba(124,92,255,0.14);color:var(--accent);padding:10px 18px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;transition:all .2s ease;position:relative}
 .link-btn:hover{transform:translateY(-3px);border-color:rgba(124,92,255,0.3);box-shadow:0 6px 14px rgba(124,92,255,0.12)}
 .link-btn:active{transform:scale(0.96)}
 .link-btn.copy{border-style:dashed;color:var(--muted)}
@@ -136,5 +162,5 @@
 .experience-company{color:var(--accent);font-weight:600;font-size:14px}
 .experience-desc{font-size:14px;color:var(--muted);margin:8px 0 0 0;line-height:1.5}
 .timeline-entry:hover .timeline-content{transform:translateX(6px)}
-@media(max-width:640px){.resume-header{padding:44px 0}.timeline-content{padding:10px 0 24px 0}.experience-role{font-size:15px}}
+@media(max-width:640px){.resume-header{padding:44px 0}.timeline-content{padding:10px 0 24px 0}.experience-role{font-size:15px}.hero-orbit-wrap{width:360px;height:360px}.hero-orbit--1{width:200px;height:200px}.hero-orbit--2{width:280px;height:280px}.hero-orbit--3{width:350px;height:350px}}
 
