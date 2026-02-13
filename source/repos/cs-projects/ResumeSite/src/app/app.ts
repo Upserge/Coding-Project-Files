@@ -24,7 +24,7 @@ export class App {
   protected readonly activeSection = computed(() => this.resumeService.activeSection());
   protected readonly isNavHidden = computed(() => this.resumeService.isNavHidden());
   protected readonly highlightedSection = this.resumeService.highlightedSection;
-  protected readonly selectedTechnologies = this.resumeService.selectedTechnologies;
+  protected readonly score = computed(() => this.resumeService.score());
 
   // Resume Data from service
   protected readonly title = signal('Jason Salas');
@@ -33,8 +33,6 @@ export class App {
   protected readonly contact = computed(() => this.resume().contact);
   protected readonly links = computed(() => this.resume().links);
   protected readonly technologies = computed(() => this.resume().technologies);
-
-  protected readonly isTechSelected = (tech: string) => this.resumeService.isTechSelected(tech);
 
   // ===== Component Lifecycle =====
   constructor() {

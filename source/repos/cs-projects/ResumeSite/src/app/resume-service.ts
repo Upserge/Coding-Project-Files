@@ -70,7 +70,7 @@ export class ResumeService {
   readonly activeSection = signal<string>('');
   readonly isNavHidden = signal<boolean>(false);
   readonly highlightedSection = signal<string | null>(null);
-  readonly selectedTechnologies = signal<string[]>([]);
+  readonly score = signal<number>(0);
 
   private lastScrollY = 0;
   // reveal observer for element reveal-on-scroll
@@ -188,7 +188,9 @@ export class ResumeService {
 
   initParticleField() {
     this.particleField = new ParticleField();
-    this.particleField.init();
+    this.particleField.init(() => {
+      this.score.update(s => s + 1);
+    });
   }
 
   // ===== SVG Tech Icons =====
@@ -205,19 +207,6 @@ export class ResumeService {
   }
 
   // ===== User Interaction Methods =====
-  toggleTechnology(tech: string) {
-    const current = this.selectedTechnologies();
-    if (current.includes(tech)) {
-      this.selectedTechnologies.set(current.filter((t) => t !== tech));
-    } else {
-      this.selectedTechnologies.set([...current, tech]);
-    }
-  }
-
-  isTechSelected(tech: string): boolean {
-    return this.selectedTechnologies().includes(tech);
-  }
-
   scrollTo(id: string) {
     const el = document.getElementById(id);
     if (el) {

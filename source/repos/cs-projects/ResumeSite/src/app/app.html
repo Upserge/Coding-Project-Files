@@ -7,7 +7,8 @@
       <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
       <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
     </div>
-    <div class="nav-actions">
+    <span *ngIf="score() > 0" class="score-counter">Score: {{ score() }}</span>
+      <div class="nav-actions">
       <button class="link-btn" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
       <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
       <button class="link-btn" (click)="scrollToTop()">Top</button>
@@ -55,7 +56,7 @@
         <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
         <ul class="tech-list">
           <li *ngFor="let t of technologies(); let i = index">
-            <button class="tech-chip reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.05) + 's'" [class.selected]="isTechSelected(t)" (click)="openTechLink(t)" title="Learn more about {{ t }}">
+            <button class="tech-chip reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.05) + 's'" (click)="openTechLink(t)" title="Learn more about {{ t }}">
               <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
               <span class="tech-label">{{ t }}</span>
             </button>
