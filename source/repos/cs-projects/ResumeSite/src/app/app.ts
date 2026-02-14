@@ -32,7 +32,7 @@ export class App {
 
   // Typewriter
   protected readonly typedRole = signal('');
-  private readonly roles = ['Software Developer', 'Full-Stack Engineer', 'Problem Solver', 'UI Craftsman'];
+  private readonly roles = ['Software Developer', 'Full-Stack Engineer', 'QA Engineer', 'Problem Solver', 'Regular Dude'];
   private roleIndex = 0;
   private charIndex = 0;
   private isDeleting = false;
@@ -55,6 +55,7 @@ export class App {
       this.resumeService.initCursorSpotlight();
       this.resumeService.initMagneticButtons();
       this.resumeService.initParticleField();
+      this.resumeService.initLeaderboard();
       this.initKeyboardShortcuts();
     }, 120);
 
@@ -167,6 +168,10 @@ export class App {
     if (link) {
       this.openLink(link);
     }
+  }
+
+  showLeaderboard() {
+    this.resumeService.showLeaderboard();
   }
 
   ngOnDestroy(): void {

@@ -4,6 +4,7 @@ import { CursorSpotlight } from './cursor-spotlight';
 import { MagneticButtons } from './magnetic-buttons';
 import { getTechSVG, getTechLink, getProjectSVG } from './tech-icons';
 import { ParticleField } from './particle-field';
+import { Leaderboard } from './leaderboard';
 
 export interface ContactInfo {
   email: string;
@@ -81,6 +82,7 @@ export class ResumeService {
   private cursorSpotlight: CursorSpotlight | null = null;
   private magneticButtons: MagneticButtons | null = null;
   private particleField: ParticleField | null = null;
+  private leaderboard: Leaderboard | null = null;
 
   constructor() {
     this.initTheme();
@@ -165,6 +167,8 @@ export class ResumeService {
     this.magneticButtons = null;
     this.particleField?.destroy();
     this.particleField = null;
+    this.leaderboard?.destroy();
+    this.leaderboard = null;
   }
 
   // ===== Advanced Effects Initialization =====
@@ -190,7 +194,17 @@ export class ResumeService {
     this.particleField = new ParticleField();
     this.particleField.init(() => {
       this.score.update(s => s + 1);
+      this.leaderboard?.onScore(this.score());
     });
+  }
+
+  initLeaderboard() {
+    this.leaderboard = new Leaderboard();
+    this.leaderboard.init();
+  }
+
+  showLeaderboard() {
+    this.leaderboard?.showPanel();
   }
 
   // ===== SVG Tech Icons =====
