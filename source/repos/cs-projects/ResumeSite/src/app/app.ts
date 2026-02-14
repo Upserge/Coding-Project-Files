@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { ResumeService } from './resume-service';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
 import { Toast } from './toast';
 import { KeyboardHintsModal } from './keyboard-hints-modal';
 
@@ -21,13 +21,11 @@ export class App {
   // ===== Expose Service Signals =====
   // UI State from service
   protected readonly isDarkMode = computed(() => this.resumeService.isDarkMode());
-  protected readonly activeSection = computed(() => this.resumeService.activeSection());
   protected readonly isNavHidden = computed(() => this.resumeService.isNavHidden());
   protected readonly highlightedSection = this.resumeService.highlightedSection;
   protected readonly score = computed(() => this.resumeService.score());
 
   // Resume Data from service
-  protected readonly title = signal('Jason Salas');
   protected readonly resume = signal(this.resumeService.getResume());
 
   // Typewriter
@@ -47,7 +45,6 @@ export class App {
     // Initialize service observers and animations
     setTimeout(() => {
       this.resumeService.initReveal();
-      this.resumeService.initActiveSectionObserver();
       this.resumeService.initScrollListener();
       this.resumeService.initLottie();
 

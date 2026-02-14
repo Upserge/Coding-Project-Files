@@ -179,3 +179,10 @@
 .timeline-entry:hover .timeline-content{transform:translateX(6px)}
 @media(max-width:640px){.resume-header{padding:44px 0}.timeline-content{padding:10px 0 24px 0}.experience-role{font-size:15px}.hero-orbit-wrap{width:360px;height:360px}.hero-orbit--1{width:200px;height:200px}.hero-orbit--2{width:280px;height:280px}.hero-orbit--3{width:350px;height:350px}}
 
+/* ===== Light mode overrides ===== */
+:host-context(html[data-theme="light"]) .tech-chip{border-color:rgba(80,50,200,0.12);background:rgba(80,50,200,0.03)}
+:host-context(html[data-theme="light"]) .tech-chip:hover{border-color:rgba(80,50,200,0.3);background:rgba(80,50,200,0.07);box-shadow:0 12px 28px rgba(80,50,200,0.12)}
+:host-context(html[data-theme="light"]) .tech-icon svg{filter:drop-shadow(0 2px 8px rgba(80,50,200,0.15))}
+:host-context(html[data-theme="light"]) .summary-card{border-color:rgba(80,50,200,0.10);background:rgba(80,50,200,0.02)}
+:host-context(html[data-theme="light"]) .summary-pill{border-color:rgba(80,50,200,0.15);background:rgba(80,50,200,0.05)}
+

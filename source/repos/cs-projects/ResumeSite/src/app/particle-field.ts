@@ -23,7 +23,6 @@ export class ParticleField {
   private readonly DRIFT_SPEED = 0.15;
   private readonly PARTICLE_MIN_R = 0.6;
   private readonly PARTICLE_MAX_R = 2.8;
-  private readonly GOAL_RADIUS = 32;
   private readonly SHAKE_DURATION = 35;
   private readonly CONFETTI_COUNT = 40;
   private readonly SPAGHETTI_RADIUS = 120;
@@ -100,7 +99,19 @@ export class ParticleField {
     }
 
     for (let i = 0; i < this.GOLDEN_COUNT; i++) {
-      this.particles.push(this.createGoldenParticle());
+      const gp = this.createGoldenParticle();
+      const occupied = this.getOccupiedPositions();
+      let attempts = 0;
+      do {
+        gp.x = Math.random() * w;
+        gp.y = Math.random() * h;
+        attempts++;
+      } while (attempts < 40 && occupied.some(o => {
+        const dx = o.x - gp.x;
+        const dy = o.y - gp.y;
+        return Math.sqrt(dx * dx + dy * dy) < 250;
+      }));
+      this.particles.push(gp);
     }
   }
 
@@ -114,13 +125,24 @@ export class ParticleField {
       y: Math.random() * h,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      r: 3.2 + Math.random() * 1.2,
+      r: 4.5 + Math.random() * 1.6,
       opacity: 0.6 + Math.random() * 0.3,
       driftAngle: angle,
-      driftRate: (Math.random() - 0.5) * 0.005,
+      driftRate: (Math.random() - 0.5) * 0.025,
       golden: true,
       pushTime: 0,
     };
+  }
+
+  private getOccupiedPositions(): { x: number; y: number }[] {
+    const positions: { x: number; y: number }[] = [];
+    for (const g of this.goals) {
+      if (!g.scored) positions.push({ x: g.x, y: g.y });
+    }
+    for (const p of this.particles) {
+      if (p.golden) positions.push({ x: p.x, y: p.y });
+    }
+    return positions;
   }
 
   private spawnGoals() {
@@ -137,17 +159,27 @@ export class ParticleField {
   private createGoal(w: number, h: number, margin: number): GoalPost {
     let x: number, y: number;
     let attempts = 0;
+    const occupied = this.getOccupiedPositions();
     do {
       x = margin + Math.random() * (w - margin * 2);
       y = margin + Math.random() * (h - margin * 2);
       attempts++;
-    } while (attempts < 20 && this.goals.some(g => {
-      const dx = g.x - x;
-      const dy = g.y - y;
-      return Math.sqrt(dx * dx + dy * dy) < 200;
+    } while (attempts < 40 && occupied.concat(this.goals.filter(g => !g.scored)).some(o => {
+      const dx = o.x - x;
+      const dy = o.y - y;
+      return Math.sqrt(dx * dx + dy * dy) < 250;
     }));
 
-    return { x, y, pulsePhase: Math.random() * Math.PI * 2, scored: false, scoreTimer: 0 };
+    return {
+      x, y,
+      pulsePhase: Math.random() * Math.PI * 2,
+      scored: false,
+      scoreTimer: 0,
+      radius: 22 + Math.random() * 22,
+      diskTilt: 0.18 + Math.random() * 0.32,
+      diskAxis: Math.random() * Math.PI * 2,
+      spinSpeed: 0.2 + Math.random() * 0.25,
+    };
   }
 
   private onMouseMove = (e: MouseEvent) => {
@@ -213,6 +245,11 @@ export class ParticleField {
       } else if (p.golden && p.pushTime > 0) {
         // Decay momentum when not being pushed
         p.pushTime = Math.max(p.pushTime - 2, 0);
+        // When momentum fully decays, scatter drift angle so ship doesn't resume old heading
+        if (p.pushTime === 0) {
+          p.driftAngle = Math.random() * Math.PI * 2;
+          p.driftRate = (Math.random() - 0.5) * 0.025;
+        }
       }
 
       // Velocity with damping
@@ -221,6 +258,10 @@ export class ParticleField {
 
       // Aimless wandering
       p.driftAngle += p.driftRate;
+      // Golden particles occasionally jitter their drift direction
+      if (p.golden && Math.random() < 0.005) {
+        p.driftRate = (Math.random() - 0.5) * 0.025;
+      }
       const driftTarget = this.DRIFT_SPEED * 0.8;
       p.vx += Math.cos(p.driftAngle) * driftTarget * 0.02;
       p.vy += Math.sin(p.driftAngle) * driftTarget * 0.02;
@@ -242,25 +283,31 @@ export class ParticleField {
       if (p.y < -20) p.y = h + 20;
       if (p.y > h + 20) p.y = -20;
 
-      // Thruster trail for golden rockets when being pushed
+      // Thruster trail for Ranger when being pushed (3 nozzle ports)
       if (p.golden && p.pushTime > 3) {
         const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
         if (spd > 0.05) {
           const heading = Math.atan2(p.vy, p.vx);
-          const tailX = p.x - Math.cos(heading) * p.r * 3.5;
-          const tailY = p.y - Math.sin(heading) * p.r * 3.5;
-          const count = Math.min(Math.floor(p.pushTime / 15) + 1, 4);
-          for (let t = 0; t < count; t++) {
-            this.trails.push({
-              x: tailX + (Math.random() - 0.5) * 4,
-              y: tailY + (Math.random() - 0.5) * 4,
-              vx: -Math.cos(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.8,
-              vy: -Math.sin(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.8,
-              life: 1,
-              decay: 0.03 + Math.random() * 0.03,
-              size: 1.5 + Math.random() * 2.5,
-              hot: Math.random() > 0.4,
-            });
+          const perpX = -Math.sin(heading);
+          const perpY = Math.cos(heading);
+          const rearDist = p.r * 4.0;
+          const nozzleSpread = p.r * 1.3 * 1.8 * 1.5 * 0.22; // matches wingW * 0.22
+          const count = Math.min(Math.floor(p.pushTime / 15) + 1, 5);
+          for (let ni = -1; ni <= 1; ni++) {
+            const nx = p.x - Math.cos(heading) * rearDist + perpX * ni * nozzleSpread;
+            const ny = p.y - Math.sin(heading) * rearDist + perpY * ni * nozzleSpread;
+            for (let t = 0; t < count; t++) {
+              this.trails.push({
+                x: nx + (Math.random() - 0.5) * 3,
+                y: ny + (Math.random() - 0.5) * 3,
+                vx: -Math.cos(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.6,
+                vy: -Math.sin(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.6,
+                life: 1,
+                decay: 0.03 + Math.random() * 0.03,
+                size: 1.2 + Math.random() * 2,
+                hot: Math.random() > 0.35,
+              });
+            }
           }
         }
       }
@@ -272,7 +319,7 @@ export class ParticleField {
           const gx = p.x - goal.x;
           const gy = p.y - goal.y;
           const gd = Math.sqrt(gx * gx + gy * gy);
-          if (gd < this.GOAL_RADIUS) {
+          if (gd < goal.radius) {
             this.triggerGoal(p, goal, w, h);
           }
         }
@@ -372,78 +419,194 @@ export class ParticleField {
       ctx.rotate(heading);
       ctx.globalAlpha = p.opacity;
 
-      // Glow behind rocket
-      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, len * 2);
-      glow.addColorStop(0, 'rgba(255, 200, 80, 0.12)');
-      glow.addColorStop(1, 'rgba(255, 200, 80, 0)');
+      // Glow behind ship
+      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, len * 2.2);
+      glow.addColorStop(0, 'rgba(200, 210, 230, 0.08)');
+      glow.addColorStop(1, 'rgba(200, 210, 230, 0)');
       ctx.beginPath();
-      ctx.arc(0, 0, len * 2, 0, Math.PI * 2);
+      ctx.arc(0, 0, len * 2.2, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
-      // Body (rounded rect shape)
+      // === Ranger-inspired flat angular wedge ===
+      // Proportions: wider and flatter than a traditional rocket
+      const hw = wid * 1.8; // half-width (the ship is WIDE)
+      const noseX = len * 1.0; // nose tip
+      const rearX = -len * 0.55; // rear edge
+      const wingX = -len * 0.3; // widest point of delta wings
+      const wingW = hw * 1.5; // wing tip half-width
+
+      // --- Main hull body (center wedge) ---
       ctx.beginPath();
-      ctx.moveTo(len, 0);
-      ctx.quadraticCurveTo(len * 0.6, -wid, -len * 0.2, -wid * 0.8);
-      ctx.lineTo(-len * 0.5, -wid * 0.6);
-      ctx.lineTo(-len * 0.5, wid * 0.6);
-      ctx.lineTo(-len * 0.2, wid * 0.8);
-      ctx.quadraticCurveTo(len * 0.6, wid, len, 0);
+      ctx.moveTo(noseX, 0); // nose tip (blunted later)
+      ctx.lineTo(len * 0.4, -hw * 0.55); // upper shoulder
+      ctx.lineTo(wingX, -wingW); // upper wing tip
+      ctx.lineTo(rearX, -wingW * 0.65); // rear upper corner
+      ctx.lineTo(rearX, wingW * 0.65); // rear lower corner
+      ctx.lineTo(wingX, wingW); // lower wing tip
+      ctx.lineTo(len * 0.4, hw * 0.55); // lower shoulder
       ctx.closePath();
-      ctx.fillStyle = this.isDark ? '#e8e0f0' : '#d0c8e0';
+
+      // Thermal tile gradient (top-lit like shuttle tiles)
+      const tileGrad = ctx.createLinearGradient(0, -hw, 0, hw);
+      tileGrad.addColorStop(0, this.isDark ? '#e8e4ee' : '#dcd8e4');
+      tileGrad.addColorStop(0.3, this.isDark ? '#d8d2e2' : '#ccc6d6');
+      tileGrad.addColorStop(0.7, this.isDark ? '#c8c0d4' : '#bab2c6');
+      tileGrad.addColorStop(1, this.isDark ? '#b0a8c0' : '#a29ab4');
+      ctx.fillStyle = tileGrad;
       ctx.fill();
-      ctx.strokeStyle = this.isDark ? 'rgba(180,160,220,0.5)' : 'rgba(100,80,140,0.5)';
+      ctx.strokeStyle = this.isDark ? 'rgba(80,70,100,0.35)' : 'rgba(50,40,70,0.35)';
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+
+      // --- Dark leading edge (spine) along top ---
+      ctx.beginPath();
+      ctx.moveTo(noseX, 0);
+      ctx.lineTo(len * 0.4, -hw * 0.55);
+      ctx.lineTo(wingX, -wingW);
+      ctx.lineTo(rearX, -wingW * 0.65);
+      ctx.lineTo(rearX, -wingW * 0.5);
+      ctx.lineTo(wingX, -wingW * 0.78);
+      ctx.lineTo(len * 0.35, -hw * 0.35);
+      ctx.lineTo(noseX * 0.85, 0);
+      ctx.closePath();
+      const edgeGrad = ctx.createLinearGradient(rearX, 0, noseX, 0);
+      edgeGrad.addColorStop(0, this.isDark ? '#3a3248' : '#2a2238');
+      edgeGrad.addColorStop(1, this.isDark ? '#4a4260' : '#3a3250');
+      ctx.fillStyle = edgeGrad;
+      ctx.fill();
+
+      // --- Dark leading edge (bottom spine) ---
+      ctx.beginPath();
+      ctx.moveTo(noseX, 0);
+      ctx.lineTo(len * 0.4, hw * 0.55);
+      ctx.lineTo(wingX, wingW);
+      ctx.lineTo(rearX, wingW * 0.65);
+      ctx.lineTo(rearX, wingW * 0.5);
+      ctx.lineTo(wingX, wingW * 0.78);
+      ctx.lineTo(len * 0.35, hw * 0.35);
+      ctx.lineTo(noseX * 0.85, 0);
+      ctx.closePath();
+      ctx.fillStyle = edgeGrad;
+      ctx.fill();
+
+      // --- Hull panel seam lines (thermal tile grid) ---
+      ctx.strokeStyle = this.isDark ? 'rgba(90,80,120,0.18)' : 'rgba(60,50,90,0.18)';
+      ctx.lineWidth = 0.35;
+      // Longitudinal seams
+      for (let si = -2; si <= 2; si++) {
+        const sy = si * hw * 0.18;
+        ctx.beginPath();
+        ctx.moveTo(len * 0.6, sy * 0.6);
+        ctx.lineTo(rearX * 0.8, sy);
+        ctx.stroke();
+      }
+      // Transverse seams
+      for (let si = 0; si < 4; si++) {
+        const sx = len * 0.5 - si * len * 0.25;
+        const sw = hw * (0.3 + (3 - si) * 0.12);
+        ctx.beginPath();
+        ctx.moveTo(sx, -sw);
+        ctx.lineTo(sx, sw);
+        ctx.stroke();
+      }
+
+      // --- Blunted nose cap ---
+      ctx.beginPath();
+      ctx.moveTo(noseX, 0);
+      ctx.quadraticCurveTo(noseX * 0.92, -hw * 0.2, noseX * 0.78, -hw * 0.3);
+      ctx.quadraticCurveTo(noseX * 0.92, 0, noseX * 0.78, hw * 0.3);
+      ctx.quadraticCurveTo(noseX * 0.92, hw * 0.2, noseX, 0);
+      ctx.closePath();
+      ctx.fillStyle = this.isDark ? '#504868' : '#403858';
+      ctx.fill();
+
+      // --- Cockpit windows (cluster of small angular shapes) ---
+      const winColor = this.isDark ? 'rgba(60,180,220,0.7)' : 'rgba(40,140,180,0.7)';
+      const winFrame = this.isDark ? 'rgba(30,25,50,0.5)' : 'rgba(20,15,40,0.5)';
+      // Main forward window
+      ctx.beginPath();
+      ctx.moveTo(len * 0.55, -hw * 0.08);
+      ctx.lineTo(len * 0.42, -hw * 0.18);
+      ctx.lineTo(len * 0.28, -hw * 0.15);
+      ctx.lineTo(len * 0.28, hw * 0.15);
+      ctx.lineTo(len * 0.42, hw * 0.18);
+      ctx.lineTo(len * 0.55, hw * 0.08);
+      ctx.closePath();
+      ctx.fillStyle = winColor;
+      ctx.fill();
+      ctx.strokeStyle = winFrame;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      // Side windows (smaller)
+      for (let wi = 0; wi < 2; wi++) {
+        const wx = len * (0.15 - wi * 0.15);
+        const wy = hw * 0.22;
+        ctx.beginPath();
+        ctx.moveTo(wx + len * 0.05, -wy);
+        ctx.lineTo(wx - len * 0.03, -wy * 1.1);
+        ctx.lineTo(wx - len * 0.06, -wy * 0.85);
+        ctx.lineTo(wx - len * 0.02, -wy * 0.7);
+        ctx.closePath();
+        ctx.fillStyle = winColor;
+        ctx.fill();
+        ctx.strokeStyle = winFrame;
+        ctx.lineWidth = 0.4;
+        ctx.stroke();
+        // Mirror on bottom
+        ctx.beginPath();
+        ctx.moveTo(wx + len * 0.05, wy);
+        ctx.lineTo(wx - len * 0.03, wy * 1.1);
+        ctx.lineTo(wx - len * 0.06, wy * 0.85);
+        ctx.lineTo(wx - len * 0.02, wy * 0.7);
+        ctx.closePath();
+        ctx.fillStyle = winColor;
+        ctx.fill();
+        ctx.strokeStyle = winFrame;
+        ctx.lineWidth = 0.4;
+        ctx.stroke();
+      }
+
+      // --- Rear engine section (dark block with nozzle ports) ---
+      ctx.beginPath();
+      ctx.moveTo(rearX, -wingW * 0.5);
+      ctx.lineTo(rearX - len * 0.08, -wingW * 0.45);
+      ctx.lineTo(rearX - len * 0.08, wingW * 0.45);
+      ctx.lineTo(rearX, wingW * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = this.isDark ? '#4a4260' : '#3a3250';
+      ctx.fill();
+      ctx.strokeStyle = this.isDark ? 'rgba(60,50,80,0.4)' : 'rgba(40,30,60,0.4)';
       ctx.lineWidth = 0.5;
       ctx.stroke();
 
-      // Nose cone
-      ctx.beginPath();
-      ctx.moveTo(len, 0);
-      ctx.quadraticCurveTo(len * 0.8, -wid * 0.5, len * 0.5, -wid * 0.7);
-      ctx.quadraticCurveTo(len * 0.8, 0, len * 0.5, wid * 0.7);
-      ctx.quadraticCurveTo(len * 0.8, wid * 0.5, len, 0);
-      ctx.closePath();
-      ctx.fillStyle = '#ff4444';
-      ctx.fill();
-
-      // Top fin
-      ctx.beginPath();
-      ctx.moveTo(-len * 0.25, -wid * 0.7);
-      ctx.lineTo(-len * 0.6, -wid * 1.8);
-      ctx.lineTo(-len * 0.55, -wid * 0.5);
-      ctx.closePath();
-      ctx.fillStyle = '#ff4444';
-      ctx.fill();
-
-      // Bottom fin
-      ctx.beginPath();
-      ctx.moveTo(-len * 0.25, wid * 0.7);
-      ctx.lineTo(-len * 0.6, wid * 1.8);
-      ctx.lineTo(-len * 0.55, wid * 0.5);
-      ctx.closePath();
-      ctx.fillStyle = '#ff4444';
-      ctx.fill();
-
-      // Window
-      ctx.beginPath();
-      ctx.arc(len * 0.2, 0, wid * 0.32, 0, Math.PI * 2);
-      ctx.fillStyle = '#5bcefa';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(len * 0.17, -wid * 0.08, wid * 0.14, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.fill();
-
-      // Idle engine flicker (always visible, small)
-      if (p.pushTime <= 3) {
-        const flickLen = 2 + Math.random() * 3;
+      // Engine nozzle ports (small circles)
+      const nozzleX = rearX - len * 0.06;
+      ctx.fillStyle = this.isDark ? '#2a2238' : '#1a1228';
+      for (let ni = -1; ni <= 1; ni++) {
         ctx.beginPath();
-        ctx.moveTo(-len * 0.5, -wid * 0.3);
-        ctx.lineTo(-len * 0.5 - flickLen, 0);
-        ctx.lineTo(-len * 0.5, wid * 0.3);
-        ctx.closePath();
-        ctx.fillStyle = `rgba(255, 160, 40, ${0.3 + Math.random() * 0.3})`;
+        ctx.arc(nozzleX, ni * wingW * 0.22, wid * 0.18, 0, Math.PI * 2);
         ctx.fill();
+        // Inner glow
+        ctx.beginPath();
+        ctx.arc(nozzleX, ni * wingW * 0.22, wid * 0.1, 0, Math.PI * 2);
+        ctx.fillStyle = this.isDark ? 'rgba(80,70,100,0.4)' : 'rgba(60,50,80,0.4)';
+        ctx.fill();
+        ctx.fillStyle = this.isDark ? '#2a2238' : '#1a1228';
+      }
+
+      // --- Idle engine flicker ---
+      if (p.pushTime <= 3) {
+        const flickLen = 3 + Math.random() * 4;
+        for (let ni = -1; ni <= 1; ni++) {
+          ctx.beginPath();
+          ctx.moveTo(nozzleX, ni * wingW * 0.22 - wid * 0.1);
+          ctx.lineTo(nozzleX - flickLen, ni * wingW * 0.22);
+          ctx.lineTo(nozzleX, ni * wingW * 0.22 + wid * 0.1);
+          ctx.closePath();
+          ctx.fillStyle = `rgba(255, 160, 40, ${0.2 + Math.random() * 0.25})`;
+          ctx.fill();
+        }
       }
 
       ctx.restore();
@@ -503,6 +666,10 @@ export class ParticleField {
           const newGoal = this.createGoal(w, h, 80);
           goal.x = newGoal.x;
           goal.y = newGoal.y;
+          goal.radius = newGoal.radius;
+          goal.diskTilt = newGoal.diskTilt;
+          goal.diskAxis = newGoal.diskAxis;
+          goal.spinSpeed = newGoal.spinSpeed;
         }
         continue;
       }
@@ -512,101 +679,175 @@ export class ParticleField {
       // Skip drawing if off-screen
       if (goal.y < viewTop || goal.y > viewBottom) continue;
 
-      const r = this.GOAL_RADIUS;
+      const r = goal.radius;
       const ctx = this.ctx;
       const x = goal.x;
       const y = goal.y;
       const phase = goal.pulsePhase;
 
-      // Distortion rings — concentric warping halos
-      for (let i = 4; i >= 1; i--) {
-        const ringR = r + i * 12;
-        const ringAlpha = (0.04 / i) * (this.isDark ? 1 : 1.5);
-        ctx.beginPath();
-        ctx.arc(x, y, ringR, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(160, 120, 255, ${ringAlpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
+      // === NASA-style black hole rendering ===
+      const darkMul = this.isDark ? 1 : 1.4;
+      const diskTilt = goal.diskTilt;
+      const diskRotation = phase * goal.spinSpeed;
 
-      // Outer gravitational glow
-      const outerGlow = ctx.createRadialGradient(x, y, r * 0.8, x, y, r * 2.5);
-      outerGlow.addColorStop(0, 'rgba(100, 60, 200, 0.12)');
-      outerGlow.addColorStop(0.5, 'rgba(180, 100, 255, 0.04)');
-      outerGlow.addColorStop(1, 'rgba(180, 100, 255, 0)');
+      // Rotate entire black hole to its unique axis
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(goal.diskAxis);
+      ctx.translate(-x, -y);
+
+      // --- Gravitational lensing glow (outermost halo) ---
+      const outerGlow = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * 3);
+      outerGlow.addColorStop(0, `rgba(100, 60, 200, ${0.08 * darkMul})`);
+      outerGlow.addColorStop(0.4, `rgba(255, 140, 40, ${0.03 * darkMul})`);
+      outerGlow.addColorStop(1, 'rgba(255, 100, 20, 0)');
       ctx.beginPath();
-      ctx.arc(x, y, r * 2.5, 0, Math.PI * 2);
+      ctx.arc(x, y, r * 3, 0, Math.PI * 2);
       ctx.fillStyle = outerGlow;
       ctx.fill();
 
-      // Rotating spiral arms (accretion streams)
+      // --- Back half of accretion disk (behind the black hole) ---
+      this.drawAccretionDisk(ctx, x, y, r, phase, diskTilt, diskRotation, darkMul, 'back');
+
+      // --- Lensed light arc (back of disk bent over the top) ---
+      // In NASA renders, light from the far side bends over the top
       ctx.save();
       ctx.translate(x, y);
-      ctx.rotate(phase);
-      for (let arm = 0; arm < 3; arm++) {
-        ctx.rotate(Math.PI * 2 / 3);
+      const lensArcR = r * 1.05;
+      for (let seg = 0; seg < 80; seg++) {
+        const theta = Math.PI + (seg / 80) * Math.PI; // top half arc
+        const angOffset = diskRotation + theta;
+        // Doppler: approaching side brighter
+        const doppler = 0.5 + 0.5 * Math.sin(angOffset);
+        const brightness = doppler * (0.12 * darkMul);
+        // Temperature: inner = white-blue, outer = orange
+        const temp = seg / 80;
+        const rr = Math.floor(200 + 55 * temp);
+        const gg = Math.floor(160 + 60 * (1 - temp));
+        const bb = Math.floor(80 * (1 - temp) + 200 * Math.max(0, 0.5 - temp));
+        const lx = Math.cos(theta) * lensArcR;
+        const ly = Math.sin(theta) * lensArcR * 0.95; // slightly compressed
         ctx.beginPath();
-        for (let t = 0; t < 60; t++) {
-          const angle = t * 0.12;
-          const spiralR = r * 0.4 + t * 0.8;
-          const sx = Math.cos(angle) * spiralR;
-          const sy = Math.sin(angle) * spiralR;
-          if (t === 0) ctx.moveTo(sx, sy);
-          else ctx.lineTo(sx, sy);
-        }
-        const armAlpha = this.isDark ? 0.08 : 0.12;
-        ctx.strokeStyle = `rgba(255, 180, 60, ${armAlpha})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.arc(lx, ly, 1.5 + doppler * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rr}, ${gg}, ${bb}, ${brightness})`;
+        ctx.fill();
       }
       ctx.restore();
 
-      // Accretion disk — bright elliptical ring
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(phase * 0.7);
-      ctx.scale(1, 0.35);
-      const diskPulse = 0.9 + Math.sin(phase * 3) * 0.1;
-      const diskR = r * 1.4 * diskPulse;
-      const diskGrad = ctx.createRadialGradient(0, 0, diskR * 0.7, 0, 0, diskR);
-      diskGrad.addColorStop(0, 'rgba(255, 200, 80, 0)');
-      diskGrad.addColorStop(0.6, `rgba(255, 160, 40, ${this.isDark ? 0.15 : 0.2})`);
-      diskGrad.addColorStop(0.8, `rgba(255, 120, 20, ${this.isDark ? 0.1 : 0.15})`);
-      diskGrad.addColorStop(1, 'rgba(255, 80, 0, 0)');
-      ctx.beginPath();
-      ctx.arc(0, 0, diskR, 0, Math.PI * 2);
-      ctx.fillStyle = diskGrad;
-      ctx.fill();
-      ctx.restore();
+      // --- Photon ring (bright thin ring at the shadow boundary) ---
+      for (let ring = 0; ring < 2; ring++) {
+        const ringR = r * (1.0 + ring * 0.08);
+        const ringW = ring === 0 ? 1.2 : 0.6;
+        ctx.beginPath();
+        ctx.arc(x, y, ringR, 0, Math.PI * 2);
+        const ringAlpha = (ring === 0 ? 0.15 : 0.08) * darkMul;
+        ctx.strokeStyle = `rgba(255, 200, 140, ${ringAlpha})`;
+        ctx.lineWidth = ringW;
+        ctx.stroke();
+      }
 
-      // Photon ring — bright lensing edge
-      const lensGrad = ctx.createRadialGradient(x, y, r * 0.85, x, y, r * 1.15);
-      lensGrad.addColorStop(0, 'rgba(200, 170, 255, 0)');
-      lensGrad.addColorStop(0.4, `rgba(220, 190, 255, ${this.isDark ? 0.12 : 0.18})`);
-      lensGrad.addColorStop(0.6, `rgba(255, 220, 150, ${this.isDark ? 0.1 : 0.15})`);
-      lensGrad.addColorStop(1, 'rgba(255, 200, 100, 0)');
+      // --- Event horizon (dark core with soft edge) ---
+      const coreGrad = ctx.createRadialGradient(x, y, 0, x, y, r * 1.05);
+      coreGrad.addColorStop(0, this.isDark ? 'rgba(0, 0, 0, 0.95)' : 'rgba(10, 2, 20, 0.9)');
+      coreGrad.addColorStop(0.65, this.isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(10, 2, 20, 0.85)');
+      coreGrad.addColorStop(0.85, this.isDark ? 'rgba(5, 0, 15, 0.5)' : 'rgba(15, 5, 30, 0.4)');
+      coreGrad.addColorStop(1, 'rgba(20, 5, 40, 0)');
       ctx.beginPath();
-      ctx.arc(x, y, r * 1.15, 0, Math.PI * 2);
-      ctx.fillStyle = lensGrad;
-      ctx.fill();
-
-      // Event horizon — dark core
-      const coreGrad = ctx.createRadialGradient(x, y, 0, x, y, r);
-      coreGrad.addColorStop(0, this.isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(15, 5, 30, 0.85)');
-      coreGrad.addColorStop(0.7, this.isDark ? 'rgba(10, 0, 30, 0.7)' : 'rgba(20, 10, 40, 0.6)');
-      coreGrad.addColorStop(1, 'rgba(40, 10, 80, 0)');
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(x, y, r * 1.05, 0, Math.PI * 2);
       ctx.fillStyle = coreGrad;
       ctx.fill();
 
-      // Singularity — tiny bright point at center
-      const singPulse = 0.6 + Math.sin(phase * 5) * 0.4;
+      // --- Front half of accretion disk (in front of the black hole) ---
+      this.drawAccretionDisk(ctx, x, y, r, phase, diskTilt, diskRotation, darkMul, 'front');
+
+      // --- Lensed light arc (back of disk bent under the bottom) ---
+      ctx.save();
+      ctx.translate(x, y);
+      for (let seg = 0; seg < 80; seg++) {
+        const theta = (seg / 80) * Math.PI; // bottom half arc
+        const angOffset = diskRotation + theta;
+        const doppler = 0.5 + 0.5 * Math.sin(angOffset);
+        const brightness = doppler * (0.06 * darkMul); // dimmer secondary
+        const temp = seg / 80;
+        const rr = Math.floor(200 + 55 * temp);
+        const gg = Math.floor(140 + 40 * (1 - temp));
+        const bb = Math.floor(60 * (1 - temp) + 160 * Math.max(0, 0.5 - temp));
+        const lx = Math.cos(theta) * lensArcR;
+        const ly = Math.sin(theta) * lensArcR * 0.95;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 1.0 + doppler, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rr}, ${gg}, ${bb}, ${brightness})`;
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // --- Singularity flicker ---
+      const singPulse = 0.5 + Math.sin(phase * 6) * 0.5;
       ctx.beginPath();
-      ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 255, 255, ${singPulse * 0.3})`;
+      ctx.arc(x, y, 1, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${singPulse * 0.2})`;
       ctx.fill();
+
+      ctx.restore(); // close per-goal axis rotation
     }
+  }
+
+  private drawAccretionDisk(
+    ctx: CanvasRenderingContext2D,
+    x: number, y: number, r: number,
+    phase: number, tilt: number, rotation: number,
+    darkMul: number, half: 'front' | 'back'
+  ) {
+    // NASA-style: draw the disk as many individual elliptical ring segments
+    // with temperature gradient (hot inner = white-blue, cool outer = orange-red)
+    // and Doppler beaming (approaching side brighter)
+    const rings = 12;
+    const segments = 120;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    for (let ring = 0; ring < rings; ring++) {
+      const t = ring / rings; // 0 = inner, 1 = outer
+      const ringR = r * (1.15 + t * 1.2); // inner edge just outside event horizon
+
+      // Temperature colors: inner = white/blue-white, outer = deep orange/red
+      const rr = Math.floor(255);
+      const gg = Math.floor(255 - t * 155); // 255 → 100
+      const bb = Math.floor(255 - t * 225); // 255 → 30
+
+      // Ring width: inner rings are thinner and brighter
+      const width = (1 - t * 0.5) * 2.5;
+      const baseAlpha = (1 - t * 0.6) * 0.18 * darkMul;
+
+      for (let seg = 0; seg < segments; seg++) {
+        const theta = (seg / segments) * Math.PI * 2;
+        const totalAngle = rotation + theta;
+
+        // Determine if this segment is in the front or back half
+        const yOnEllipse = Math.sin(theta) * tilt;
+        if (half === 'back' && yOnEllipse > -0.02) continue; // back = top of tilt (behind hole)
+        if (half === 'front' && yOnEllipse < 0.02) continue; // front = bottom of tilt (in front)
+
+        // Doppler beaming: approaching side (left when rotating clockwise) is brighter
+        const doppler = 0.4 + 0.6 * (0.5 + 0.5 * Math.cos(totalAngle));
+
+        // Hotspot shimmer
+        const shimmer = 1 + 0.15 * Math.sin(phase * 8 + theta * 3 + ring);
+
+        const alpha = baseAlpha * doppler * shimmer;
+
+        const ex = Math.cos(theta) * ringR;
+        const ey = Math.sin(theta) * ringR * tilt;
+
+        ctx.beginPath();
+        ctx.arc(ex, ey, width * (0.6 + doppler * 0.4), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rr}, ${gg}, ${bb}, ${Math.min(alpha, 0.5)})`;
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
   }
 
   private drawConnections(viewTop: number, viewBottom: number) {
@@ -641,14 +882,19 @@ export class ParticleField {
     goal.scored = true;
     goal.scoreTimer = 120;
 
-    // Respawn the golden particle far from the scored goal
+    // Respawn the golden particle far from all goals and other rockets
     const newP = this.createGoldenParticle();
+    const occupied = this.getOccupiedPositions();
     let attempts = 0;
     do {
       newP.x = Math.random() * w;
       newP.y = Math.random() * h;
       attempts++;
-    } while (attempts < 15 && Math.sqrt((newP.x - goal.x) ** 2 + (newP.y - goal.y) ** 2) < 200);
+    } while (attempts < 40 && occupied.some(o => {
+      const dx = o.x - newP.x;
+      const dy = o.y - newP.y;
+      return Math.sqrt(dx * dx + dy * dy) < 200;
+    }));
     p.x = newP.x;
     p.y = newP.y;
     p.vx = newP.vx;
@@ -776,7 +1022,7 @@ export class ParticleField {
       s.life -= s.decay;
 
       // Kill if reached core or expired
-      if (s.life <= 0 || toDist < this.GOAL_RADIUS * 0.5) {
+      if (s.life <= 0 || toDist < 16) {
         this.spaghettiStreams.splice(i, 1);
         continue;
       }
@@ -877,6 +1123,10 @@ interface GoalPost {
   pulsePhase: number;
   scored: boolean;
   scoreTimer: number;
+  radius: number;
+  diskTilt: number;
+  diskAxis: number;
+  spinSpeed: number;
 }
 
 interface ConfettiPiece {

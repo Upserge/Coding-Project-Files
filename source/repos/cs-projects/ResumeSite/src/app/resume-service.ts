@@ -68,7 +68,6 @@ export class ResumeService {
 
   // UI State Signals
   readonly isDarkMode = signal<boolean>(true);
-  readonly activeSection = signal<string>('');
   readonly isNavHidden = signal<boolean>(false);
   readonly highlightedSection = signal<string | null>(null);
   readonly score = signal<number>(0);
@@ -270,24 +269,6 @@ export class ResumeService {
     } else {
       html.setAttribute('data-theme', 'light');
     }
-  }
-
-  // ===== Section Active State Tracking =====
-  initActiveSectionObserver(): void {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            this.activeSection.set((e.target as HTMLElement).id);
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
-
-    setTimeout(() => {
-      document.querySelectorAll('.section').forEach((el) => observer.observe(el));
-    }, 100);
   }
 
   // ===== Scroll Navigation Management =====

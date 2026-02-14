@@ -16,8 +16,8 @@ export class MagneticButtons {
     const btnCenterX = rect.left + rect.width / 2;
     const btnCenterY = rect.top + rect.height / 2;
     
-    const mouseX = (e as MouseEvent).clientX;
-    const mouseY = (e as MouseEvent).clientY;
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
     
     const distance = 50; // magnetic range
     const dx = mouseX - btnCenterX;
