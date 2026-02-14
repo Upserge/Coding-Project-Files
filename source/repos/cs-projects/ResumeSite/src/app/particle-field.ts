@@ -15,7 +15,7 @@ export class ParticleField {
   private onScoreCallback: (() => void) | null = null;
   private pageHeight = 0;
 
-  private readonly PARTICLE_COUNT = 160;
+  private readonly PARTICLE_COUNT = 1000;
   private readonly GOLDEN_COUNT = 3;
   private readonly GOAL_COUNT = 6;
   private readonly REPULSE_RADIUS = 120;
@@ -26,8 +26,10 @@ export class ParticleField {
   private readonly GOAL_RADIUS = 32;
   private readonly SHAKE_DURATION = 35;
   private readonly CONFETTI_COUNT = 40;
+  private readonly SPAGHETTI_RADIUS = 120;
   private confetti: ConfettiPiece[] = [];
   private trails: TrailPiece[] = [];
+  private spaghettiStreams: SpaghettiStream[] = [];
 
   init(onScore?: () => void) {
     this.onScoreCallback = onScore ?? null;
@@ -276,9 +278,45 @@ export class ParticleField {
         }
       }
 
+      // Spaghettification: find nearest active black hole and compute stretch
+      let spaghettiGoal: GoalPost | null = null;
+      let spaghettiDist = Infinity;
+      for (const goal of this.goals) {
+        if (goal.scored) continue;
+        const gx = p.x - goal.x;
+        const gy = p.y - goal.y;
+        const gd = Math.sqrt(gx * gx + gy * gy);
+        if (gd < this.SPAGHETTI_RADIUS && gd < spaghettiDist) {
+          spaghettiDist = gd;
+          spaghettiGoal = goal;
+        }
+      }
+
+      // Spawn spaghetti stream particles for objects being pulled in
+      if (spaghettiGoal && spaghettiDist < this.SPAGHETTI_RADIUS * 0.8) {
+        const t = 1 - spaghettiDist / (this.SPAGHETTI_RADIUS * 0.8);
+        if (Math.random() < t * (p.golden ? 0.6 : 0.15)) {
+          const angle = Math.atan2(spaghettiGoal.y - p.y, spaghettiGoal.x - p.x);
+          const spd = 1.5 + t * 4;
+          this.spaghettiStreams.push({
+            x: p.x,
+            y: p.y,
+            vx: Math.cos(angle) * spd + (Math.random() - 0.5) * 0.5,
+            vy: Math.sin(angle) * spd + (Math.random() - 0.5) * 0.5,
+            life: 1,
+            decay: 0.025 + Math.random() * 0.025,
+            width: p.golden ? 2 + t * 3 : 0.5 + t * 1.5,
+            length: p.golden ? 8 + t * 16 : 3 + t * 8,
+            color: p.golden ? 'rgba(255, 200, 80,' : (this.isDark ? 'rgba(124, 92, 255,' : 'rgba(80, 50, 200,'),
+            goalX: spaghettiGoal.x,
+            goalY: spaghettiGoal.y,
+          });
+        }
+      }
+
       // Only draw particles near the viewport
       if (p.y > viewTop && p.y < viewBottom) {
-        this.drawParticle(p);
+        this.drawParticle(p, spaghettiGoal, spaghettiDist);
       }
     }
 
@@ -291,12 +329,30 @@ export class ParticleField {
     // Update and draw thruster trails
     this.updateTrails();
 
+    // Update and draw spaghetti streams
+    this.updateSpaghettiStreams();
+
+    // Cursor spaghettification
+    this.updateCursorSpaghetti(mousePageX, mousePageY);
+
     this.ctx.restore();
     this.animationFrame = requestAnimationFrame(this.render);
   };
 
-  private drawParticle(p: Particle) {
+  private drawParticle(p: Particle, spagGoal: GoalPost | null, spagDist: number) {
     if (!this.ctx) return;
+
+    // Compute spaghettification stretch
+    let stretchX = 1;
+    let stretchY = 1;
+    let stretchAngle = 0;
+    if (spagGoal && spagDist < this.SPAGHETTI_RADIUS) {
+      const t = 1 - spagDist / this.SPAGHETTI_RADIUS;
+      const intensity = t * t; // quadratic ramp
+      stretchAngle = Math.atan2(spagGoal.y - p.y, spagGoal.x - p.x);
+      stretchX = 1 + intensity * 2.5; // stretch toward hole
+      stretchY = 1 - intensity * 0.5; // compress perpendicular
+    }
 
     if (p.golden) {
       const ctx = this.ctx;
@@ -307,6 +363,12 @@ export class ParticleField {
 
       ctx.save();
       ctx.translate(p.x, p.y);
+      // Apply spaghettification before rocket rotation
+      if (spagGoal) {
+        ctx.rotate(stretchAngle);
+        ctx.scale(stretchX, stretchY);
+        ctx.rotate(-stretchAngle);
+      }
       ctx.rotate(heading);
       ctx.globalAlpha = p.opacity;
 
@@ -397,6 +459,16 @@ export class ParticleField {
         ? `rgba(255, 255, 255, ${p.opacity * 0.6})`
         : `rgba(60, 30, 180, ${p.opacity * 0.9})`;
 
+      // Apply spaghettification stretch for normal particles
+      if (spagGoal) {
+        this.ctx.save();
+        this.ctx.translate(p.x, p.y);
+        this.ctx.rotate(stretchAngle);
+        this.ctx.scale(stretchX, stretchY);
+        this.ctx.rotate(-stretchAngle);
+        this.ctx.translate(-p.x, -p.y);
+      }
+
       const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
       gradient.addColorStop(0, glowPrimary);
       gradient.addColorStop(0.4, glowSecondary);
@@ -411,6 +483,10 @@ export class ParticleField {
       this.ctx.arc(p.x, p.y, p.r * 0.6, 0, Math.PI * 2);
       this.ctx.fillStyle = coreColor;
       this.ctx.fill();
+
+      if (spagGoal) {
+        this.ctx.restore();
+      }
     }
   }
 
@@ -680,6 +756,92 @@ export class ParticleField {
     }
   }
 
+  private updateSpaghettiStreams() {
+    if (!this.ctx || this.spaghettiStreams.length === 0) return;
+
+    for (let i = this.spaghettiStreams.length - 1; i >= 0; i--) {
+      const s = this.spaghettiStreams[i];
+
+      // Accelerate toward black hole
+      const toX = s.goalX - s.x;
+      const toY = s.goalY - s.y;
+      const toDist = Math.sqrt(toX * toX + toY * toY);
+      if (toDist > 2) {
+        s.vx += (toX / toDist) * 0.4;
+        s.vy += (toY / toDist) * 0.4;
+      }
+
+      s.x += s.vx;
+      s.y += s.vy;
+      s.life -= s.decay;
+
+      // Kill if reached core or expired
+      if (s.life <= 0 || toDist < this.GOAL_RADIUS * 0.5) {
+        this.spaghettiStreams.splice(i, 1);
+        continue;
+      }
+
+      // Draw elongated streak toward hole
+      const heading = Math.atan2(s.vy, s.vx);
+      const speed = Math.sqrt(s.vx * s.vx + s.vy * s.vy);
+      const tailX = s.x - Math.cos(heading) * s.length * (0.5 + speed * 0.3);
+      const tailY = s.y - Math.sin(heading) * s.length * (0.5 + speed * 0.3);
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(tailX, tailY);
+      this.ctx.lineTo(s.x, s.y);
+      this.ctx.strokeStyle = s.color + (s.life * 0.6) + ')';
+      this.ctx.lineWidth = s.width * s.life;
+      this.ctx.lineCap = 'round';
+      this.ctx.stroke();
+    }
+
+    // Limit max streams for performance
+    if (this.spaghettiStreams.length > 200) {
+      this.spaghettiStreams.splice(0, this.spaghettiStreams.length - 200);
+    }
+  }
+
+  private updateCursorSpaghetti(mousePageX: number, mousePageY: number) {
+    const spotlight = document.getElementById('cursor-spotlight');
+    if (!spotlight) return;
+
+    let nearestGoal: GoalPost | null = null;
+    let nearestDist = Infinity;
+    for (const goal of this.goals) {
+      if (goal.scored) continue;
+      const dx = mousePageX - goal.x;
+      const dy = mousePageY - goal.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < this.SPAGHETTI_RADIUS * 1.5 && d < nearestDist) {
+        nearestDist = d;
+        nearestGoal = goal;
+      }
+    }
+
+    if (nearestGoal && nearestDist < this.SPAGHETTI_RADIUS * 1.5) {
+      const scrollY = window.scrollY;
+      const t = 1 - nearestDist / (this.SPAGHETTI_RADIUS * 1.5);
+      const intensity = t * t;
+      const angle = Math.atan2(nearestGoal.y - mousePageY, nearestGoal.x - mousePageX);
+      const angleDeg = angle * 180 / Math.PI;
+      const scaleX = 1 + intensity * 2.0;
+      const scaleY = 1 - intensity * 0.4;
+      // Pull spotlight toward hole
+      const pullX = Math.cos(angle) * intensity * 30;
+      const pullY = Math.sin(angle) * intensity * 30;
+      const cx = this.mouse.x + pullX;
+      const cy = this.mouse.y + pullY;
+      spotlight.style.left = cx + 'px';
+      spotlight.style.top = cy + 'px';
+      spotlight.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) scale(${scaleX}, ${scaleY}) rotate(${-angleDeg}deg)`;
+      spotlight.style.transition = 'none';
+    } else {
+      spotlight.style.transform = 'translate(-50%, -50%)';
+      spotlight.style.transition = 'opacity 0.3s ease';
+    }
+  }
+
   destroy() {
     if (this.animationFrame !== null) {
       cancelAnimationFrame(this.animationFrame);
@@ -740,4 +902,18 @@ interface TrailPiece {
   decay: number;
   size: number;
   hot: boolean;
+}
+
+interface SpaghettiStream {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  decay: number;
+  width: number;
+  length: number;
+  color: string;
+  goalX: number;
+  goalY: number;
 }
