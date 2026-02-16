@@ -5,9 +5,6 @@
 function reverseArray(inputArray) {
     reversedArray = [];
     for (i = inputArray.length - 1; i >= 0; i -= 1) {
-        // console.log("i is " + i);
-        // console.log(inputArray[i]);
-
         reversedArray.push(inputArray[i])
     }
 
