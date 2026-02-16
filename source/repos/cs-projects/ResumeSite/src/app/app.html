@@ -7,8 +7,10 @@
       <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
       <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
     </div>
-    <span *ngIf="score() > 0" class="score-counter" (click)="showLeaderboard()" title="View leaderboard">🏆 {{ score() }}</span>
-      <div class="nav-actions">
+    @if (score() > 0) {
+      <span class="score-counter" (click)="showLeaderboard()" title="View leaderboard">🏆 {{ score() }}</span>
+    }
+    <div class="nav-actions">
       <button class="link-btn" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
       <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
       <button class="link-btn" (click)="scrollToTop()">Top</button>
@@ -43,102 +45,124 @@
     </div>
 
     <div class="links hero-fade" style="--hero-delay: 1.5s">
-      <button class="link-btn" *ngFor="let l of links()" (click)="openLink(l.url)">{{ l.label }}</button>
+      @for (l of links(); track l) {
+        <button class="link-btn" (click)="openLink(l.url)">{{ l.label }}</button>
+      }
       <button class="link-btn copy" (click)="copyEmail()">Copy Email</button>
     </div>
   </div>
 </header>
 
 <main class="resume-main">
-    <section id="summary" class="section" [class.highlighted]="highlightedSection() === 'summary'">
-      <div class="container">
-        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Summary</h2>
-        <p class="summary-lead reveal reveal-up" style="--delay: 0.2s">
-          10+ years shipping software across startups, aerospace, and gaming.
-        </p>
-        <div class="summary-pills reveal reveal-up" style="--delay: 0.35s">
-          <span class="summary-pill">SpaceX</span>
-          <span class="summary-pill">Riot Games</span>
-          <span class="summary-pill">VALORANT</span>
-          <span class="summary-pill">Startups</span>
-          <span class="summary-pill">Mobile</span>
-          <span class="summary-pill">Medical</span>
-        </div>
-        <div class="summary-cards">
-          <div class="summary-card reveal reveal-scale" style="--delay: 0.4s">
-            <span class="summary-card-icon">&#128640;</span>
-            <strong>Breadth</strong>
-            <p>Startups in mobile and medical, aerospace at SpaceX, and 6 years on one of the biggest competitive games in the world.</p>
-          </div>
-          <div class="summary-card reveal reveal-scale" style="--delay: 0.55s">
-            <span class="summary-card-icon">&#128295;</span>
-            <strong>Builder</strong>
-            <p>I write code to solve problems, automate pain points, and make systems more reliable &#8212; whether that's a test framework or a full-stack app.</p>
-          </div>
-          <div class="summary-card reveal reveal-scale" style="--delay: 0.7s">
-            <span class="summary-card-icon">&#127919;</span>
-            <strong>Craftsmanship</strong>
-            <p>Shipped systems to millions of players who notice every flaw. That standard shapes how I architect, test, and deliver everything I build.</p>
-          </div>
-        </div>
-        <p class="summary-cta reveal reveal-up" style="--delay: 0.85s">Now looking for the next thing worth building.</p>
+  <section id="summary" class="section" [class.highlighted]="highlightedSection() === 'summary'">
+    <div class="container">
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Summary</h2>
+      <p class="summary-lead reveal reveal-up" style="--delay: 0.2s">
+        10+ years shipping software across startups, aerospace, and gaming.
+      </p>
+      <div class="summary-pills reveal reveal-up" style="--delay: 0.35s">
+        <span class="summary-pill">SpaceX</span>
+        <span class="summary-pill">Riot Games</span>
+        <span class="summary-pill">VALORANT</span>
+        <span class="summary-pill">Startups</span>
+        <span class="summary-pill">Mobile</span>
+        <span class="summary-pill">Medical</span>
       </div>
-    </section>
+      <div class="summary-cards">
+        <div class="summary-card reveal reveal-scale" style="--delay: 0.4s">
+          <span class="summary-card-icon">&#128640;</span>
+          <strong>Breadth</strong>
+          <p>Startups in mobile and medical, aerospace at SpaceX, and 6 years on one of the biggest competitive games in the world.</p>
+        </div>
+        <div class="summary-card reveal reveal-scale" style="--delay: 0.55s">
+          <span class="summary-card-icon">&#128295;</span>
+          <strong>Builder</strong>
+          <p>I write code to solve problems, automate pain points, and make systems more reliable &#8212; whether that's a test framework or a full-stack app.</p>
+        </div>
+        <div class="summary-card reveal reveal-scale" style="--delay: 0.7s">
+          <span class="summary-card-icon">&#127919;</span>
+          <strong>Craftsmanship</strong>
+          <p>Shipped systems to millions of players who notice every flaw. That standard shapes how I architect, test, and deliver everything I build.</p>
+        </div>
+      </div>
+      <p class="summary-cta reveal reveal-up" style="--delay: 0.85s">Now looking for the next thing worth building.</p>
+    </div>
+  </section>
 
-    <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
-      <div class="container">
-        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
-        <ul class="tech-list">
-          <li *ngFor="let t of technologies(); let i = index">
+  <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
+    <div class="container">
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
+      <ul class="tech-list">
+        @for (t of technologies(); track t; let i = $index) {
+          <li>
             <button class="tech-chip reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.05) + 's'" (click)="openTechLink(t)" title="Learn more about {{ t }}">
               <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
               <span class="tech-label">{{ t }}</span>
             </button>
           </li>
-        </ul>
-      </div>
-    </section>
+        }
+      </ul>
+    </div>
+  </section>
 
-    <section id="experience" class="section" [class.highlighted]="highlightedSection() === 'experience'">
-      <div class="container">
-        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Experience</h2>
-        <p *ngIf="!resume().experience || resume().experience!.length === 0" class="reveal reveal-up" style="--delay: 0.2s">Add your work experience here.</p>
+  <section id="experience" class="section" [class.highlighted]="highlightedSection() === 'experience'">
+    <div class="container">
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Experience</h2>
+      @if (!resume().experience || resume().experience!.length === 0) {
+        <p class="reveal reveal-up" style="--delay: 0.2s">Add your work experience here.</p>
+      }
 
-        <div *ngIf="resume().experience && resume().experience!.length > 0" class="experience-timeline">
-          <div *ngFor="let e of resume().experience; let i = index; let last = last" class="timeline-entry reveal reveal-up" [class.timeline-last]="last" [style]="'--delay: ' + (0.2 + i * 0.1) + 's'">
-            <div class="timeline-marker">
-              <span class="timeline-dot"></span>
-              <span class="timeline-line" *ngIf="!last"></span>
-            </div>
-            <div class="timeline-content">
-              <span class="experience-dates">{{ e.startDate }} &#8212; {{ e.endDate || 'Present' }}</span>
-              <strong class="experience-role">{{ e.role }}</strong>
-              <span class="experience-company">@ {{ e.company }}</span>
-              <p *ngIf="e.description" class="experience-desc">{{ e.description }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
-      <div class="container">
-        <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Projects</h2>
-
-        <ul *ngIf="resume().projects.length > 0" class="projects-list">
-          <li *ngFor="let p of resume().projects; let i = index" class="project-card reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.08) + 's'">
-            <div class="project-inner">
-              <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
-              <div class="project-body">
-                <strong>{{ p.title }}</strong>
-                <div *ngIf="p.description" class="project-desc">{{ p.description }}</div>
-                <a *ngIf="p.url" [href]="p.url" target="_blank" rel="noopener" class="project-link">&#8594; View Project</a>
+      @if (resume().experience && resume().experience!.length > 0) {
+        <div class="experience-timeline">
+          @for (e of resume().experience; track e; let i = $index; let last = $last) {
+            <div class="timeline-entry reveal reveal-up" [class.timeline-last]="last" [style]="'--delay: ' + (0.2 + i * 0.1) + 's'">
+              <div class="timeline-marker">
+                <span class="timeline-dot"></span>
+                @if (!last) {
+                  <span class="timeline-line"></span>
+                }
+              </div>
+              <div class="timeline-content">
+                <span class="experience-dates">{{ e.startDate }} &#8212; {{ e.endDate || 'Present' }}</span>
+                <strong class="experience-role">{{ e.role }}</strong>
+                <span class="experience-company">@ {{ e.company }}</span>
+                @if (e.description) {
+                  <p class="experience-desc">{{ e.description }}</p>
+                }
               </div>
             </div>
-          </li>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
+    <div class="container">
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Projects</h2>
+
+      @if (resume().projects.length > 0) {
+        <ul class="projects-list">
+          @for (p of resume().projects; track p; let i = $index) {
+            <li class="project-card reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.08) + 's'">
+              <div class="project-inner">
+                <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
+                <div class="project-body">
+                  <strong>{{ p.title }}</strong>
+                  @if (p.description) {
+                    <div class="project-desc">{{ p.description }}</div>
+                  }
+                  @if (p.url) {
+                    <a [href]="p.url" target="_blank" rel="noopener" class="project-link">&#8594; View Project</a>
+                  }
+                </div>
+              </div>
+            </li>
+          }
         </ul>
-      </div>
-    </section>
+      }
+    </div>
+  </section>
 </main>
 
 
