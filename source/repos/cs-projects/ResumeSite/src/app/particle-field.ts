@@ -15,7 +15,7 @@ export class ParticleField {
   private onScoreCallback: (() => void) | null = null;
   private pageHeight = 0;
 
-  private readonly PARTICLE_COUNT = 1000;
+  private readonly PARTICLE_COUNT = 2000;
   private readonly GOLDEN_COUNT = 3;
   private readonly GOAL_COUNT = 6;
   private readonly REPULSE_RADIUS = 120;
@@ -24,7 +24,7 @@ export class ParticleField {
   private readonly PARTICLE_MIN_R = 0.6;
   private readonly PARTICLE_MAX_R = 2.8;
   private readonly SHAKE_DURATION = 35;
-  private readonly CONFETTI_COUNT = 40;
+  private readonly CONFETTI_COUNT = 60;
   private readonly SPAGHETTI_RADIUS = 120;
   private confetti: ConfettiPiece[] = [];
   private trails: TrailPiece[] = [];

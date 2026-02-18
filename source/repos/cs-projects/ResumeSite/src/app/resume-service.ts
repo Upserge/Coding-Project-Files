@@ -57,12 +57,12 @@ export class ResumeService {
       { title: 'Book Tracker', description: 'Reading list manager for tracking books, progress, and reviews.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/book-tracker' },
     ],
     experience: [
-      { company: 'Riot Games', role: 'QA Engineer III | Premier | VALORANT', startDate: '2022', endDate: undefined, description: '' },
-      { company: 'Riot Games', role: 'QA Engineer II | Competitive | VALORANT', startDate: '2020', endDate: '2022', description: '' },
-      { company: 'ReSci', role: 'Tech Support Analyst', startDate: '2019', endDate: '2020', description: '' },
-      { company: 'Manageware Solutions', role: 'Software Analyst', startDate: '2018', endDate: '2019', description: '' },
-      { company: 'Mobelisk', role: 'Software/Hardware Analyst', startDate: '2017', endDate: '2018', description: '' },
-      { company: 'SpaceX', role: 'Intern', startDate: '2014', endDate: '2014', description: '' },
+      { company: 'Riot Games', role: 'QA Engineer III | Premier | VALORANT', startDate: '2022', endDate: undefined, description: 'QA Engineering Lead for Premier features' },
+      { company: 'Riot Games', role: 'QA Engineer II | Competitive | VALORANT', startDate: '2020', endDate: '2022', description: 'QA Engineering Lead for Competitive features' },
+      { company: 'ReSci', role: 'Tech Analyst', startDate: '2019', endDate: '2020', description: 'Solved technical problems for clients who utilized Retention Science and created internal tools for CSM and Sales Engineers to optimize their workflow.' },
+      { company: 'Manageware Solutions', role: 'Software Analyst', startDate: '2018', endDate: '2019', description: 'Specialized in debugging, system reliability, SQL/data analysis, feature implementation, and automation engineering for Medical software.' },
+      { company: 'Mobelisk', role: 'Software/Hardware Analyst', startDate: '2017', endDate: '2018', description: 'Engineer specializing in firmware validation, IoT systems testing, QA engineering, PCB/software deployment, and prototype development.' },
+      { company: 'SpaceX', role: 'CS Intern', startDate: '2014', endDate: '2014', description: 'CS internship at SpaceX facility in Hawthorne, specifically focused on supply chain system prototyping.' },
     ],
   };
 
