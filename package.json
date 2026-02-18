@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/Upserge/Coding-Project-Files#readme",
   "dependencies": {
+    "@angular/fire": "^20.0.1",
+    "firebase": "^11.10.0",
     "rxjs": "^7.8.2"
   }
 }
