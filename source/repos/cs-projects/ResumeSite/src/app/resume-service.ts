@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { Firestore } from '@angular/fire/firestore';
 import { KeyboardShortcuts } from './keyboard-shortcuts';
 import { CursorSpotlight } from './cursor-spotlight';
 import { MagneticButtons } from './magnetic-buttons';
@@ -82,6 +83,8 @@ export class ResumeService {
   private magneticButtons: MagneticButtons | null = null;
   private particleField: ParticleField | null = null;
   private leaderboard: Leaderboard | null = null;
+
+  private readonly firestore = inject(Firestore);
 
   constructor() {
     this.initTheme();
@@ -198,8 +201,14 @@ export class ResumeService {
   }
 
   initLeaderboard() {
-    this.leaderboard = new Leaderboard();
-    this.leaderboard.init();
+    this.leaderboard = new Leaderboard(this.firestore);
+    this.leaderboard.init((storedBest) => {
+      // Seed the score counter from Firestore so it's always cumulative.
+      // Only apply if the player hasn't already scored in this session.
+      if (storedBest > 0 && this.score() === 0) {
+        this.score.set(storedBest);
+      }
+    });
   }
 
   showLeaderboard() {

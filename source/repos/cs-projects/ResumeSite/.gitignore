@@ -4,6 +4,7 @@
 /tmp
 /out-tsc
 /bazel-out
+/dist
 
 # Node
 /node_modules
@@ -40,3 +41,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Security
+.environment.ts
+src/environments/

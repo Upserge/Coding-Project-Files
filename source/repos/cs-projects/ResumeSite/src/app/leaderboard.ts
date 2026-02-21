@@ -1,5 +1,15 @@
-// Leaderboard system with localStorage persistence and subtle name prompt
-// Designed for easy backend migration (Firebase/Supabase) later
+// Leaderboard system with Firestore persistence and subtle name prompt
+import {
+  Firestore,
+  collection,
+  doc,
+  setDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  limit,
+  Unsubscribe,
+} from '@angular/fire/firestore';
 
 export interface LeaderboardEntry {
   name: string;
@@ -13,12 +23,40 @@ export class Leaderboard {
   private playerName: string | null = null;
   private hasPrompted = false;
   private currentRunScore = 0;
-  private readonly STORAGE_KEY = 'rocketLeaderboard';
   private readonly NAME_KEY = 'rocketPlayerName';
   private readonly MAX_ENTRIES = 20;
+  private readonly COLLECTION = 'leaderboard';
+  private cachedEntries: LeaderboardEntry[] = [];
+  private unsubscribe: Unsubscribe | null = null;
+  private snapshotReady = false;
+  private playerBest = 0;
 
-  init() {
+  constructor(private firestore: Firestore) {}
+
+  init(onBestLoaded?: (best: number) => void) {
     this.playerName = localStorage.getItem(this.NAME_KEY);
+    const q = query(
+      collection(this.firestore, this.COLLECTION),
+      orderBy('score', 'desc'),
+      limit(this.MAX_ENTRIES)
+    );
+    let initialLoadDone = false;
+    this.unsubscribe = onSnapshot(q, snapshot => {
+      this.cachedEntries = snapshot.docs.map(d => d.data() as LeaderboardEntry);
+      this.snapshotReady = true;
+      const own = this.cachedEntries.find(e => e.name === this.playerName);
+      if (own && own.score > this.playerBest) {
+        this.playerBest = own.score;
+      }
+      // Fire once so the caller can seed their score counter from the stored total
+      if (!initialLoadDone) {
+        initialLoadDone = true;
+        onBestLoaded?.(this.playerBest);
+      }
+      if (this.panel?.classList.contains('visible')) {
+        this.refreshPanel();
+      }
+    });
   }
 
   onScore(newScore: number) {
@@ -52,6 +90,7 @@ export class Leaderboard {
           <input type="text" class="name-prompt-input" placeholder="Your name" maxlength="20" spellcheck="false" autocomplete="off" />
           <button class="name-prompt-submit">→</button>
         </div>
+        <span class="name-prompt-error"></span>
         <button class="name-prompt-dismiss">Maybe later</button>
       </div>
     `;
@@ -67,17 +106,27 @@ export class Leaderboard {
     const input = this.prompt.querySelector('.name-prompt-input') as HTMLInputElement;
     const submit = this.prompt.querySelector('.name-prompt-submit') as HTMLButtonElement;
     const dismiss = this.prompt.querySelector('.name-prompt-dismiss') as HTMLButtonElement;
+    const error = this.prompt.querySelector('.name-prompt-error') as HTMLElement;
 
     input?.focus();
 
     const handleSubmit = () => {
       const name = input?.value.trim();
-      if (name) {
-        this.playerName = name;
-        localStorage.setItem(this.NAME_KEY, name);
-        this.saveRun();
-        this.dismissPrompt();
+      if (!name) return;
+      const taken = this.cachedEntries.some(e => e.name === name);
+      if (taken) {
+        error.textContent = 'Name already taken — choose a different one';
+        input.classList.add('name-prompt-input--error');
+        input.select();
+        return;
       }
+      error.textContent = '';
+      input.classList.remove('name-prompt-input--error');
+      this.playerName = name;
+      this.playerBest = 0;
+      localStorage.setItem(this.NAME_KEY, name);
+      this.saveRun();
+      this.dismissPrompt();
     };
 
     submit?.addEventListener('click', handleSubmit);
@@ -99,33 +148,23 @@ export class Leaderboard {
 
   saveRun() {
     if (!this.playerName || this.currentRunScore === 0) return;
-    const entries = this.getEntries();
-    const existing = entries.findIndex(e => e.name === this.playerName);
-    if (existing >= 0) {
-      // Only update if this run beat their previous best
-      if (this.currentRunScore > entries[existing].score) {
-        entries[existing].score = this.currentRunScore;
-        entries[existing].date = new Date().toISOString().split('T')[0];
-      }
-    } else {
-      entries.push({
-        name: this.playerName,
-        score: this.currentRunScore,
-        date: new Date().toISOString().split('T')[0],
-      });
-    }
-    entries.sort((a, b) => b.score - a.score);
-    if (entries.length > this.MAX_ENTRIES) entries.length = this.MAX_ENTRIES;
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(entries));
+    // Wait for the first snapshot so we never overwrite a higher stored score
+    if (!this.snapshotReady) return;
+    if (this.currentRunScore <= this.playerBest) return;
+
+    const entry: LeaderboardEntry = {
+      name: this.playerName,
+      score: this.currentRunScore,
+      date: new Date().toISOString().split('T')[0],
+    };
+    const docRef = doc(collection(this.firestore, this.COLLECTION), this.playerName);
+    setDoc(docRef, entry)
+      .then(() => { this.playerBest = this.currentRunScore; })
+      .catch(err => console.error('Leaderboard write failed:', err));
   }
 
   getEntries(): LeaderboardEntry[] {
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
+    return this.cachedEntries;
   }
 
   getPlayerName(): string | null {
@@ -154,8 +193,11 @@ export class Leaderboard {
       const target = e.target as HTMLElement;
       if (target.closest('.lb-close') || target.closest('.lb-clear')) {
         if (target.closest('.lb-clear')) {
-          localStorage.removeItem(this.STORAGE_KEY);
-          this.refreshPanel();
+          // Clear only the current player's own entry
+          if (this.playerName) {
+            const docRef = doc(collection(this.firestore, this.COLLECTION), this.playerName);
+            import('@angular/fire/firestore').then(({ deleteDoc }) => deleteDoc(docRef));
+          }
           return;
         }
         this.closePanel();
@@ -219,6 +261,7 @@ export class Leaderboard {
 
   destroy() {
     this.saveRun();
+    this.unsubscribe?.();
     this.dismissPrompt();
     this.panel?.remove();
     this.panel = null;
