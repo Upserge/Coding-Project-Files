@@ -1,6 +1,5 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { ResumeService } from './resume-service';
-
 import { DomSanitizer } from '@angular/platform-browser';
 import { Toast } from './toast';
 import { KeyboardHintsModal } from './keyboard-hints-modal';
@@ -8,7 +7,6 @@ import { KeyboardHintsModal } from './keyboard-hints-modal';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [],
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
 })

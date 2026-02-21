@@ -191,15 +191,7 @@ export class Leaderboard {
 
     const handleClose = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('.lb-close') || target.closest('.lb-clear')) {
-        if (target.closest('.lb-clear')) {
-          // Clear only the current player's own entry
-          if (this.playerName) {
-            const docRef = doc(collection(this.firestore, this.COLLECTION), this.playerName);
-            import('@angular/fire/firestore').then(({ deleteDoc }) => deleteDoc(docRef));
-          }
-          return;
-        }
+      if (target.closest('.lb-close')) {
         this.closePanel();
       }
     };
@@ -231,7 +223,6 @@ export class Leaderboard {
       <div class="lb-header">
         <h3>🏆 Leaderboard</h3>
         <div class="lb-header-actions">
-          <button class="lb-clear" title="Clear leaderboard">🗑️</button>
           <button class="lb-close" aria-label="Close">✕</button>
         </div>
       </div>
