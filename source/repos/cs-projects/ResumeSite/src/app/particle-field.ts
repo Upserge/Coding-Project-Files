@@ -1,3 +1,4 @@
+// TRIGGER WARNING: MATH
 // Full-page interactive particle field background with score game
 // Particles drift slowly and are gently repulsed by the mouse cursor
 // Rocket particles can be corralled into black holes for points
@@ -184,6 +185,7 @@ export class ParticleField {
     };
   }
 
+  // This is all of the Galaxies code
   private spawnGalaxies() {
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;

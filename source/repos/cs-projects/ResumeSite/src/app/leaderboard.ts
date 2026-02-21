@@ -71,7 +71,7 @@ export class Leaderboard {
     }
 
     // After first score, subtly prompt for name if not set
-    if (newScore === 1 && !this.playerName && !this.hasPrompted) {
+    if (newScore >= 1 && !this.playerName && !this.hasPrompted) {
       setTimeout(() => this.showNamePrompt(), 1200);
     }
   }
