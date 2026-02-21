@@ -29,6 +29,7 @@ export class ParticleField {
   private confetti: ConfettiPiece[] = [];
   private trails: TrailPiece[] = [];
   private spaghettiStreams: SpaghettiStream[] = [];
+  private readonly GALAXY_COUNT = 4;
 
   init(onScore?: () => void) {
     this.onScoreCallback = onScore ?? null;
@@ -53,6 +54,7 @@ export class ParticleField {
     this.resize();
     this.spawnParticles();
     this.spawnGoals();
+    this.spawnGalaxies();
 
     this.resizeHandler = () => this.resize();
     window.addEventListener('resize', this.resizeHandler);
@@ -182,6 +184,111 @@ export class ParticleField {
     };
   }
 
+  private spawnGalaxies() {
+    const w = window.innerWidth;
+    const h = this.pageHeight || window.innerHeight;
+
+    // Galaxy color palettes — warm whites, soft blues, pale golds
+    const palettes: { r: number; g: number; b: number }[][] = [
+      // Warm white / gold nebula
+      [
+        { r: 255, g: 245, b: 220 },
+        { r: 255, g: 225, b: 180 },
+        { r: 255, g: 210, b: 160 },
+        { r: 240, g: 200, b: 170 },
+      ],
+      // Cool blue / cyan nebula
+      [
+        { r: 180, g: 210, b: 255 },
+        { r: 160, g: 200, b: 255 },
+        { r: 140, g: 180, b: 240 },
+        { r: 200, g: 220, b: 255 },
+      ],
+      // Rose / magenta nebula
+      [
+        { r: 255, g: 190, b: 220 },
+        { r: 240, g: 170, b: 210 },
+        { r: 220, g: 160, b: 200 },
+        { r: 255, g: 200, b: 230 },
+      ],
+      // Emerald / teal nebula
+      [
+        { r: 160, g: 240, b: 220 },
+        { r: 140, g: 220, b: 200 },
+        { r: 180, g: 255, b: 230 },
+        { r: 170, g: 230, b: 210 },
+      ],
+    ];
+
+    const types: ('spiral' | 'elliptical' | 'band')[] = ['spiral', 'elliptical', 'band', 'spiral'];
+
+    for (let gi = 0; gi < this.GALAXY_COUNT; gi++) {
+      const type = types[gi % types.length];
+      const palette = palettes[gi % palettes.length];
+      const cx = w * 0.15 + Math.random() * w * 0.7;
+      const cy = h * 0.1 + Math.random() * h * 0.8;
+      const rotation = Math.random() * Math.PI * 2;
+      const size = 120 + Math.random() * 180;
+      const armCount = type === 'spiral' ? 2 + Math.floor(Math.random() * 5) : 0;
+      const starCount = type === 'band' ? 100 + Math.floor(Math.random() * 60) : 60 + Math.floor(Math.random() * 50);
+
+      for (let si = 0; si < starCount; si++) {
+        let sx: number, sy: number;
+
+        if (type === 'spiral') {
+          // Logarithmic spiral arms with scatter
+          const arm = si % armCount;
+          const armAngle = (arm / armCount) * Math.PI * 2;
+          const t = (si / starCount) * 4; // distance along spiral
+          const spiralAngle = armAngle + t * 1.8 + rotation;
+          const spiralR = t * size * 0.35;
+          const scatter = (Math.random() - 0.5) * size * 0.18 * (0.5 + t * 0.3);
+          const scatterPerp = (Math.random() - 0.5) * size * 0.12;
+          sx = cx + Math.cos(spiralAngle) * (spiralR + scatter) + Math.cos(spiralAngle + Math.PI / 2) * scatterPerp;
+          sy = cy + Math.sin(spiralAngle) * (spiralR + scatter) * 0.55 + Math.sin(spiralAngle + Math.PI / 2) * scatterPerp * 0.55;
+        } else if (type === 'elliptical') {
+          // Dense oval cluster with Gaussian-like falloff
+          const angle = Math.random() * Math.PI * 2;
+          const rr = Math.pow(Math.random(), 0.6) * size * 0.5;
+          sx = cx + Math.cos(angle + rotation) * rr;
+          sy = cy + Math.sin(angle + rotation) * rr * 0.6;
+        } else {
+          // Milky way band — long thin stripe with density variation
+          const along = (Math.random() - 0.5) * size * 2.5;
+          const perp = (Math.random() - 0.5) * size * 0.25;
+          // Denser in the center
+          const densityBias = Math.pow(Math.random(), 0.7);
+          const adjustedPerp = perp * densityBias;
+          sx = cx + Math.cos(rotation) * along - Math.sin(rotation) * adjustedPerp;
+          sy = cy + Math.sin(rotation) * along + Math.cos(rotation) * adjustedPerp;
+        }
+
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        // Galaxy stars are slightly brighter and smaller than normal particles
+        const distFromCenter = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
+        const centerFade = Math.max(0.15, 1 - distFromCenter / (size * 1.5));
+        const angle = Math.random() * Math.PI * 2;
+        const driftSpeed = this.DRIFT_SPEED * 0.15; // very slow drift to hold formation
+
+        this.particles.push({
+          x: sx,
+          y: sy,
+          vx: Math.cos(angle) * driftSpeed,
+          vy: Math.sin(angle) * driftSpeed,
+          r: 0.4 + Math.random() * 1.6,
+          opacity: (0.15 + Math.random() * 0.35) * centerFade,
+          driftAngle: angle,
+          driftRate: (Math.random() - 0.5) * 0.002,
+          golden: false,
+          pushTime: 0,
+          galaxyColor: color,
+          anchorX: sx,
+          anchorY: sy,
+        });
+      }
+    }
+  }
+
   private onMouseMove = (e: MouseEvent) => {
     this.mouse.x = e.clientX;
     this.mouse.y = e.clientY;
@@ -262,6 +369,18 @@ export class ParticleField {
       if (p.golden && Math.random() < 0.005) {
         p.driftRate = (Math.random() - 0.5) * 0.025;
       }
+
+      // Galaxy stars gently return toward their anchor to hold formation
+      if (p.anchorX !== undefined && p.anchorY !== undefined) {
+        const ax = p.anchorX - p.x;
+        const ay = p.anchorY - p.y;
+        const ad = Math.sqrt(ax * ax + ay * ay);
+        if (ad > 5) {
+          p.vx += (ax / ad) * 0.008;
+          p.vy += (ay / ad) * 0.008;
+        }
+      }
+
       const driftTarget = this.DRIFT_SPEED * 0.8;
       p.vx += Math.cos(p.driftAngle) * driftTarget * 0.02;
       p.vy += Math.sin(p.driftAngle) * driftTarget * 0.02;
@@ -611,16 +730,23 @@ export class ParticleField {
 
       ctx.restore();
     } else {
-      // Normal particle (theme-aware)
-      const glowPrimary = this.isDark
-        ? `rgba(124, 92, 255, ${p.opacity})`
-        : `rgba(80, 50, 200, ${p.opacity * 1.8})`;
-      const glowSecondary = this.isDark
-        ? `rgba(94, 234, 212, ${p.opacity * 0.4})`
-        : `rgba(20, 160, 140, ${p.opacity * 0.8})`;
-      const coreColor = this.isDark
-        ? `rgba(255, 255, 255, ${p.opacity * 0.6})`
-        : `rgba(60, 30, 180, ${p.opacity * 0.9})`;
+      // Normal particle (theme-aware) or galaxy-tinted star
+      const gc = p.galaxyColor;
+      const glowPrimary = gc
+        ? `rgba(${gc.r}, ${gc.g}, ${gc.b}, ${p.opacity})`
+        : this.isDark
+          ? `rgba(124, 92, 255, ${p.opacity})`
+          : `rgba(80, 50, 200, ${p.opacity * 1.8})`;
+      const glowSecondary = gc
+        ? `rgba(${gc.r}, ${gc.g}, ${gc.b}, ${p.opacity * 0.3})`
+        : this.isDark
+          ? `rgba(94, 234, 212, ${p.opacity * 0.4})`
+          : `rgba(20, 160, 140, ${p.opacity * 0.8})`;
+      const coreColor = gc
+        ? `rgba(255, 255, 255, ${p.opacity * 0.8})`
+        : this.isDark
+          ? `rgba(255, 255, 255, ${p.opacity * 0.6})`
+          : `rgba(60, 30, 180, ${p.opacity * 0.9})`;
 
       // Apply spaghettification stretch for normal particles
       if (spagGoal) {
@@ -635,7 +761,9 @@ export class ParticleField {
       const gradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
       gradient.addColorStop(0, glowPrimary);
       gradient.addColorStop(0.4, glowSecondary);
-      gradient.addColorStop(1, this.isDark ? 'rgba(124, 92, 255, 0)' : 'rgba(80, 50, 200, 0)');
+      gradient.addColorStop(1, gc
+        ? `rgba(${gc.r}, ${gc.g}, ${gc.b}, 0)`
+        : this.isDark ? 'rgba(124, 92, 255, 0)' : 'rgba(80, 50, 200, 0)');
 
       this.ctx.beginPath();
       this.ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
@@ -855,10 +983,10 @@ export class ParticleField {
 
     for (let i = 0; i < this.particles.length; i++) {
       const a = this.particles[i];
-      if (a.golden || a.y < viewTop || a.y > viewBottom) continue;
+      if (a.golden || a.galaxyColor || a.y < viewTop || a.y > viewBottom) continue;
       for (let j = i + 1; j < this.particles.length; j++) {
         const b = this.particles[j];
-        if (b.golden || b.y < viewTop || b.y > viewBottom) continue;
+        if (b.golden || b.galaxyColor || b.y < viewTop || b.y > viewBottom) continue;
         const dx = a.x - b.x;
         const dy = a.y - b.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1115,6 +1243,9 @@ interface Particle {
   driftRate: number;
   golden: boolean;
   pushTime: number;
+  galaxyColor?: { r: number; g: number; b: number };
+  anchorX?: number;
+  anchorY?: number;
 }
 
 interface GoalPost {
@@ -1166,4 +1297,14 @@ interface SpaghettiStream {
   color: string;
   goalX: number;
   goalY: number;
+}
+
+interface Galaxy {
+  cx: number;
+  cy: number;
+  rotation: number;
+  type: 'spiral' | 'elliptical' | 'band';
+  armCount: number;
+  size: number;
+  starCount: number;
 }
