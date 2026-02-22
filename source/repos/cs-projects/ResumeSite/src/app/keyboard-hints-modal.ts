@@ -48,21 +48,8 @@ export class KeyboardHintsModal {
     document.body.appendChild(this.widget);
     this.widget.classList.add('visible');
 
-    this.setupEventListeners();
-  }
-
-  private setupEventListeners() {
-    if (!this.widget) return;
-
     const closeBtn = this.widget.querySelector('.widget-close');
-
     closeBtn?.addEventListener('click', () => this.close());
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.close();
-      }
-    });
   }
 
   close() {

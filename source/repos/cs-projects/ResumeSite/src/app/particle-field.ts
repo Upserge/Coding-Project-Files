@@ -1196,7 +1196,6 @@ export class ParticleField {
     }
 
     if (nearestGoal && nearestDist < this.SPAGHETTI_RADIUS * 1.5) {
-      const scrollY = window.scrollY;
       const t = 1 - nearestDist / (this.SPAGHETTI_RADIUS * 1.5);
       const intensity = t * t;
       const angle = Math.atan2(nearestGoal.y - mousePageY, nearestGoal.x - mousePageX);
@@ -1299,14 +1298,4 @@ interface SpaghettiStream {
   color: string;
   goalX: number;
   goalY: number;
-}
-
-interface Galaxy {
-  cx: number;
-  cy: number;
-  rotation: number;
-  type: 'spiral' | 'elliptical' | 'band';
-  armCount: number;
-  size: number;
-  starCount: number;
 }

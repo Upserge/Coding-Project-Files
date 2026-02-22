@@ -2,6 +2,8 @@
 export class CursorSpotlight {
   private spotlightEl: HTMLElement | null = null;
   private themeObserver: MutationObserver | null = null;
+  private onMouseMove: ((e: MouseEvent) => void) | null = null;
+  private onMouseLeave: (() => void) | null = null;
 
   init() {
     // Create spotlight element
@@ -22,18 +24,19 @@ export class CursorSpotlight {
     this.applyTheme();
     document.body.appendChild(this.spotlightEl);
 
-    document.addEventListener('mousemove', (e) => {
+    this.onMouseMove = (e: MouseEvent) => {
       if (!this.spotlightEl) return;
       this.spotlightEl.style.left = e.clientX + 'px';
       this.spotlightEl.style.top = e.clientY + 'px';
       this.spotlightEl.style.opacity = '1';
-    });
-
-    document.addEventListener('mouseleave', () => {
+    };
+    this.onMouseLeave = () => {
       if (this.spotlightEl) {
         this.spotlightEl.style.opacity = '0';
       }
-    });
+    };
+    document.addEventListener('mousemove', this.onMouseMove);
+    document.addEventListener('mouseleave', this.onMouseLeave);
 
     // Watch for theme changes
     this.themeObserver = new MutationObserver(() => this.applyTheme());
@@ -53,6 +56,10 @@ export class CursorSpotlight {
   }
 
   destroy() {
+    if (this.onMouseMove) document.removeEventListener('mousemove', this.onMouseMove);
+    if (this.onMouseLeave) document.removeEventListener('mouseleave', this.onMouseLeave);
+    this.onMouseMove = null;
+    this.onMouseLeave = null;
     this.themeObserver?.disconnect();
     this.themeObserver = null;
     this.spotlightEl?.remove();
