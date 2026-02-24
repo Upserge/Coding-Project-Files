@@ -94,8 +94,9 @@ export class App {
       'k': () => this.resumeService.scrollTo('technologies'),
       'l': () => this.resumeService.scrollTo('experience'),
       ';': () => this.resumeService.scrollTo('projects'),
+      's': () => this.showLeaderboard(),
       '?': () => this.showKeyboardHints(),
-      'Escape': () => this.closeKeyboardHints(),
+      'Escape': () => {this.closeKeyboardHints(); this.closeLeaderboard(); },
     });
   }
 
@@ -168,6 +169,10 @@ export class App {
   showLeaderboard() {
     this.resumeService.showLeaderboard();
   }
+
+  closeLeaderboard() {
+    this.resumeService.closeLeaderboard();
+    }
 
   ngOnDestroy(): void {
     this.resumeService.dispose();

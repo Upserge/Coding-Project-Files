@@ -215,6 +215,10 @@ export class ResumeService {
     this.leaderboard?.showPanel();
   }
 
+  closeLeaderboard() {
+    this.leaderboard?.closePanel();
+    }
+
   // ===== SVG Tech Icons =====
   getTechSVG(tech: string): string {
     return getTechSVG(tech);

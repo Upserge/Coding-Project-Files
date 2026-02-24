@@ -31,6 +31,7 @@ export class ParticleField {
   private trails: TrailPiece[] = [];
   private spaghettiStreams: SpaghettiStream[] = [];
   private readonly GALAXY_COUNT = 4;
+  private taurusLines: { x1: number; y1: number; x2: number; y2: number }[] = [];
 
   init(onScore?: () => void) {
     this.onScoreCallback = onScore ?? null;
@@ -56,6 +57,7 @@ export class ParticleField {
     this.spawnParticles();
     this.spawnGoals();
     this.spawnGalaxies();
+    this.spawnTaurus();
 
     this.resizeHandler = () => this.resize();
     window.addEventListener('resize', this.resizeHandler);
@@ -183,6 +185,105 @@ export class ParticleField {
       diskAxis: Math.random() * Math.PI * 2,
       spinSpeed: 0.2 + Math.random() * 0.25,
     };
+  }
+
+  // Taurus constellation — ode to Sarah ♉ (Symbol shape)
+  private spawnTaurus() {
+    const w = window.innerWidth;
+    const h = this.pageHeight || window.innerHeight;
+
+    // Generic Taurus symbol coordinates (circle face + horn crescent)
+    const stars: { x: number; y: number; mag: number; name?: string }[] = [
+      // Circle Face (8 stars)
+      { x: 0.50, y: 0.77, mag: 0.5 }, // Bottom
+      { x: 0.58, y: 0.73, mag: 0.45 }, // Bottom Right
+      { x: 0.62, y: 0.65, mag: 0.5 }, // Right
+      { x: 0.58, y: 0.57, mag: 0.45 }, // Top Right
+      { x: 0.50, y: 0.53, mag: 0.5 }, // Top
+      { x: 0.42, y: 0.57, mag: 0.45 }, // Top Left
+      { x: 0.38, y: 0.65, mag: 0.5 }, // Left
+      { x: 0.42, y: 0.73, mag: 0.45 }, // Bottom Left
+
+      // Left Horn (5 stars)
+      { x: 0.35, y: 0.50, mag: 0.6 },
+      { x: 0.30, y: 0.42, mag: 0.55 },
+      { x: 0.27, y: 0.33, mag: 0.5 },
+      { x: 0.25, y: 0.24, mag: 0.6 },
+      { x: 0.24, y: 0.15, mag: 0.7 }, // Tip
+
+      // Right Horn (5 stars)
+      { x: 0.65, y: 0.50, mag: 0.6 },
+      { x: 0.70, y: 0.42, mag: 0.55 },
+      { x: 0.73, y: 0.33, mag: 0.5 },
+      { x: 0.75, y: 0.24, mag: 0.6 },
+      { x: 0.76, y: 0.15, mag: 0.7 }, // Tip
+    ];
+
+    // Constellation line connections
+    const lines: [number, number][] = [
+      // Circle loop
+      [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0],
+      // Left Horn
+      [5, 8], [8, 9], [9, 10], [10, 11], [11, 12],
+      // Right Horn
+      [3, 13], [13, 14], [14, 15], [15, 16], [16, 17],
+    ];
+
+    // Place at a random position on the page
+    const scale = 100 + Math.random() * 100; // constellation size in px
+    const rotation = (Math.random() - 0.5) * 0.6; // slight random tilt
+    const cx = w * 0.2 + Math.random() * w * 0.6;
+    const cy = h * 0.15 + Math.random() * h * 0.7;
+
+    // Light red color palette for Taurus
+    const taurusColors: { r: number; g: number; b: number }[] = [
+      { r: 255, g: 160, b: 140 },
+      { r: 255, g: 140, b: 120 },
+      { r: 240, g: 150, b: 130 },
+      { r: 255, g: 170, b: 150 },
+    ];
+
+    // Compute world positions for each star
+    const worldStars: { wx: number; wy: number }[] = [];
+    for (const star of stars) {
+      // Center the normalized coords around 0, apply scale + rotation
+      const lx = (star.x - 0.45) * scale;
+      const ly = (star.y - 0.40) * scale;
+      const rx = lx * Math.cos(rotation) - ly * Math.sin(rotation);
+      const ry = lx * Math.sin(rotation) + ly * Math.cos(rotation);
+      worldStars.push({ wx: cx + rx, wy: cy + ry });
+    }
+
+    // Store line data for drawing in render loop
+    this.taurusLines = lines.map(([a, b]) => ({
+      x1: worldStars[a].wx, y1: worldStars[a].wy,
+      x2: worldStars[b].wx, y2: worldStars[b].wy,
+    }));
+
+    // Spawn star particles
+    for (let i = 0; i < stars.length; i++) {
+      const star = stars[i];
+      const { wx, wy } = worldStars[i];
+      const color = taurusColors[Math.floor(Math.random() * taurusColors.length)];
+      const driftAngle = 0;
+      const driftSpeed = this.DRIFT_SPEED * 0.08; // barely move
+
+      this.particles.push({
+        x: wx,
+        y: wy,
+        vx: Math.cos(driftAngle) * driftSpeed,
+        vy: Math.sin(driftAngle) * driftSpeed,
+        r: 0.8 + star.mag * 2.2, // brighter stars = larger
+        opacity: 0.3 + star.mag * 0.5,
+        driftAngle,
+        driftRate: (Math.random() - 0.5) * 0.001,
+        golden: false,
+        pushTime: 0,
+        galaxyColor: color,
+        anchorX: wx,
+        anchorY: wy,
+      });
+    }
   }
 
   // This is all of the Galaxies code
@@ -490,6 +591,9 @@ export class ParticleField {
 
     // Draw connection lines between nearby visible particles
     this.drawConnections(viewTop, viewBottom);
+
+    // Draw Taurus constellation lines
+    this.drawTaurusLines(viewTop, viewBottom);
 
     // Update and draw confetti
     this.updateConfetti();
@@ -1005,6 +1109,25 @@ export class ParticleField {
           this.ctx.stroke();
         }
       }
+    }
+  }
+
+  private drawTaurusLines(viewTop: number, viewBottom: number) {
+    if (!this.ctx || this.taurusLines.length === 0) return;
+
+    for (const line of this.taurusLines) {
+      // Skip if both endpoints are off-screen
+      if (line.y1 < viewTop && line.y2 < viewTop) continue;
+      if (line.y1 > viewBottom && line.y2 > viewBottom) continue;
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(line.x1, line.y1);
+      this.ctx.lineTo(line.x2, line.y2);
+      this.ctx.strokeStyle = this.isDark
+        ? 'rgba(255, 150, 130, 0.12)'
+        : 'rgba(200, 100, 80, 0.18)';
+      this.ctx.lineWidth = 0.6;
+      this.ctx.stroke();
     }
   }
 

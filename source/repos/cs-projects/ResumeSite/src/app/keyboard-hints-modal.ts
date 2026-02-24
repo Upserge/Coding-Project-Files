@@ -38,6 +38,10 @@ export class KeyboardHintsModal {
             <span>Dark Mode</span>
           </div>
           <div class="shortcut-item">
+            <kbd>S</kbd>
+            <span>Leaderboard</span>
+          </div>
+          <div class="shortcut-item">
             <kbd>Esc</kbd>
             <span>Close</span>
           </div>

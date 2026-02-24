@@ -1,4 +1,5 @@
 // Keyboard shortcuts service for enhanced navigation
+// TODO: add 'S to toggle leaderboard, Esc to close modals'
 export class KeyboardShortcuts {
   private callbacks: Map<string, () => void> = new Map();
   private handler: ((e: KeyboardEvent) => void) | null = null;
