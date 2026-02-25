@@ -1,4 +1,7 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { fromEvent } from 'rxjs';
+import { throttleTime, map } from 'rxjs/operators';
 import { Firestore } from '@angular/fire/firestore';
 import { KeyboardShortcuts } from './keyboard-shortcuts';
 import { CursorSpotlight } from './cursor-spotlight';
@@ -85,6 +88,7 @@ export class ResumeService {
   private leaderboard: Leaderboard | null = null;
 
   private readonly firestore = inject(Firestore);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     this.initTheme();
@@ -286,22 +290,15 @@ export class ResumeService {
 
   // ===== Scroll Navigation Management =====
   initScrollListener(): void {
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          const scrollY = window.scrollY;
-          const isScrollingDown = scrollY > this.lastScrollY;
-          const scrollDelta = Math.abs(scrollY - this.lastScrollY);
-
-          // Only hide/show if scroll delta is significant (avoid jitter)
-          if (scrollDelta > 10) {
-            this.isNavHidden.set(isScrollingDown && scrollY > 100);
-            this.lastScrollY = scrollY;
-          }
-          ticking = false;
-        });
-        ticking = true;
+    fromEvent(window, 'scroll').pipe(
+      throttleTime(0, undefined, { trailing: true }),
+      map(() => window.scrollY),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(scrollY => {
+      const scrollDelta = Math.abs(scrollY - this.lastScrollY);
+      if (scrollDelta > 10) {
+        this.isNavHidden.set(scrollY > this.lastScrollY && scrollY > 100);
+        this.lastScrollY = scrollY;
       }
     });
   }

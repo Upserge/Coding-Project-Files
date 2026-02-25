@@ -1,4 +1,7 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, afterNextRender, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { timer, EMPTY } from 'rxjs';
+import { expand } from 'rxjs/operators';
 import { ResumeService } from './resume-service';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Toast } from './toast';
@@ -14,6 +17,7 @@ export class App {
   // Inject the service which manages all business logic
   private readonly resumeService = inject(ResumeService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly destroyRef = inject(DestroyRef);
   private keyboardHintsModal: KeyboardHintsModal | null = null;
 
   // ===== Expose Service Signals =====
@@ -32,7 +36,6 @@ export class App {
   private roleIndex = 0;
   private charIndex = 0;
   private isDeleting = false;
-  private typeTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly contact = computed(() => this.resume().contact);
   protected readonly links = computed(() => this.resume().links);
@@ -40,8 +43,8 @@ export class App {
 
   // ===== Component Lifecycle =====
   constructor() {
-    // Initialize service observers and animations
-    setTimeout(() => {
+    // Initialize service observers and animations after first render
+    afterNextRender(() => {
       this.resumeService.initReveal();
       this.resumeService.initScrollListener();
       this.resumeService.initLottie();
@@ -52,39 +55,38 @@ export class App {
       this.resumeService.initParticleField();
       this.resumeService.initLeaderboard();
       this.initKeyboardShortcuts();
-    }, 120);
+    });
 
     // Enable View Transitions API for theme changes
     if ((document as any).startViewTransition) {
       this.enableViewTransitions();
     }
 
-    // Start typewriter after letter animations finish
-    setTimeout(() => this.typewriterTick(), 1200);
-  }
-
-  private typewriterTick() {
-    const current = this.roles[this.roleIndex];
-    if (this.isDeleting) {
-      this.charIndex--;
-      this.typedRole.set(current.substring(0, this.charIndex));
-      if (this.charIndex === 0) {
-        this.isDeleting = false;
-        this.roleIndex = (this.roleIndex + 1) % this.roles.length;
-        this.typeTimer = setTimeout(() => this.typewriterTick(), 400);
-        return;
-      }
-      this.typeTimer = setTimeout(() => this.typewriterTick(), 35);
-    } else {
-      this.charIndex++;
-      this.typedRole.set(current.substring(0, this.charIndex));
-      if (this.charIndex === current.length) {
-        this.isDeleting = true;
-        this.typeTimer = setTimeout(() => this.typewriterTick(), 2200);
-        return;
-      }
-      this.typeTimer = setTimeout(() => this.typewriterTick(), 70);
-    }
+    // Start typewriter after letter animations finish (RxJS-driven)
+    timer(1200).pipe(
+      expand(() => {
+        const current = this.roles[this.roleIndex];
+        if (this.isDeleting) {
+          this.charIndex--;
+          this.typedRole.set(current.substring(0, this.charIndex));
+          if (this.charIndex === 0) {
+            this.isDeleting = false;
+            this.roleIndex = (this.roleIndex + 1) % this.roles.length;
+            return timer(400);
+          }
+          return timer(35);
+        } else {
+          this.charIndex++;
+          this.typedRole.set(current.substring(0, this.charIndex));
+          if (this.charIndex === current.length) {
+            this.isDeleting = true;
+            return timer(2200);
+          }
+          return timer(70);
+        }
+      }),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe();
   }
 
   private initKeyboardShortcuts() {
@@ -177,6 +179,5 @@ export class App {
   ngOnDestroy(): void {
     this.resumeService.dispose();
     this.keyboardHintsModal?.destroy();
-    if (this.typeTimer) clearTimeout(this.typeTimer);
   }
 }

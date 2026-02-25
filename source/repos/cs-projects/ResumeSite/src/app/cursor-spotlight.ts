@@ -1,9 +1,11 @@
 // Cursor-following spotlight effect for interactive depth
+import { fromEvent, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+
 export class CursorSpotlight {
   private spotlightEl: HTMLElement | null = null;
   private themeObserver: MutationObserver | null = null;
-  private onMouseMove: ((e: MouseEvent) => void) | null = null;
-  private onMouseLeave: (() => void) | null = null;
+  private readonly destroy$ = new Subject<void>();
 
   init() {
     // Create spotlight element
@@ -24,19 +26,22 @@ export class CursorSpotlight {
     this.applyTheme();
     document.body.appendChild(this.spotlightEl);
 
-    this.onMouseMove = (e: MouseEvent) => {
+    fromEvent<MouseEvent>(document, 'mousemove').pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(e => {
       if (!this.spotlightEl) return;
       this.spotlightEl.style.left = e.clientX + 'px';
       this.spotlightEl.style.top = e.clientY + 'px';
       this.spotlightEl.style.opacity = '1';
-    };
-    this.onMouseLeave = () => {
+    });
+
+    fromEvent(document, 'mouseleave').pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
       if (this.spotlightEl) {
         this.spotlightEl.style.opacity = '0';
       }
-    };
-    document.addEventListener('mousemove', this.onMouseMove);
-    document.addEventListener('mouseleave', this.onMouseLeave);
+    });
 
     // Watch for theme changes
     this.themeObserver = new MutationObserver(() => this.applyTheme());
@@ -56,10 +61,8 @@ export class CursorSpotlight {
   }
 
   destroy() {
-    if (this.onMouseMove) document.removeEventListener('mousemove', this.onMouseMove);
-    if (this.onMouseLeave) document.removeEventListener('mouseleave', this.onMouseLeave);
-    this.onMouseMove = null;
-    this.onMouseLeave = null;
+    this.destroy$.next();
+    this.destroy$.complete();
     this.themeObserver?.disconnect();
     this.themeObserver = null;
     this.spotlightEl?.remove();

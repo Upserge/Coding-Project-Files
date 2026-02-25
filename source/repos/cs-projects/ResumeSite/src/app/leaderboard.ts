@@ -4,10 +4,10 @@ import {
   collection,
   doc,
   setDoc,
-  onSnapshot,
   orderBy,
   query,
   limit,
+  onSnapshot,
   Unsubscribe,
 } from '@angular/fire/firestore';
 
@@ -41,14 +41,13 @@ export class Leaderboard {
       limit(this.MAX_ENTRIES)
     );
     let initialLoadDone = false;
-    this.unsubscribe = onSnapshot(q, snapshot => {
+    this.unsubscribe = onSnapshot(q, (snapshot) => {
       this.cachedEntries = snapshot.docs.map(d => d.data() as LeaderboardEntry);
       this.snapshotReady = true;
       const own = this.cachedEntries.find(e => e.name === this.playerName);
       if (own && own.score > this.playerBest) {
         this.playerBest = own.score;
       }
-      // Fire once so the caller can seed their score counter from the stored total
       if (!initialLoadDone) {
         initialLoadDone = true;
         onBestLoaded?.(this.playerBest);
@@ -253,6 +252,7 @@ export class Leaderboard {
   destroy() {
     this.saveRun();
     this.unsubscribe?.();
+    this.unsubscribe = null;
     this.dismissPrompt();
     this.panel?.remove();
     this.panel = null;

@@ -1326,8 +1326,8 @@ export class ParticleField {
       const scaleX = 1 + intensity * 2.0;
       const scaleY = 1 - intensity * 0.4;
       // Pull spotlight toward hole
-      const pullX = Math.cos(angle) * intensity * 30;
-      const pullY = Math.sin(angle) * intensity * 30;
+      const pullX = Math.cos(angle) * intensity * 30; 
+      const pullY = Math.sin(angle) * intensity * 30; 
       const cx = this.mouse.x + pullX;
       const cy = this.mouse.y + pullY;
       spotlight.style.left = cx + 'px';
