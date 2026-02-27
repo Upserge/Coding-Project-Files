@@ -3,11 +3,15 @@
   <p class="subtitle">A multiplayer hide-and-seek game</p>
 
   <div class="menu-actions">
-    <button class="btn btn-primary" (click)="quickPlay()" [disabled]="isCreating()">
-      {{ isCreating() ? 'Creating...' : 'Quick Play' }}
-    </button>
-    <button class="btn btn-secondary" (click)="createGame()" [disabled]="isCreating()">
-      Create Game
+    <button class="btn btn-primary" (click)="quickPlay()" [disabled]="isJoining()">
+      {{ isJoining() ? 'Joining...' : 'Quick Play' }}
     </button>
   </div>
 </div>
+
+@if (showModal()) {
+  <app-username-modal
+    (confirmed)="onNameConfirmed($event)"
+    (cancelled)="onModalCancelled()"
+  />
+}

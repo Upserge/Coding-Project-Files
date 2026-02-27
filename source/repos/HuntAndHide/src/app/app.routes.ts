@@ -10,6 +10,14 @@ export const routes: Routes = [
     loadComponent: () => import('./game/game').then(m => m.GameComponent),
   },
   {
+    path: 'lobby/:sessionId',
+    loadComponent: () => import('./lobby/lobby').then(m => m.LobbyComponent),
+  },
+  {
+    path: 'scoreboard',
+    loadComponent: () => import('./scoreboard/scoreboard').then(m => m.ScoreboardComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

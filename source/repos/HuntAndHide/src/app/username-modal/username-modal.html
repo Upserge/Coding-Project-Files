@@ -1,0 +1,28 @@
+<div class="modal-backdrop" (click)="cancel()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <h2 class="modal-title">Choose Your Name</h2>
+    <p class="modal-hint">Pick a unique name for the leaderboard.</p>
+
+    <input
+      class="name-input"
+      type="text"
+      placeholder="Enter a name..."
+      maxlength="16"
+      [value]="username()"
+      (input)="onInput($any($event.target).value)"
+      (keydown.enter)="confirm()"
+      autofocus
+    />
+
+    @if (errorMsg()) {
+      <p class="error-text">{{ errorMsg() }}</p>
+    }
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" (click)="confirm()" [disabled]="isChecking() || username().trim().length < 2">
+        {{ isChecking() ? 'Checking...' : 'Confirm' }}
+      </button>
+      <button class="btn btn-ghost" (click)="cancel()">Cancel</button>
+    </div>
+  </div>
+</div>

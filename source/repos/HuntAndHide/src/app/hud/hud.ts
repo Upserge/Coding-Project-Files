@@ -1,5 +1,5 @@
 import { Component, inject, computed } from '@angular/core';
-import { UpperCasePipe, DecimalPipe } from '@angular/common';
+import { UpperCasePipe } from '@angular/common';
 import { GameLoopService } from '../services/game-loop.service';
 import { HiderService } from '../services/hider.service';
 import { HunterService } from '../services/hunter.service';
@@ -7,7 +7,7 @@ import { HunterService } from '../services/hunter.service';
 @Component({
   selector: 'app-hud',
   standalone: true,
-  imports: [UpperCasePipe, DecimalPipe],
+  imports: [UpperCasePipe],
   templateUrl: './hud.html',
   styleUrl: './hud.css',
 })

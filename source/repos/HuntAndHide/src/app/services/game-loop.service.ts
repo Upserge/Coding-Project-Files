@@ -40,8 +40,8 @@ export class GameLoopService {
 
   // ── Lifecycle ──────────────────────────────────────────────
 
-  /** Called once when the game component loads. Sets up initial state. */
-  startGame(localUid: string, hiderCount: number, hunterCount: number): void {
+  /** Called when entering the game view — lets players roam while waiting. */
+  startLobby(localUid: string, hiderCount: number, hunterCount: number): void {
     this.localPlayerUid.set(localUid);
 
     const map = this.mapService.generateJungleMap();
@@ -49,13 +49,13 @@ export class GameLoopService {
     const hunterSpawns = map.spawnPoints.filter(s => s.forRole === 'hunter');
     const itemSpawns = map.spawnPoints.filter(s => s.forRole === 'item');
 
-    // Seed items
+    // Seed items so players can pick things up during lobby
     const spawnedItems = this.itemService.spawnRoundItems(
       itemSpawns.map(s => s.position),
     );
     this.items.set(spawnedItems);
 
-    // Determine local player role
+    // Determine local player role and spawn
     const role = this.playerService.assignRole(hiderCount, hunterCount);
 
     if (role === 'hider') {
@@ -76,9 +76,19 @@ export class GameLoopService {
       this.hunters.set([hunter]);
     }
 
+    this.phase.set('lobby');
+    this.running = true;
+  }
+
+  /** Transition from lobby to active gameplay once enough players join. */
+  startGame(localUid: string, hiderCount: number, hunterCount: number): void {
+    // If lobby was never started, bootstrap everything first
+    if (!this.running) {
+      this.startLobby(localUid, hiderCount, hunterCount);
+    }
+
     this.phase.set('hunting');
     this.roundTimeRemainingMs.set(this.roundDurationMs);
-    this.running = true;
   }
 
   stopGame(): void {
@@ -92,7 +102,13 @@ export class GameLoopService {
     if (!this.running) return;
 
     const currentPhase = this.phase();
-    if (currentPhase === 'lobby' || currentPhase === 'results') return;
+    if (currentPhase === 'results') return;
+
+    // Lobby: movement + item pickup only (no catches, no win, no timers)
+    if (currentPhase === 'lobby') {
+      this.tickMovementOnly(delta);
+      return;
+    }
 
     this.tickRoundTimer(delta);
     this.tickHiders(delta);
@@ -100,6 +116,80 @@ export class GameLoopService {
     this.tickProjectiles(delta);
     this.checkCatches();
     this.checkWinConditions();
+  }
+
+  // ── Lobby-mode tick (movement + items, no consequences) ────
+
+  private tickMovementOnly(delta: number): void {
+    const localUid = this.localPlayerUid();
+    const movement = this.inputService.getMovementVector();
+    const action = this.inputService.consumeAction();
+
+    // Move hiders (no idle timer, no conversion)
+    this.hiders.update(hiders =>
+      hiders.map(hider => {
+        const input = hider.uid === localUid ? movement : { x: 0, y: 0, z: 0 };
+        const { state } = this.hiderService.tick(hider, delta, input);
+        // Reset idle timer in lobby — no consequences
+        const lobbyState = { ...state, idleTimerMs: 0 };
+
+        // Item pickup for local player
+        if (hider.uid === localUid && action === 'use_item' && lobbyState.activeItem === null) {
+          const nearby = this.itemService.findNearbyItems(lobbyState, this.items());
+          const hiderItem = nearby.find(i =>
+            i.type === 'smoke_bomb' || i.type === 'decoy' || i.type === 'speed_burst'
+          );
+          if (hiderItem) {
+            this.items.update(items =>
+              items.map(i => i.id === hiderItem.id ? this.itemService.pickUp(i, localUid) : i)
+            );
+            return this.hiderService.useItem(lobbyState, hiderItem.type as any);
+          }
+        }
+
+        return lobbyState;
+      }),
+    );
+
+    // Move hunters (no hunger drain, no starvation)
+    this.hunters.update(hunters =>
+      hunters.map(hunter => {
+        const input = hunter.uid === localUid ? movement : { x: 0, y: 0, z: 0 };
+        const { state } = this.hunterService.tick(hunter, delta, input);
+        // Freeze hunger in lobby — no starvation
+        const lobbyState = { ...state, hungerRemainingMs: hunter.hungerRemainingMs };
+
+        // Weapon throw still works for fun
+        if (hunter.uid === localUid && action === 'throw_weapon') {
+          const aimDir = movement.x !== 0 || movement.z !== 0
+            ? movement
+            : { x: 0, y: 0, z: -1 };
+          const proj = this.hunterService.throwWeapon(lobbyState, aimDir);
+          this.projectiles.update(p => [...p, proj]);
+        }
+
+        // Edible pickup
+        if (hunter.uid === localUid && action === 'interact') {
+          const nearby = this.itemService.findNearbyItems(lobbyState, this.items());
+          const edible = nearby.find(i =>
+            i.type === 'berry' || i.type === 'mushroom' || i.type === 'grub'
+          );
+          if (edible) {
+            this.items.update(items =>
+              items.map(i => i.id === edible.id ? this.itemService.pickUp(i, localUid) : i)
+            );
+            return this.hunterService.eatEdible(lobbyState);
+          }
+        }
+
+        return lobbyState;
+      }),
+    );
+
+    // Tick projectiles (visual only, no hit detection in lobby)
+    this.projectiles.update(projs =>
+      projs.map(p => this.hunterService.tickProjectile(p, delta)),
+    );
   }
 
   // ── Round timer ────────────────────────────────────────────

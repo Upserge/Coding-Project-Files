@@ -41,13 +41,26 @@ export class EngineService implements OnDestroy {
 
   resize(width: number, height: number): void {
     const aspect = width / height;
-    const viewSize = 30;
+    const viewSize = 12;
     this.camera.left   = -viewSize * aspect;
     this.camera.right  =  viewSize * aspect;
     this.camera.top    =  viewSize;
     this.camera.bottom = -viewSize;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+  }
+
+  /** Move camera to follow a target position while keeping isometric angle. */
+  followTarget(target: { x: number; y: number; z: number }): void {
+    const isoDistance = 30;
+    const angle = Math.PI / 6;  // 30°
+    const yaw = Math.PI / 4;    // 45°
+    this.camera.position.set(
+      target.x + isoDistance * Math.cos(angle) * Math.sin(yaw),
+      target.y + isoDistance * Math.sin(angle),
+      target.z + isoDistance * Math.cos(angle) * Math.cos(yaw),
+    );
+    this.camera.lookAt(target.x, target.y, target.z);
   }
 
   ngOnDestroy(): void { this.dispose(); }
@@ -65,21 +78,21 @@ export class EngineService implements OnDestroy {
     this.scene = new THREE.Scene();
     // Sky-blue background with warm tone (sun poking through canopy)
     this.scene.background = new THREE.Color(0x87ceaa);
-    this.scene.fog = new THREE.FogExp2(0x87ceaa, 0.008);
+    this.scene.fog = new THREE.FogExp2(0x87ceaa, 0.003);
   }
 
   private createCamera(width: number, height: number): void {
     const aspect = width / height;
-    const viewSize = 30;
+    const viewSize = 12;
 
     this.camera = new THREE.OrthographicCamera(
       -viewSize * aspect, viewSize * aspect,
        viewSize, -viewSize,
-       0.1, 500,
+       0.1, 800,
     );
 
     // True isometric: rotate 30° from ground, 45° around Y
-    const isoDistance = 80;
+    const isoDistance = 30;
     const angle = Math.PI / 6;  // 30°
     const yaw = Math.PI / 4;    // 45°
     this.camera.position.set(
@@ -247,15 +260,15 @@ export class EngineService implements OnDestroy {
 
     // Main directional — sun poking through canopy
     const sun = new THREE.DirectionalLight(0xfff8e1, 0.9);
-    sun.position.set(20, 40, 15);
+    sun.position.set(60, 100, 40);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.near = 0.5;
-    sun.shadow.camera.far = 150;
-    sun.shadow.camera.left = -40;
-    sun.shadow.camera.right = 40;
-    sun.shadow.camera.top = 40;
-    sun.shadow.camera.bottom = -40;
+    sun.shadow.camera.far = 400;
+    sun.shadow.camera.left = -120;
+    sun.shadow.camera.right = 120;
+    sun.shadow.camera.top = 120;
+    sun.shadow.camera.bottom = -120;
     this.scene.add(sun);
 
     // Soft fill from opposite side

@@ -1,4 +1,13 @@
 <div class="game-viewport">
   <canvas #gameCanvas></canvas>
+
+  @if (inLobby()) {
+    <div class="lobby-banner">
+      <span class="lobby-count">{{ playerCount() }} / {{ minPlayers }}+</span>
+      <span class="lobby-msg">{{ waitingMessage() }}</span>
+      <button class="lobby-leave" (click)="leaveLobby()">Leave</button>
+    </div>
+  }
+
   <app-hud />
 </div>

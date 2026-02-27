@@ -10,6 +10,8 @@ import {
   docData,
   query,
   where,
+  increment,
+  deleteField,
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import {
@@ -98,19 +100,16 @@ export class SessionService {
     const ref = doc(this.firestore, 'sessions', sessionId);
     await updateDoc(ref, {
       [`players.${player.uid}`]: player,
-      [`${player.role}Count`]: player.role === 'hider'
-        ? this.increment('hiderCount')
-        : this.increment('hunterCount'),
+      [`${player.role}Count`]: increment(1),
       updatedAt: Date.now(),
     });
   }
 
   async removePlayer(sessionId: string, uid: string, role: 'hider' | 'hunter'): Promise<void> {
     const ref = doc(this.firestore, 'sessions', sessionId);
-    // Use FieldValue.delete() equivalent — for now set to null
     await updateDoc(ref, {
-      [`players.${uid}`]: null,
-      [`${role}Count`]: this.decrement(`${role}Count`),
+      [`players.${uid}`]: deleteField(),
+      [`${role}Count`]: increment(-1),
       updatedAt: Date.now(),
     });
   }
@@ -129,20 +128,4 @@ export class SessionService {
     await deleteDoc(ref);
   }
 
-  // ── Helpers ──────────────────────────────────────────────
-
-  /**
-   * Firestore increment helper.
-   * Returns the FieldValue so it can be used in updateDoc.
-   */
-  private increment(_field: string): unknown {
-    // Dynamically import to avoid top-level bundle issues
-    // In practice, use `increment(1)` from firebase/firestore
-    // For now, return a placeholder — will wire up properly with FieldValue
-    return 1; // TODO: replace with `increment(1)` from @angular/fire/firestore
   }
-
-  private decrement(_field: string): unknown {
-    return -1; // TODO: replace with `increment(-1)`
-  }
-}
