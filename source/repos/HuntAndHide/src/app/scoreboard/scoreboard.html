@@ -1,0 +1,34 @@
+<div class="scoreboard-container">
+  <h1 class="title">Round Over</h1>
+
+  <!-- Round results -->
+  <section class="round-results">
+    <h2>This Round</h2>
+    @for (player of roundPlayers(); track player.uid) {
+      <div class="score-row">
+        <span class="rank">{{ $index + 1 }}</span>
+        <span class="name">{{ player.displayName }}</span>
+        <span class="role">{{ player.role }}</span>
+        <span class="pts">{{ player.score }}</span>
+      </div>
+    }
+  </section>
+
+  <!-- Global leaderboard -->
+  <section class="global-leaderboard">
+    <h2>All-Time Leaderboard</h2>
+    @for (entry of topScores(); track entry.username) {
+      <div class="score-row">
+        <span class="rank">{{ $index + 1 }}</span>
+        <span class="name">{{ entry.username }}</span>
+        <span class="games">{{ entry.gamesPlayed }} games</span>
+        <span class="pts">{{ entry.highScore }}</span>
+      </div>
+    }
+    @if (topScores().length === 0) {
+      <p class="empty-hint">No scores recorded yet.</p>
+    }
+  </section>
+
+  <button class="btn btn-primary" (click)="playAgain()">Play Again</button>
+</div>

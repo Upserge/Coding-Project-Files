@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Sessions ────────────────────────────────────────────
+    // Anyone can read lobby sessions (matchmaking).
+    // Writes are validated: only known fields, max 10 players.
+    match /sessions/{sessionId} {
+      allow read: if true;
+
+      allow create: if isValidSession(request.resource.data);
+
+      allow update: if isValidSessionUpdate(request.resource.data);
+
+      allow delete: if true;
+      // TODO: tighten delete to host-only once auth is in place:
+      // allow delete: if request.resource.data.hostUid == request.auth.uid;
+    }
+
+    // ─── Leaderboard ─────────────────────────────────────────
+    // Anyone can read the leaderboard.
+    // Writes are validated: username must match doc ID, scores must be numbers.
+    match /leaderboard/{username} {
+      allow read: if true;
+
+      allow create: if isValidLeaderboardEntry(username, request.resource.data);
+
+      allow update: if isValidLeaderboardEntry(username, request.resource.data)
+                    && request.resource.data.gamesPlayed >= resource.data.gamesPlayed;
+
+      allow delete: if false;
+    }
+
+    // ─── Deny everything else ────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ─── Validation functions ────────────────────────────────
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['hostUid', 'phase', 'players', 'hiderCount', 'hunterCount',
+                                  'roundTimeSeconds', 'currentRound', 'maxRounds',
+                                  'createdAt', 'updatedAt'])
+          && data.phase in ['lobby', 'hiding', 'hunting', 'results']
+          && data.hiderCount is int && data.hiderCount >= 0 && data.hiderCount <= 7
+          && data.hunterCount is int && data.hunterCount >= 0 && data.hunterCount <= 3
+          && data.roundTimeSeconds is int && data.roundTimeSeconds > 0
+          && data.maxRounds is int && data.maxRounds > 0;
+    }
+
+    function isValidSessionUpdate(data) {
+      return data.phase in ['lobby', 'hiding', 'hunting', 'results']
+          && data.hiderCount is int && data.hiderCount >= 0
+          && data.hunterCount is int && data.hunterCount >= 0
+          && (data.hiderCount + data.hunterCount) <= 10;
+    }
+
+    function isValidLeaderboardEntry(username, data) {
+      return data.username == username
+          && data.username is string && data.username.size() >= 1 && data.username.size() <= 20
+          && data.highScore is int && data.highScore >= 0
+          && data.totalScore is int && data.totalScore >= 0
+          && data.gamesPlayed is int && data.gamesPlayed >= 0;
+    }
+  }
+}

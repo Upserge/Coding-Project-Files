@@ -1,0 +1,29 @@
+<div class="lobby-container">
+  <h1 class="title">Game Lobby</h1>
+  <p class="session-id">Session: {{ sessionId() }}</p>
+
+  <div class="player-list">
+    <h2>Players ({{ players().length }} / 10)</h2>
+    @for (player of players(); track player.uid) {
+      <div class="player-card" [class.hunter]="player.role === 'hunter'">
+        <span class="animal-icon">{{ player.animal }}</span>
+        <span class="player-name">{{ player.displayName }}</span>
+        <span class="role-badge">{{ player.role }}</span>
+      </div>
+    }
+    @if (players().length === 0) {
+      <p class="empty-hint">Waiting for players to join...</p>
+    }
+  </div>
+
+  <div class="lobby-actions">
+    @if (isHost()) {
+      <button class="btn btn-primary" (click)="startGame()" [disabled]="players().length < 2">
+        Start Game
+      </button>
+    } @else {
+      <p class="waiting-text">Waiting for host to start...</p>
+    }
+    <button class="btn btn-secondary" (click)="leaveSession()">Leave</button>
+  </div>
+</div>

@@ -1,0 +1,99 @@
+.hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  font-family: inherit;
+  color: #e0e0e0;
+  z-index: 10;
+}
+
+.hud-top,
+.hud-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phase-badge {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0.3rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.timer {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score,
+.players {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* ── Role-specific HUD ──────────────────────────────────── */
+
+.hud-role {
+  align-self: flex-start;
+}
+
+.bar-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #aaa;
+  margin-bottom: 0.2rem;
+}
+
+.bar-track {
+  width: 180px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.15s linear;
+}
+
+.idle-fill {
+  background: #e9c46a;
+}
+
+.idle-fill.critical {
+  background: #ef5350;
+}
+
+.hunger-fill {
+  background: #66bb6a;
+}
+
+.hunger-fill.critical {
+  background: #ef5350;
+}
+
+.active-item,
+.weapon-indicator {
+  margin-top: 0.5rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+  font-size: 0.85rem;
+}

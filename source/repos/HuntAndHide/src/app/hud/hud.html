@@ -1,0 +1,46 @@
+<div class="hud-overlay">
+  <!-- Top bar: phase + timer -->
+  <div class="hud-top">
+    <span class="phase-badge">{{ phase() | uppercase }}</span>
+    <span class="timer">{{ timeRemaining() }}s</span>
+  </div>
+
+  <!-- Role-specific middle section -->
+  @if (isHider()) {
+    <div class="hud-role hider-hud">
+      <div class="idle-bar-wrapper">
+        <label class="bar-label">Move!</label>
+        <div class="bar-track">
+          <div class="bar-fill idle-fill"
+               [style.width.%]="idlePercent() * 100"
+               [class.critical]="idlePercent() > 0.7"></div>
+        </div>
+      </div>
+      @if (activeItem()) {
+        <div class="active-item">{{ activeItem() }}</div>
+      }
+    </div>
+  }
+
+  @if (isHunter()) {
+    <div class="hud-role hunter-hud">
+      <div class="hunger-bar-wrapper">
+        <label class="bar-label">Hunger</label>
+        <div class="bar-track">
+          <div class="bar-fill hunger-fill"
+               [style.width.%]="hungerPercent() * 100"
+               [class.critical]="hungerPercent() < 0.25"></div>
+        </div>
+      </div>
+      @if (equippedWeapon()) {
+        <div class="weapon-indicator">{{ equippedWeapon() }}</div>
+      }
+    </div>
+  }
+
+  <!-- Bottom bar: score + player count -->
+  <div class="hud-bottom">
+    <span class="score">Score: {{ score() }}</span>
+    <span class="players">Players: {{ playerCount() }}</span>
+  </div>
+</div>

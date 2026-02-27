@@ -1,0 +1,95 @@
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.scoreboard-container {
+  text-align: center;
+  padding: 2rem;
+  max-width: 520px;
+  width: 100%;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #e0e0e0;
+  margin: 0 0 1.5rem;
+}
+
+section {
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+h2 {
+  font-size: 1rem;
+  color: #aaa;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 0.3rem;
+}
+
+.rank {
+  font-weight: 700;
+  color: #e9c46a;
+  min-width: 24px;
+  text-align: right;
+}
+
+.name {
+  flex: 1;
+  color: #e0e0e0;
+}
+
+.role,
+.games {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.pts {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #e0e0e0;
+  min-width: 40px;
+  text-align: right;
+}
+
+.empty-hint {
+  color: #555;
+  font-style: italic;
+  text-align: center;
+}
+
+.btn {
+  min-width: 200px;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #e9c46a;
+  color: #1a1a2e;
+}
+
+.btn-primary:hover {
+  background: #f4d58d;
+}

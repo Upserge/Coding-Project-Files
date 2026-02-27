@@ -1,0 +1,13 @@
+<div class="menu-container">
+  <h1 class="title">Hunt &amp; Hide</h1>
+  <p class="subtitle">A multiplayer hide-and-seek game</p>
+
+  <div class="menu-actions">
+    <button class="btn btn-primary" (click)="quickPlay()" [disabled]="isCreating()">
+      {{ isCreating() ? 'Creating...' : 'Quick Play' }}
+    </button>
+    <button class="btn btn-secondary" (click)="createGame()" [disabled]="isCreating()">
+      Create Game
+    </button>
+  </div>
+</div>
