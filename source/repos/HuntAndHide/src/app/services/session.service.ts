@@ -1,18 +1,18 @@
 import { inject, Injectable } from '@angular/core';
+import { Firestore } from '@angular/fire/firestore';
 import {
-  Firestore,
   collection,
   doc,
   addDoc,
   updateDoc,
   deleteDoc,
-  collectionData,
-  docData,
+  getDocs,
   query,
   where,
   increment,
   deleteField,
-} from '@angular/fire/firestore';
+  onSnapshot,
+} from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import {
   GameSession,
@@ -28,10 +28,13 @@ import { IdentityService } from './identity.service';
  * - CRUD operations
  * - Auto-scaling (overflow at MAX_PLAYERS_PER_SESSION → new session)
  * - Role seeding (count hiders/hunters, assign accordingly)
+ *
+ * Uses raw Firebase SDK functions (not AngularFire wrappers) for
+ * compatibility with zoneless change detection.
  */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  private readonly firestore = inject(Firestore);
+  private readonly firestore: any = inject(Firestore);
   private readonly identity = inject(IdentityService);
   private readonly sessionsCol = collection(this.firestore, 'sessions');
 
@@ -40,13 +43,32 @@ export class SessionService {
   /** Live-stream of sessions in the lobby phase that aren't full. */
   getOpenSessions$(): Observable<GameSession[]> {
     const q = query(this.sessionsCol, where('phase', '==', 'lobby'));
-    return collectionData(q, { idField: 'id' }) as Observable<GameSession[]>;
+    return new Observable<GameSession[]>(subscriber => {
+      const unsubscribe = onSnapshot(q,
+        snapshot => {
+          const sessions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as GameSession));
+          subscriber.next(sessions);
+        },
+        err => subscriber.error(err),
+      );
+      return unsubscribe;
+    });
   }
 
   /** Live-stream of a single session. */
   getSession$(sessionId: string): Observable<GameSession | undefined> {
     const ref = doc(this.firestore, 'sessions', sessionId);
-    return docData(ref, { idField: 'id' }) as Observable<GameSession | undefined>;
+    return new Observable<GameSession | undefined>(subscriber => {
+      const unsubscribe = onSnapshot(ref,
+        snapshot => {
+          subscriber.next(
+            snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } as GameSession : undefined,
+          );
+        },
+        err => subscriber.error(err),
+      );
+      return unsubscribe;
+    });
   }
 
   // ── JOIN / AUTO-SCALE ────────────────────────────────────
@@ -57,19 +79,21 @@ export class SessionService {
    */
   async findOrCreateSession(): Promise<string> {
     // Fetch open lobby sessions (one-shot read for matchmaking)
-    const { getDocs } = await import('@angular/fire/firestore');
     const q = query(this.sessionsCol, where('phase', '==', 'lobby'));
     const snapshot = await getDocs(q);
 
     for (const docSnap of snapshot.docs) {
       const session = docSnap.data() as GameSession;
       const playerCount = Object.keys(session.players ?? {}).length;
-      if (playerCount < MAX_PLAYERS_PER_SESSION) {
+      const hasRequiredFields =
+        typeof session.hiderCount === 'number' &&
+        typeof session.hunterCount === 'number';
+      if (hasRequiredFields && playerCount < MAX_PLAYERS_PER_SESSION) {
         return docSnap.id;
       }
     }
 
-    // No room anywhere — spin up a new session
+    // No room anywhere (or only stale sessions) — spin up a new session
     return this.createSession();
   }
 

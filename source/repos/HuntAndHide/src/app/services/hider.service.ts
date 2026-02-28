@@ -22,7 +22,7 @@ export interface HiderTickResult {
 export class HiderService {
 
   /** Base movement speed (world-units per second). */
-  private readonly baseSpeed = 5;
+  private readonly baseSpeed = 12;
 
   // ── Per-frame update ───────────────────────────────────────
 

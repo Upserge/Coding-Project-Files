@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { SessionService } from '../services/session.service';
 import { IdentityService } from '../services/identity.service';
 import { PlayerService } from '../services/player.service';
@@ -20,20 +21,21 @@ export class MenuComponent {
 
   protected readonly showModal = signal(false);
   protected readonly isJoining = signal(false);
+  protected readonly errorMsg = signal('');
 
   /** Quick Play: prompt for name if needed, then join a session. */
-  quickPlay(): void {
+  async quickPlay(): Promise<void> {
     if (!this.identity.hasUsername()) {
       this.showModal.set(true);
       return;
     }
-    this.joinAndNavigate();
+    await this.joinAndNavigate();
   }
 
   /** Called when the modal confirms a valid unique name. */
-  onNameConfirmed(_name: string): void {
+  async onNameConfirmed(_name: string): Promise<void> {
     this.showModal.set(false);
-    this.joinAndNavigate();
+    await this.joinAndNavigate();
   }
 
   onModalCancelled(): void {
@@ -42,17 +44,18 @@ export class MenuComponent {
 
   private async joinAndNavigate(): Promise<void> {
     this.isJoining.set(true);
+    this.errorMsg.set('');
+    let step = 'init';
     try {
+      step = 'findOrCreate';
       const sessionId = await this.sessionService.findOrCreateSession();
 
-      // Read session snapshot to determine role assignment
-      const session = await new Promise<any>((resolve) => {
-        const sub = this.sessionService.getSession$(sessionId).subscribe(s => {
-          sub.unsubscribe();
-          resolve(s);
-        });
-      });
+      step = 'getSession';
+      const session = await firstValueFrom(
+        this.sessionService.getSession$(sessionId),
+      );
 
+      step = 'assignRole';
       const hiderCount = session?.hiderCount ?? 0;
       const hunterCount = session?.hunterCount ?? 0;
       const takenAnimals = Object.values(session?.players ?? {})
@@ -65,8 +68,15 @@ export class MenuComponent {
         role, animal, { x: 0, y: 0, z: 0 },
       );
 
+      step = 'joinSession';
       await this.sessionService.joinSession(sessionId, player);
+
+      step = 'navigate';
       await this.router.navigate(['/game', sessionId]);
+    } catch (err: any) {
+      console.error(`[QuickPlay] Failed at step="${step}":`, err);
+      const detail = err?.code ? `${err.code}: ${err.message}` : (err?.message ?? String(err));
+      this.errorMsg.set(`Join failed at "${step}": ${detail}`);
     } finally {
       this.isJoining.set(false);
     }

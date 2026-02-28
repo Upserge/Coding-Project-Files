@@ -31,18 +31,21 @@ export class PlayerService {
   assignRole(currentHiderCount: number, currentHunterCount: number): PlayerRole {
     const { hiderSlots, hunterSlots } = DEFAULT_SESSION_CONFIG;
 
-    // Fill hunters first if none exist, then balance to ratio
-    if (currentHunterCount < hunterSlots && currentHiderCount >= hiderSlots) {
-      return 'hunter';
-    }
-    if (currentHunterCount === 0 && currentHiderCount > 0) {
+    const total = currentHiderCount + currentHunterCount;
+
+    // Special rule: if the lobby currently has no hunters and the incoming
+    // player would be the 5th (total currently 4), force them to be a hunter
+    // so the game will have at least one hunter.
+    if (currentHunterCount === 0 && total === 4) {
       return 'hunter';
     }
 
-    // Maintain the 7:3 ratio
-    const hiderRatio = currentHiderCount / (hiderSlots || 1);
-    const hunterRatio = currentHunterCount / (hunterSlots || 1);
-    return hiderRatio <= hunterRatio ? 'hider' : 'hunter';
+    // Respect slot limits.
+    if (currentHunterCount >= hunterSlots) return 'hider';
+    if (currentHiderCount >= hiderSlots) return 'hunter';
+
+    // Otherwise choose randomly between hider and hunter.
+    return Math.random() < 0.5 ? 'hider' : 'hunter';
   }
 
   // ── Animal assignment ──────────────────────────────────────

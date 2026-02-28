@@ -109,16 +109,22 @@ export class ProceduralAnimationService {
 
     // Breathing: gentle body scale pulse
     if (body) {
-      body.scale.y = 1.15 + Math.sin(ctx.phase) * 0.02;
+      const baseY = (body.userData['baseY'] as number) ?? 0.65;
+      body.position.y = baseY;
+      body.rotation.x = 0;
+      body.rotation.z = 0;
+      body.scale.y = 1 + Math.sin(ctx.phase) * 0.02;
     }
 
-    // Slight head bob
+    // Slight head tilt (head follows body via hierarchy — no position changes)
     if (head) {
       head.rotation.z = Math.sin(ctx.phase * 0.7) * 0.03;
     }
 
-    // Tail wag (slow)
+    // Tail wag (slow) — absolute rotation from rest pose
     if (tail) {
+      const baseRotX = (tail.userData['baseRotX'] as number) ?? 0;
+      tail.rotation.x = baseRotX;
       tail.rotation.z = Math.sin(ctx.phase * 1.2) * 0.1;
     }
 
@@ -136,17 +142,18 @@ export class ProceduralAnimationService {
     const sinPhase = Math.sin(ctx.phase);
     const cosPhase = Math.cos(ctx.phase);
 
-    // Body bounce (up/down bob)
+    // Body bounce (up/down bob from rest-pose baseY)
     const body = group.getObjectByName(PART_NAMES.body);
     if (body) {
-      body.position.y = 0.65 + Math.abs(sinPhase) * 0.06;
+      const baseY = (body.userData['baseY'] as number) ?? 0.65;
+      body.position.y = baseY + Math.abs(sinPhase) * 0.06;
+      body.rotation.x = 0;
       body.rotation.z = sinPhase * 0.03;
     }
 
-    // Head bob (opposite phase for charming sway)
+    // Head sway (no position change — follows body via hierarchy)
     const head = group.getObjectByName(PART_NAMES.head);
     if (head) {
-      head.position.y += Math.abs(sinPhase) * 0.04;
       head.rotation.z = -sinPhase * 0.04;
     }
 
@@ -156,9 +163,11 @@ export class ProceduralAnimationService {
     // Arm swing
     this.applyArmSwing(group, cosPhase, 0.2);
 
-    // Tail wag (synced with walk)
+    // Tail wag (synced with walk, absolute rotation)
     const tail = group.getObjectByName(PART_NAMES.tail);
     if (tail) {
+      const baseRotX = (tail.userData['baseRotX'] as number) ?? 0;
+      tail.rotation.x = baseRotX;
       tail.rotation.z = sinPhase * 0.15;
     }
 
@@ -177,23 +186,23 @@ export class ProceduralAnimationService {
 
     const body = group.getObjectByName(PART_NAMES.body);
     if (body) {
-      body.position.y = 0.65 + Math.abs(sinPhase) * 0.1;
+      const baseY = (body.userData['baseY'] as number) ?? 0.65;
+      body.position.y = baseY + Math.abs(sinPhase) * 0.1;
       body.rotation.x = 0.12; // lean forward
       body.rotation.z = sinPhase * 0.05;
     }
 
-    const head = group.getObjectByName(PART_NAMES.head);
-    if (head) {
-      head.position.y += Math.abs(sinPhase) * 0.06;
-    }
+    // Head follows body via hierarchy — no position changes needed
 
     this.applyLegCycle(group, sinPhase, 0.5);
     this.applyArmSwing(group, cosPhase, 0.35);
 
+    // Absolute tail rotation from rest pose
     const tail = group.getObjectByName(PART_NAMES.tail);
     if (tail) {
+      const baseRotX = (tail.userData['baseRotX'] as number) ?? 0;
+      tail.rotation.x = baseRotX + cosPhase * 0.1;
       tail.rotation.z = sinPhase * 0.25;
-      tail.rotation.x += cosPhase * 0.1;
     }
 
     this.applyEarBounce(group, sinPhase, 0.1);
@@ -213,7 +222,12 @@ export class ProceduralAnimationService {
   private applyDeath(group: THREE.Group, ctx: AnimationContext, _delta: number): void {
     const t = Math.min(ctx.elapsed / 0.5, 1);
     group.rotation.z = t * (Math.PI / 2);
-    group.position.y = -t * 0.3;
+    // Sink via body pivot to avoid overriding world position
+    const body = group.getObjectByName(PART_NAMES.body);
+    if (body) {
+      const baseY = (body.userData['baseY'] as number) ?? 0.65;
+      body.position.y = baseY - t * 0.3;
+    }
   }
 
   // ── Shared part animators ────────────────────────────────
@@ -223,11 +237,7 @@ export class ProceduralAnimationService {
     const rLeg = group.getObjectByName(PART_NAMES.rightLeg);
     if (lLeg) lLeg.rotation.x = sinPhase * amplitude;
     if (rLeg) rLeg.rotation.x = -sinPhase * amplitude;
-
-    const lFoot = group.getObjectByName(PART_NAMES.leftFoot);
-    const rFoot = group.getObjectByName(PART_NAMES.rightFoot);
-    if (lFoot) lFoot.position.z = 0.06 + sinPhase * amplitude * 0.3;
-    if (rFoot) rFoot.position.z = 0.06 - sinPhase * amplitude * 0.3;
+    // Feet are children of leg pivots — they follow automatically
   }
 
   private applyArmSwing(group: THREE.Group, cosPhase: number, amplitude: number): void {

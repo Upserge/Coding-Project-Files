@@ -1,12 +1,12 @@
 import { inject, Injectable } from '@angular/core';
+import { Firestore } from '@angular/fire/firestore';
 import {
-  Firestore,
   collection,
   doc,
   getDoc,
   setDoc,
-  collectionData,
-} from '@angular/fire/firestore';
+  onSnapshot,
+} from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { LeaderboardEntry } from '../models/leaderboard.model';
 
@@ -16,12 +16,21 @@ import { LeaderboardEntry } from '../models/leaderboard.model';
  */
 @Injectable({ providedIn: 'root' })
 export class LeaderboardService {
-  private readonly firestore = inject(Firestore);
+  private readonly firestore: any = inject(Firestore);
   private readonly leaderboardCol = collection(this.firestore, 'leaderboard');
 
   /** Live-stream of all leaderboard entries (sorted client-side). */
   getLeaderboard$(): Observable<LeaderboardEntry[]> {
-    return collectionData(this.leaderboardCol) as Observable<LeaderboardEntry[]>;
+    return new Observable<LeaderboardEntry[]>(subscriber => {
+      const unsubscribe = onSnapshot(this.leaderboardCol,
+        snapshot => {
+          const entries = snapshot.docs.map(d => d.data() as LeaderboardEntry);
+          subscriber.next(entries);
+        },
+        err => subscriber.error(err),
+      );
+      return unsubscribe;
+    });
   }
 
   /** Get a single player's leaderboard entry. */

@@ -80,9 +80,20 @@ export class SceneRenderService {
       // Position
       group.position.set(player.position.x, player.position.y, player.position.z);
 
-      // Face movement direction
-      if (player.rotation.y !== undefined) {
-        group.rotation.y = player.rotation.y;
+      // Face movement direction with smooth turning.
+      // Compute movement vector from previous position and, when moving,
+      // smoothly slerp the group toward the movement heading. When idle
+      // use server-provided `player.rotation.y` (if present) as a gentle
+      // fallback so remote-controlled rotations still apply.
+      const dxForFacing = player.position.x - prevPos.x;
+      const dzForFacing = player.position.z - prevPos.z;
+      const moveThreshold = 0.000001; // squared distance threshold
+      const TURN_SPEED = 10; // radians per second (tweakable)
+
+      if (dxForFacing * dxForFacing + dzForFacing * dzForFacing > moveThreshold) {
+        const targetY = Math.atan2(dxForFacing, dzForFacing);
+        const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, targetY, 0));
+        group.quaternion.slerp(targetQuat, Math.min(1, TURN_SPEED * delta));
       }
 
       // Visibility

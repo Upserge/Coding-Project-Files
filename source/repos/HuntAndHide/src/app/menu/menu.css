@@ -67,3 +67,11 @@
   border-color: #e9c46a;
   color: #e9c46a;
 }
+
+.error-msg {
+  margin-top: 1.5rem;
+  color: #e76f51;
+  font-size: 0.9rem;
+  max-width: 340px;
+  margin-inline: auto;
+}

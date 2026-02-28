@@ -33,7 +33,7 @@ export interface ProjectileState {
 @Injectable({ providedIn: 'root' })
 export class HunterService {
 
-  private readonly baseSpeed = 5;
+  private readonly baseSpeed = 10;
   private readonly catchRadius = 1.5;
   private readonly spearSpeed = 15;
   private readonly boloSpeed = 10;

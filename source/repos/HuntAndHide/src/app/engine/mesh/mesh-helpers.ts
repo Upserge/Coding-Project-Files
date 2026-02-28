@@ -1,24 +1,76 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
-/** Well-known child names used by the animation system to find body parts. */
+/**
+ * Well-known child names used by the animation system to find body parts.
+ *
+ * Skeleton hierarchy:
+ *   root Group  (world-positioned by SceneRenderService)
+ *     body  GROUP  (bob / lean / sway)
+ *       torso mesh, belly mesh
+ *       head  GROUP  (tilt / nod - follows body automatically)
+ *         head mesh, snout, nose, eyes, blush, ear_L, ear_R
+ *       arm_L, arm_R  (swing)
+ *       wing_L, wing_R  (flap - owl)
+ *       tail  GROUP  (wag / droop)
+ *         tail mesh, tailTip
+ *     leg_L  GROUP  (walk cycle - stays grounded)
+ *       leg mesh + foot mesh
+ *     leg_R  GROUP
+ *     role ring, local ring, name label sprite
+ */
 export const PART_NAMES = {
-  body: 'body',
-  head: 'head',
-  leftLeg: 'leg_L',
-  rightLeg: 'leg_R',
-  leftArm: 'arm_L',
-  rightArm: 'arm_R',
-  leftFoot: 'foot_L',
+  body:      'body',
+  head:      'head',
+  leftLeg:   'leg_L',
+  rightLeg:  'leg_R',
+  leftArm:   'arm_L',
+  rightArm:  'arm_R',
+  leftFoot:  'foot_L',
   rightFoot: 'foot_R',
-  tail: 'tail',
-  tailTip: 'tailTip',
-  leftEar: 'ear_L',
-  rightEar: 'ear_R',
-  leftWing: 'wing_L',
+  tail:      'tail',
+  tailTip:   'tailTip',
+  leftEar:   'ear_L',
+  rightEar:  'ear_R',
+  leftWing:  'wing_L',
   rightWing: 'wing_R',
 } as const;
 
-/** Chibi dot eyes (big white circle + black pupil + tiny shine). */
+// Skeleton pivot factories
+
+export function createBodyPivot(root: THREE.Group, y: number): THREE.Group {
+  const pivot = new THREE.Group();
+  pivot.name = PART_NAMES.body;
+  pivot.position.y = y;
+  pivot.userData['baseY'] = y;
+  root.add(pivot);
+  return pivot;
+}
+
+export function createHeadPivot(bodyPivot: THREE.Group, relY: number): THREE.Group {
+  const pivot = new THREE.Group();
+  pivot.name = PART_NAMES.head;
+  pivot.position.y = relY;
+  bodyPivot.add(pivot);
+  return pivot;
+}
+
+export function createTailPivot(
+  bodyPivot: THREE.Group,
+  relY: number,
+  relZ: number,
+  baseRotX = 0,
+): THREE.Group {
+  const pivot = new THREE.Group();
+  pivot.name = PART_NAMES.tail;
+  pivot.position.set(0, relY, relZ);
+  pivot.rotation.x = baseRotX;
+  pivot.userData['baseRotX'] = baseRotX;
+  bodyPivot.add(pivot);
+  return pivot;
+}
+
+// Cosmetic helpers
+
 export function attachCozyEyes(
   group: THREE.Group, y: number, z: number, spacing = 0.16, size = 0.09,
 ): void {
@@ -44,7 +96,6 @@ export function attachCozyEyes(
   }
 }
 
-/** Small bean nose. */
 export function attachNose(
   group: THREE.Group, y: number, z: number, color: number,
 ): void {
@@ -55,7 +106,6 @@ export function attachNose(
   group.add(nose);
 }
 
-/** Blush ovals (pink circles on cheeks). */
 export function attachBlush(
   group: THREE.Group, y: number, z: number, spacing = 0.28,
 ): void {
@@ -69,41 +119,60 @@ export function attachBlush(
   }
 }
 
-/** Two stubby legs with well-known names for animation. */
+// Leg / foot pivots
+
 export function attachLegs(
-  group: THREE.Group, color: number, spacing = 0.18, height = 0.2,
+  root: THREE.Group, color: number, spacing = 0.18, height = 0.2,
 ): void {
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
-  const geo = new THREE.CylinderGeometry(0.1, 0.12, height, 6);
+  const legMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+  const legGeo = new THREE.CylinderGeometry(0.1, 0.12, height, 6);
+  const footMat = new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
+  const footGeo = new THREE.SphereGeometry(0.1, 6, 6);
+
   const names = [PART_NAMES.leftLeg, PART_NAMES.rightLeg];
   let i = 0;
   for (const side of [-1, 1]) {
-    const leg = new THREE.Mesh(geo, mat);
-    leg.name = names[i++];
-    leg.position.set(side * spacing, height / 2, 0);
+    const pivot = new THREE.Group();
+    pivot.name = names[i++];
+    pivot.position.set(side * spacing, height, 0);
+
+    const leg = new THREE.Mesh(legGeo, legMat);
+    leg.position.y = -height / 2;
     leg.castShadow = true;
-    group.add(leg);
+    pivot.add(leg);
+
+    const foot = new THREE.Mesh(footGeo, footMat);
+    foot.position.set(0, -height + 0.06, 0.06);
+    foot.scale.set(1, 0.6, 1.2);
+    pivot.add(foot);
+
+    root.add(pivot);
   }
 }
 
-/** Round paw/foot with well-known names. */
-export function attachFeet(
-  group: THREE.Group, color: number, spacing = 0.18,
+export function attachFeetOnly(
+  root: THREE.Group, color: number, spacing = 0.18,
 ): void {
   const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
   const geo = new THREE.SphereGeometry(0.1, 6, 6);
-  const names = [PART_NAMES.leftFoot, PART_NAMES.rightFoot];
+  const names = [PART_NAMES.leftLeg, PART_NAMES.rightLeg];
   let i = 0;
   for (const side of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.name = names[i++];
+    pivot.position.set(side * spacing, 0.12, 0);
+
     const foot = new THREE.Mesh(geo, mat);
-    foot.name = names[i++];
-    foot.position.set(side * spacing, 0.06, 0.06);
+    foot.position.set(0, -0.06, 0.06);
     foot.scale.set(1, 0.6, 1.2);
-    group.add(foot);
+    pivot.add(foot);
+
+    root.add(pivot);
   }
 }
 
-/** Floating name label sprite above head. */
+// Name label
+
 export function buildNameSprite(name: string, isHunter: boolean): THREE.Sprite {
   const canvas = document.createElement('canvas');
   canvas.width = 256;

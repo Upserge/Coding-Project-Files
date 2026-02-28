@@ -7,6 +7,10 @@
       {{ isJoining() ? 'Joining...' : 'Quick Play' }}
     </button>
   </div>
+
+  @if (errorMsg(); as msg) {
+    <p class="error-msg">{{ msg }}</p>
+  }
 </div>
 
 @if (showModal()) {
