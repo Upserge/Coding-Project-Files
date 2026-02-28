@@ -85,7 +85,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
         this.engine.onTick = (delta: number) => {
           this.gameLoop.tick(delta);
-          this.syncScene();
+          this.syncScene(delta);
         };
 
         this.gameLoop.startLobby(uid, session.hiderCount, session.hunterCount);
@@ -105,7 +105,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   // ── Per-frame scene sync ───────────────────────────────────
 
-  private syncScene(): void {
+  private syncScene(delta: number): void {
     const uid = this.identity.getToken();
 
     // Combine hiders + hunters for player mesh sync
@@ -113,9 +113,10 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       ...this.gameLoop.hiders(),
       ...this.gameLoop.hunters(),
     ];
-    this.sceneRender.syncPlayers(allPlayers, uid);
+    this.sceneRender.syncPlayers(allPlayers, uid, delta);
     this.sceneRender.syncItems(this.gameLoop.items());
     this.sceneRender.syncProjectiles(this.gameLoop.projectiles());
+    this.sceneRender.tickParticles(delta);
 
     // Camera follows local player
     const localPlayer = this.gameLoop.getLocalPlayer();
