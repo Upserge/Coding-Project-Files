@@ -10,6 +10,7 @@ import {
   HIDER_ANIMALS,
   HUNTER_ANIMALS,
   HUNTER_HUNGER_MS,
+  HUNTER_STAMINA_MAX,
   Vec3,
 } from '../models/player.model';
 import { DEFAULT_SESSION_CONFIG } from '../models/session.model';
@@ -90,10 +91,9 @@ export class PlayerService {
       role: 'hider',
       animal,
       idleTimerMs: 0,
-      inventory: [null, null],
-      activeItem: null,
-      activeItemRemainingMs: 0,
-      slowRemainingMs: 0,
+      isHiding: false,
+      hidingSpotId: null,
+      isCaught: false,
     };
   }
 
@@ -104,8 +104,8 @@ export class PlayerService {
       role: 'hunter',
       animal,
       hungerRemainingMs: HUNTER_HUNGER_MS,
-      inventory: ['spear', null],
-      equippedWeapon: 'spear',
+      stamina: HUNTER_STAMINA_MAX,
+      isSprinting: false,
     };
   }
 }

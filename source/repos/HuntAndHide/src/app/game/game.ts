@@ -18,7 +18,7 @@ import { IdentityService } from '../services/identity.service';
 import { InputService } from '../services/input.service';
 import { HudComponent } from '../hud/hud';
 import { GameSession } from '../models/session.model';
-import { PlayerState } from '../models/player.model';
+import { PlayerState, PlayerRole } from '../models/player.model';
 
 /** Total player slots (real + CPU). */
 const TOTAL_PLAYER_SLOTS = 10;
@@ -111,12 +111,11 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       ...this.gameLoop.hiders(),
       ...this.gameLoop.hunters(),
     ];
-    this.sceneRender.syncPlayers(allPlayers, uid, delta);
-
     const localRole = this.gameLoop.getLocalPlayer()?.role ?? 'hider';
-    this.sceneRender.syncItems(this.gameLoop.items(), localRole);
-    this.sceneRender.syncProjectiles(this.gameLoop.projectiles());
-    this.sceneRender.syncDecoys(this.gameLoop.decoys());
+    this.sceneRender.syncPlayers(allPlayers, uid, delta, localRole);
+
+    // Pass nearby hiding spot position for world-space prompt
+    this.sceneRender.setHideSpot(this.gameLoop.nearHidingSpot());
     this.sceneRender.tickParticles(delta);
 
     // Camera follows local player

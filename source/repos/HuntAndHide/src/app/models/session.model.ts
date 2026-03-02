@@ -4,7 +4,7 @@ import { PlayerState } from './player.model';
 
 // ── Game phases ──────────────────────────────────────────────
 
-export type GamePhase = 'lobby' | 'hiding' | 'hunting' | 'results';
+export type GamePhase = 'lobby' | 'hunting' | 'results';
 
 // ── Session document (mirrors Firestore shape) ───────────────
 

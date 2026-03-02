@@ -71,33 +71,50 @@ export class MapService {
       obstacles.push(this.place(id++, 'tree', x, z, Math.random() * Math.PI));
     }
 
-    // Bushes (hide-able) — many more for the bigger map
+    // Bushes (hide-able) — dense coverage for terrain hiding gameplay
     const bushPositions = [
       [-30, -10], [10, -35], [-55, 40], [40, 25], [0, 5],
       [-20, 50], [60, -55], [-70, -35], [25, 75], [75, 10],
       [-45, -50], [50, -15], [-15, 65], [35, 55], [-65, -15],
       [15, -60], [-35, 30], [70, 45], [-10, -80], [80, -40],
       [-80, 20], [5, 30], [-50, -70], [55, 70], [-25, -25],
+      // Additional bushes for denser hiding coverage
+      [-12, -50], [22, -22], [-42, 10], [62, 32], [8, 48],
+      [-28, 68], [48, -42], [-62, -55], [32, 82], [78, -18],
+      [-38, -38], [58, 8], [-8, 52], [42, 62], [-72, 8],
+      [18, -72], [-52, 38], [68, 58], [-18, -68], [82, -58],
+      [-78, 42], [12, 18], [-58, -62], [52, 78], [-32, -32],
+      [28, -48], [-48, 52], [72, -28], [-22, 42], [38, -58],
+      [-68, -22], [8, 72], [-82, -38], [62, -68], [-42, 78],
     ];
     for (const [x, z] of bushPositions) {
       obstacles.push(this.place(id++, 'bush', x, z, Math.random() * Math.PI));
     }
 
-    // Leaf piles
+    // Leaf piles (hide-able) — dense coverage for terrain hiding gameplay
     const leafPositions = [
       [-15, -20], [25, 10], [-40, -65], [55, 55], [-65, 30],
       [10, -50], [-30, 60], [70, -30], [-5, 40], [45, -70],
       [-55, -40], [30, 80], [-75, 10], [60, 15], [-20, -55],
+      // Additional leaf piles for denser hiding coverage
+      [-8, -35], [38, -28], [-52, 18], [22, 42], [-70, -12],
+      [15, -75], [-28, 48], [65, 22], [-42, -58], [48, 68],
+      [-18, 72], [72, -48], [-62, 42], [8, -62], [52, -32],
+      [-35, -28], [42, 38], [-58, 68], [28, -52], [78, 52],
     ];
     for (const [x, z] of leafPositions) {
       obstacles.push(this.place(id++, 'leaf_pile', x, z, 0));
     }
 
-    // Holes
+    // Holes (hide-able) — additional hiding spots
     const holePositions = [
       [-10, -55], [35, -15], [-45, 25], [10, 60],
       [-60, -20], [50, -50], [-25, 45], [75, 35],
       [0, -30], [-40, 70],
+      // Additional holes for denser hiding coverage
+      [-18, -42], [28, 22], [-52, -32], [62, -18], [5, 52],
+      [-32, 58], [42, -62], [-72, 15], [18, 78], [58, -38],
+      [-48, -68], [72, 62], [-78, -48], [32, -42], [-22, 32],
     ];
     for (const [x, z] of holePositions) {
       obstacles.push(this.place(id++, 'hole', x, z, 0));

@@ -12,7 +12,7 @@ import * as THREE from 'three';
  */
 
 const FOG_SIZE = 200;
-const FOG_Y = 0.4;
+const FOG_Y = 0.08;
 
 @Injectable({ providedIn: 'root' })
 export class GroundFogService {

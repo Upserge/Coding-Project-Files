@@ -160,10 +160,9 @@ export class CpuSpawnerService {
       score: 0,
       isCpu: true,
       idleTimerMs: 0,
-      inventory: [null, null],
-      activeItem: null,
-      activeItemRemainingMs: 0,
-      slowRemainingMs: 0,
+      isHiding: false,
+      hidingSpotId: null,
+      isCaught: false,
     };
   }
 
@@ -179,8 +178,8 @@ export class CpuSpawnerService {
       score: 0,
       isCpu: true,
       hungerRemainingMs: 300_000,
-      inventory: ['spear', null],
-      equippedWeapon: 'spear',
+      stamina: 100,
+      isSprinting: false,
     };
   }
 

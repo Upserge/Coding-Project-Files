@@ -63,7 +63,7 @@ export class ParticleVfxService {
       position,
       count: 6,
       color: 0xc8b090,
-      size: 0.15,
+      size: 6,
       speed: 0.8,
       lifetime: 0.4,
       gravity: -0.5,
@@ -72,63 +72,46 @@ export class ParticleVfxService {
     });
   }
 
-  /** Sparkle burst when picking up an item. */
-  spawnPickupSparkle(position: Vec3, color = 0xffd700): void {
+  /** Tiny puff at each foot strike during walk/run. */
+  spawnFootstep(position: Vec3, isRunning: boolean): void {
     this.spawnBurst({
       position,
-      count: 12,
-      color,
-      size: 0.18,
-      speed: 1.5,
-      lifetime: 0.6,
-      gravity: -1.0,
-      spread: 0.6,
-      yOffset: 0.5,
+      count: isRunning ? 5 : 3,
+      color: 0xb8a080,
+      size: isRunning ? 5 : 3,
+      speed: isRunning ? 0.6 : 0.35,
+      lifetime: isRunning ? 0.3 : 0.25,
+      gravity: -0.4,
+      spread: 0.15,
+      yOffset: 0.02,
     });
   }
 
-  /** Dense smoke cloud (hider smoke bomb). */
-  spawnSmokeCloud(position: Vec3): void {
+  /** Dramatic burst when a hider is caught by a hunter. */
+  spawnCatchBurst(position: Vec3): void {
+    // Red-orange main burst
     this.spawnBurst({
       position,
-      count: 24,
-      color: 0x888888,
-      size: 0.4,
-      speed: 1.2,
-      lifetime: 1.2,
-      gravity: 0.3,
-      spread: 1.0,
-      yOffset: 0.3,
-    });
-  }
-
-  /** Speed-burst trail particles. */
-  spawnSpeedTrail(position: Vec3): void {
-    this.spawnBurst({
-      position,
-      count: 8,
-      color: 0x42a5f5,
-      size: 0.12,
-      speed: 0.5,
-      lifetime: 0.35,
-      gravity: 0,
-      spread: 0.2,
-      yOffset: 0.3,
-    });
-  }
-
-  /** Leafy splash when walking through bushes. */
-  spawnLeafSplash(position: Vec3): void {
-    this.spawnBurst({
-      position,
-      count: 8,
-      color: 0x4caf50,
-      size: 0.2,
-      speed: 1.8,
+      count: 18,
+      color: 0xff4444,
+      size: 10,
+      speed: 2.5,
       lifetime: 0.7,
-      gravity: -2.5,
-      spread: 0.5,
-      yOffset: 0.2,
+      gravity: -1.5,
+      spread: 0.8,
+      yOffset: 0.6,
+    });
+    // White spark accents
+    this.spawnBurst({
+      position,
+      count: 10,
+      color: 0xffffff,
+      size: 5,
+      speed: 3.0,
+      lifetime: 0.5,
+      gravity: -0.8,
+      spread: 0.4,
+      yOffset: 0.8,
     });
   }
 
@@ -172,7 +155,7 @@ export class ParticleVfxService {
       transparent: true,
       opacity: 0.8,
       depthWrite: false,
-      sizeAttenuation: true,
+      sizeAttenuation: false,
     });
 
     const mesh = new THREE.Points(geo, mat);

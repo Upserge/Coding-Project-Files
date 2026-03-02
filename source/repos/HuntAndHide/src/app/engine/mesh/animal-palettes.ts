@@ -1,5 +1,4 @@
 import { AnimalCharacter } from '../../models/player.model';
-import { ItemType } from '../../models/item.model';
 
 /** Soft pastel body colours per animal. */
 export const ANIMAL_COLORS: Record<AnimalCharacter, number> = {
@@ -11,6 +10,7 @@ export const ANIMAL_COLORS: Record<AnimalCharacter, number> = {
   owl:       0x9c7e60,
   snake:     0x8aad6a,
   chameleon: 0x6cc4b4,
+  pig:       0xf5a0a0,
   // Hunters — deeper, bolder
   wolf:    0x7a7a8a,
   lion:    0xdaaa40,
@@ -20,19 +20,8 @@ export const ANIMAL_COLORS: Record<AnimalCharacter, number> = {
 /** Lighter belly / accent colour per animal. */
 export const BELLY_COLORS: Record<AnimalCharacter, number> = {
   fox: 0xf5e6d0, rabbit: 0xffffff, deer: 0xe0cca8, frog: 0xc8e8a0,
-  owl: 0xd4c4a8, snake: 0xc8dca0, chameleon: 0xa0e8d8,
+  owl: 0xd4c4a8, snake: 0xc8dca0, chameleon: 0xa0e8d8, pig: 0xffe0e0,
   wolf: 0xb8b8c4, lion: 0xf0dca0, panther: 0x484860,
-};
-
-export const ITEM_COLORS: Record<ItemType, number> = {
-  smoke_bomb:  0x888888,
-  decoy:       0xffa726,
-  speed_burst: 0x42a5f5,
-  spear:       0x8d6e63,
-  bolo:        0x78909c,
-  berry:       0xe53935,
-  mushroom:    0xab47bc,
-  grub:        0xc6a700,
 };
 
 export const HUNTER_BODY_COLOR = 0xcc3333;

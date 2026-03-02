@@ -52,6 +52,7 @@ export class ProceduralAnimationService {
    * @param prevPos   Previous world position (for velocity derivation)
    * @param delta     Seconds since last frame
    * @param isAlive   Whether the entity is alive
+   * @param isCaught  Whether the entity was just caught (plays catch anim instead of death)
    */
   tick(
     uid: string,
@@ -60,8 +61,12 @@ export class ProceduralAnimationService {
     prevPos: Vec3,
     delta: number,
     isAlive: boolean,
+    isCaught = false,
   ): void {
     const ctx = this.getContext(uid);
+
+    // Reset per-frame flags
+    ctx.footstepTriggered = false;
 
     // Derive speed from position delta
     const dx = position.x - prevPos.x;
@@ -69,7 +74,7 @@ export class ProceduralAnimationService {
     ctx.speed = Math.sqrt(dx * dx + dz * dz) / Math.max(delta, 0.001);
 
     // State transitions
-    const newState = this.resolveState(ctx, isAlive);
+    const newState = this.resolveState(ctx, isAlive, isCaught);
     if (newState !== ctx.state) {
       ctx.state = newState;
       ctx.elapsed = 0;
@@ -90,7 +95,8 @@ export class ProceduralAnimationService {
 
   // ── State resolution ─────────────────────────────────────
 
-  private resolveState(ctx: AnimationContext, isAlive: boolean): AnimationState {
+  private resolveState(ctx: AnimationContext, isAlive: boolean, isCaught: boolean): AnimationState {
+    if (isCaught) return 'caught'; // caught animation takes priority
     if (!isAlive) return 'death';
     if (ctx.state === 'caught' && ctx.elapsed < 0.6) return 'caught';
     if (ctx.speed >= ANIM_RUN_THRESHOLD) return 'run';
@@ -107,28 +113,30 @@ export class ProceduralAnimationService {
     const head = group.getObjectByName(PART_NAMES.head);
     const tail = group.getObjectByName(PART_NAMES.tail);
 
-    // Breathing: gentle body scale pulse
+    // Breathing: squash-and-stretch pulse
     if (body) {
       const baseY = (body.userData['baseY'] as number) ?? 0.65;
       body.position.y = baseY;
       body.rotation.x = 0;
       body.rotation.z = 0;
-      body.scale.y = 1 + Math.sin(ctx.phase) * 0.02;
+      const breath = Math.sin(ctx.phase) * 0.03;
+      body.scale.set(1 - breath, 1 + breath, 1 - breath);
     }
 
-    // Slight head tilt (head follows body via hierarchy — no position changes)
+    // Slight head tilt
     if (head) {
       head.rotation.z = Math.sin(ctx.phase * 0.7) * 0.03;
     }
 
-    // Tail wag (slow) — absolute rotation from rest pose
+    // Tail wag (slow)
     if (tail) {
       const baseRotX = (tail.userData['baseRotX'] as number) ?? 0;
       tail.rotation.x = baseRotX;
       tail.rotation.z = Math.sin(ctx.phase * 1.2) * 0.1;
     }
 
-    // Reset legs to rest pose
+    // Randomized ear flick
+    this.applyIdleEarFlick(group, ctx);
     this.resetLegs(group);
     this.resetArms(group);
   }
@@ -137,18 +145,24 @@ export class ProceduralAnimationService {
 
   private applyWalk(group: THREE.Group, ctx: AnimationContext, delta: number): void {
     const cycleSpeed = 8;
+    ctx.prevPhase = ctx.phase;
     ctx.phase += delta * cycleSpeed;
+
+    // Detect foot-strike: sin(phase) zero-crossing
+    if (Math.sin(ctx.prevPhase) * Math.sin(ctx.phase) < 0) {
+      ctx.footstepTriggered = true;
+    }
 
     const sinPhase = Math.sin(ctx.phase);
     const cosPhase = Math.cos(ctx.phase);
 
-    // Body bounce (up/down bob from rest-pose baseY)
     const body = group.getObjectByName(PART_NAMES.body);
     if (body) {
       const baseY = (body.userData['baseY'] as number) ?? 0.65;
       body.position.y = baseY + Math.abs(sinPhase) * 0.06;
       body.rotation.x = 0;
       body.rotation.z = sinPhase * 0.03;
+      body.scale.set(1, 1, 1);
     }
 
     // Head sway (no position change — follows body via hierarchy)
@@ -179,7 +193,13 @@ export class ProceduralAnimationService {
 
   private applyRun(group: THREE.Group, ctx: AnimationContext, delta: number): void {
     const cycleSpeed = 14;
+    ctx.prevPhase = ctx.phase;
     ctx.phase += delta * cycleSpeed;
+
+    // Detect foot-strike: sin(phase) zero-crossing
+    if (Math.sin(ctx.prevPhase) * Math.sin(ctx.phase) < 0) {
+      ctx.footstepTriggered = true;
+    }
 
     const sinPhase = Math.sin(ctx.phase);
     const cosPhase = Math.cos(ctx.phase);
@@ -188,8 +208,9 @@ export class ProceduralAnimationService {
     if (body) {
       const baseY = (body.userData['baseY'] as number) ?? 0.65;
       body.position.y = baseY + Math.abs(sinPhase) * 0.1;
-      body.rotation.x = 0.12; // lean forward
+      body.rotation.x = 0.12;
       body.rotation.z = sinPhase * 0.05;
+      body.scale.set(1, 1, 1);
     }
 
     // Head follows body via hierarchy — no position changes needed
@@ -272,5 +293,13 @@ export class ProceduralAnimationService {
     const rArm = group.getObjectByName(PART_NAMES.rightArm);
     if (lArm) lArm.rotation.x = 0;
     if (rArm) rArm.rotation.x = 0;
+  }
+
+  private applyIdleEarFlick(group: THREE.Group, ctx: AnimationContext): void {
+    const lEar = group.getObjectByName(PART_NAMES.leftEar);
+    const rEar = group.getObjectByName(PART_NAMES.rightEar);
+    const flick = Math.sin(ctx.phase * 3.7) > 0.92 ? 0.15 : 0;
+    if (lEar) lEar.rotation.x = flick;
+    if (rEar) rEar.rotation.x = -flick;
   }
 }

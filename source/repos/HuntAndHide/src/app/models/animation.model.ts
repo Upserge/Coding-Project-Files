@@ -8,7 +8,7 @@
  */
 
 /** Discrete animation states — each drives a different procedural motion. */
-export type AnimationState = 'idle' | 'walk' | 'run' | 'action' | 'caught' | 'death';
+export type AnimationState = 'idle' | 'walk' | 'run' | 'caught' | 'death';
 
 /**
  * Per-entity animation context tracked by the animation system.
@@ -23,11 +23,15 @@ export interface AnimationContext {
   elapsed: number;
   /** Speed magnitude from last frame — determines walk vs run threshold. */
   speed: number;
+  /** True for one frame when a foot strikes the ground (sin(phase) zero-crossing). */
+  footstepTriggered: boolean;
+  /** Previous phase value — used internally to detect zero-crossings. */
+  prevPhase: number;
 }
 
 /** Default idle context for newly spawned entities. */
 export function createAnimationContext(): AnimationContext {
-  return { state: 'idle', phase: 0, elapsed: 0, speed: 0 };
+  return { state: 'idle', phase: 0, elapsed: 0, speed: 0, footstepTriggered: false, prevPhase: 0 };
 }
 
 /** Speed thresholds for state transitions. */

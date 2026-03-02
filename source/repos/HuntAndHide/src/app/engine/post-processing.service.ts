@@ -166,10 +166,10 @@ const COLOR_GRADING_SHADER = {
       color.r *= 1.03;
       color.b *= 0.97;
 
-      // Vignette (gentle — never darken below 50%)
+      // Vignette (subtle — never darken below 70%)
       vec2 uv = vUv * (1.0 - vUv);
       float vig = uv.x * uv.y * 15.0;
-      color.rgb *= clamp(pow(vig, 0.4), 0.5, 1.0);
+      color.rgb *= clamp(pow(vig, 0.55), 0.7, 1.0);
 
       gl_FragColor = color;
     }

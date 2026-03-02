@@ -1,12 +1,9 @@
 import { Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Vec3 } from '../models/player.model';
 
-/** Actions the player can trigger beyond movement. */
-export type PlayerAction = 'use_slot_1' | 'use_slot_2' | 'use_item' | 'throw_weapon' | 'interact' | 'none';
-
 /**
- * InputService captures keyboard + mouse state every frame and exposes
- * a normalized movement vector + latest action. Runs outside Angular
+ * InputService captures keyboard state every frame and exposes
+ * a normalized movement vector + sprint state. Runs outside Angular
  * zone so key events don't trigger change detection.
  */
 @Injectable({ providedIn: 'root' })
@@ -14,7 +11,7 @@ export class InputService implements OnDestroy {
 
   // ── Readable state (polled each tick by GameLoopService) ──
   private readonly keysDown = new Set<string>();
-  private _lastAction: PlayerAction = 'none';
+  private _interactPressed = false;
 
   private boundKeyDown = this.onKeyDown.bind(this);
   private boundKeyUp = this.onKeyUp.bind(this);
@@ -67,18 +64,6 @@ export class InputService implements OnDestroy {
     return { x, y: 0, z };
   }
 
-  /** Consume the latest action (returns it once, then resets to 'none'). */
-  consumeAction(): PlayerAction {
-    const action = this._lastAction;
-    this._lastAction = 'none';
-    return action;
-  }
-
-  /** Peek without consuming. */
-  peekAction(): PlayerAction {
-    return this._lastAction;
-  }
-
   isMoving(): boolean {
     return this.keysDown.has('KeyW') || this.keysDown.has('KeyS')
         || this.keysDown.has('KeyA') || this.keysDown.has('KeyD')
@@ -86,19 +71,25 @@ export class InputService implements OnDestroy {
         || this.keysDown.has('ArrowLeft') || this.keysDown.has('ArrowRight');
   }
 
+  /** True while the player holds Shift (sprint). */
+  isSprinting(): boolean {
+    return this.keysDown.has('ShiftLeft') || this.keysDown.has('ShiftRight');
+  }
+
+  /** Consume a one-shot F-key press (returns true once per press). */
+  consumeInteract(): boolean {
+    if (this._interactPressed) {
+      this._interactPressed = false;
+      return true;
+    }
+    return false;
+  }
+
   // ── Event handlers ─────────────────────────────────────────
 
   private onKeyDown(e: KeyboardEvent): void {
     this.keysDown.add(e.code);
-
-    // Map specific keys to game actions
-    switch (e.code) {
-      case 'Digit1': this._lastAction = 'use_slot_1';    break;
-      case 'Digit2': this._lastAction = 'use_slot_2';    break;
-      case 'KeyE':   this._lastAction = 'use_item';      break;
-      case 'KeyQ':   this._lastAction = 'throw_weapon';  break;
-      case 'KeyF':   this._lastAction = 'interact';      break;
-    }
+    if (e.code === 'KeyF') this._interactPressed = true;
   }
 
   private onKeyUp(e: KeyboardEvent): void {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createStandardPart, createSurfaceMatcap } from './character-material.factory';
 
 /**
  * Well-known child names used by the animation system to find body parts.
@@ -74,20 +75,23 @@ export function createTailPivot(
 export function attachCozyEyes(
   group: THREE.Group, y: number, z: number, spacing = 0.16, size = 0.09,
 ): void {
-  const whiteGeo = new THREE.SphereGeometry(size, 8, 8);
-  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  const pupilGeo = new THREE.SphereGeometry(size * 0.55, 6, 6);
-  const pupilMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-  const shineGeo = new THREE.SphereGeometry(size * 0.2, 4, 4);
+  const whiteGeo = new THREE.SphereGeometry(size, 16, 16);
+  const whiteMat = createStandardPart(0xffffff, 'glossy');
+  const pupilGeo = new THREE.SphereGeometry(size * 0.55, 12, 12);
+  const pupilMat = createStandardPart(0x222222, 'glossy');
+  const shineGeo = new THREE.SphereGeometry(size * 0.2, 8, 8);
   const shineMat = new THREE.MeshStandardMaterial({
     color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6,
   });
 
+  const pupilNames = ['pupil_L', 'pupil_R'];
+  let idx = 0;
   for (const side of [-1, 1]) {
     const eye = new THREE.Mesh(whiteGeo, whiteMat);
     eye.position.set(side * spacing, y, z);
     group.add(eye);
     const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+    pupil.name = pupilNames[idx++];
     pupil.position.set(side * spacing, y, z + size * 0.7);
     group.add(pupil);
     const shine = new THREE.Mesh(shineGeo, shineMat);
@@ -99,21 +103,21 @@ export function attachCozyEyes(
 export function attachNose(
   group: THREE.Group, y: number, z: number, color: number,
 ): void {
-  const geo = new THREE.SphereGeometry(0.05, 6, 6);
-  const mat = new THREE.MeshStandardMaterial({ color });
+  const geo = new THREE.SphereGeometry(0.05, 12, 12);
+  const mat = createStandardPart(color, 'glossy');
   const nose = new THREE.Mesh(geo, mat);
   nose.position.set(0, y, z);
   group.add(nose);
 }
 
 export function attachBlush(
-  group: THREE.Group, y: number, z: number, spacing = 0.28,
+  group: THREE.Group, y: number, z: number, spacing = 0.28, //0.28 OG
 ): void {
   const geo = new THREE.CircleGeometry(0.06, 8);
   const mat = new THREE.MeshBasicMaterial({ color: 0xf5a0a0, side: THREE.DoubleSide });
   for (const side of [-1, 1]) {
     const blush = new THREE.Mesh(geo, mat);
-    blush.position.set(side * spacing, y, z + 0.01);
+    blush.position.set(side * spacing, y, z);
     blush.lookAt(blush.position.x, blush.position.y, z + 1);
     group.add(blush);
   }
@@ -124,10 +128,10 @@ export function attachBlush(
 export function attachLegs(
   root: THREE.Group, color: number, spacing = 0.18, height = 0.2,
 ): void {
-  const legMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
-  const legGeo = new THREE.CylinderGeometry(0.1, 0.12, height, 6);
-  const footMat = new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
-  const footGeo = new THREE.SphereGeometry(0.1, 6, 6);
+  const legMat = createSurfaceMatcap(color);
+  const legGeo = new THREE.CapsuleGeometry(0.09, height * 0.6, 8, 12);
+  const footMat = createSurfaceMatcap(color);
+  const footGeo = new THREE.SphereGeometry(0.1, 12, 12);
 
   const names = [PART_NAMES.leftLeg, PART_NAMES.rightLeg];
   let i = 0;
@@ -153,8 +157,8 @@ export function attachLegs(
 export function attachFeetOnly(
   root: THREE.Group, color: number, spacing = 0.18,
 ): void {
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.9 });
-  const geo = new THREE.SphereGeometry(0.1, 6, 6);
+  const mat = createSurfaceMatcap(color);
+  const geo = new THREE.SphereGeometry(0.1, 12, 12);
   const names = [PART_NAMES.leftLeg, PART_NAMES.rightLeg];
   let i = 0;
   for (const side of [-1, 1]) {

@@ -86,75 +86,77 @@
   background: #ef5350;
 }
 
-.active-item {
+/* ── Hidden badge ────────────────────────────────────────── */
+
+.hidden-badge {
   margin-top: 0.5rem;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 0.2rem 0.6rem;
+  background: rgba(76, 175, 80, 0.6);
+  padding: 0.2rem 0.75rem;
   border-radius: 4px;
-  font-size: 0.8rem;
-  text-transform: capitalize;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #fff;
 }
 
-/* ── Item bar ────────────────────────────────────────────── */
+/* ── Stamina bar ─────────────────────────────────────────── */
 
-.item-bar {
-  align-self: center;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: auto;
-  margin-bottom: 0.5rem;
+.stamina-bar-wrapper {
+  margin-top: 0.4rem;
 }
 
-.item-slot {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.45);
+.stamina-fill {
+  background: #42a5f5;
+}
+
+.stamina-fill.low {
+  background: #ef5350;
+}
+
+/* ── Kill-feed ───────────────────────────────────────────── */
+
+.kill-feed {
+  position: absolute;
+  top: 4rem;
+  right: 1.5rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 0.15s, background 0.15s;
+  gap: 0.3rem;
+  align-items: flex-end;
 }
 
-.item-slot.empty {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.25);
-}
-
-.item-slot:not(.empty) {
-  border-color: #66bb6a;
-}
-
-.item-slot.weapon:not(.empty) {
-  border-color: #ef5350;
-}
-
-.slot-key {
-  position: absolute;
-  top: 2px;
-  left: 4px;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1;
-}
-
-.slot-name {
-  font-size: 0.55rem;
+.kill-entry {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-align: center;
-  line-height: 1.15;
-  color: #e0e0e0;
-  padding: 0 2px;
-  word-break: break-word;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  animation: kill-slide-in 0.3s ease-out;
 }
 
-.pickup-hint {
+.kill-hunter {
+  color: #ef5350;
+}
+
+.kill-icon {
+  color: #aaa;
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.45);
-  margin-left: 0.25rem;
+}
+
+.kill-hider {
+  color: #e9c46a;
+}
+
+@keyframes kill-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

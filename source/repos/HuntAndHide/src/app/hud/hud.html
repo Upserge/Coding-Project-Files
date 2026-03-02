@@ -16,8 +16,8 @@
                [class.critical]="idlePercent() > 0.7"></div>
         </div>
       </div>
-      @if (activeItem()) {
-        <div class="active-item">{{ activeItem() }}</div>
+      @if (isHiding()) {
+        <div class="hidden-badge">HIDDEN</div>
       }
     </div>
   }
@@ -32,25 +32,29 @@
                [class.critical]="hungerPercent() < 0.25"></div>
         </div>
       </div>
+      <div class="stamina-bar-wrapper">
+        <label class="bar-label">Stamina</label>
+        <div class="bar-track">
+          <div class="bar-fill stamina-fill"
+               [style.width.%]="staminaPercent() * 100"
+               [class.low]="staminaPercent() < 0.2"></div>
+        </div>
+      </div>
     </div>
   }
 
-  <!-- Item bar (2 slots) -->
-  <div class="item-bar">
-    <div class="item-slot" [class.empty]="slot1().empty" [class.weapon]="slot1().isWeapon">
-      <span class="slot-key">1</span>
-      @if (!slot1().empty) {
-        <span class="slot-name">{{ slot1().name }}</span>
+  <!-- Kill-feed notifications -->
+  @if (catchFeed().length > 0) {
+    <div class="kill-feed">
+      @for (event of catchFeed(); track event.time) {
+        <div class="kill-entry">
+          <span class="kill-hunter">{{ event.hunterName }}</span>
+          <span class="kill-icon">⚔</span>
+          <span class="kill-hider">{{ event.hiderName }}</span>
+        </div>
       }
     </div>
-    <div class="item-slot" [class.empty]="slot2().empty" [class.weapon]="slot2().isWeapon">
-      <span class="slot-key">2</span>
-      @if (!slot2().empty) {
-        <span class="slot-name">{{ slot2().name }}</span>
-      }
-    </div>
-    <span class="pickup-hint">[F] Pick up</span>
-  </div>
+  }
 
   <!-- Bottom bar: score + player count -->
   <div class="hud-bottom">

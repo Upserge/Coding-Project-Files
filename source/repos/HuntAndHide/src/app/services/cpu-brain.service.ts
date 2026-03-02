@@ -1,10 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { Vec3 } from '../models/player.model';
-import { Item, HiderItemType } from '../models/item.model';
 import { MapService } from './map.service';
-
-/** Actions the CPU brain can decide on each tick. */
-export type CpuAction = 'none' | 'use_item' | 'throw_weapon' | 'interact';
 
 /** Per-bot state tracked by the brain. */
 interface BrainState {
@@ -12,8 +8,6 @@ interface BrainState {
   wanderTarget: Vec3;
   /** Milliseconds until the bot picks a new wander target. */
   retargetCooldownMs: number;
-  /** Milliseconds until the bot may use an item again. */
-  itemCooldownMs: number;
 }
 
 /** Tuneable constants for CPU behaviour. */
@@ -21,9 +15,10 @@ const WANDER_SPEED = 0.6;
 const ARRIVAL_THRESHOLD = 2.0;
 const RETARGET_MIN_MS = 2_000;
 const RETARGET_MAX_MS = 5_000;
-const ITEM_COOLDOWN_MS = 6_000;
-const ITEM_USE_CHANCE = 0.35;
-const ITEM_PICKUP_RADIUS = 3.0;
+/** Probability per retarget that a hunter CPU will sprint toward the next target. */
+const SPRINT_CHANCE = 0.35;
+/** Probability per retarget that a hider CPU will try to hide if near a spot. */
+const HIDE_CHANCE = 0.30;
 
 /**
  * CpuBrainService provides per-frame decision-making for CPU-controlled players.
@@ -33,6 +28,10 @@ const ITEM_PICKUP_RADIUS = 3.0;
 export class CpuBrainService {
   private readonly mapService = inject(MapService);
   private readonly brains = new Map<string, BrainState>();
+  /** Tracks whether each CPU hunter wants to sprint this cycle. */
+  private readonly sprintFlags = new Map<string, boolean>();
+  /** Tracks whether each CPU hider wants to hide this cycle. */
+  private readonly hideFlags = new Map<string, boolean>();
 
   // ── Lifecycle ──────────────────────────────────────────────
 
@@ -41,40 +40,42 @@ export class CpuBrainService {
     this.brains.set(uid, {
       wanderTarget: this.randomWorldPoint(),
       retargetCooldownMs: this.randomRetargetDelay(),
-      itemCooldownMs: ITEM_COOLDOWN_MS,
     });
+    this.sprintFlags.set(uid, false);
+    this.hideFlags.set(uid, false);
   }
 
   /** Remove brain state when a CPU player is despawned. */
   unregister(uid: string): void {
     this.brains.delete(uid);
+    this.sprintFlags.delete(uid);
+    this.hideFlags.delete(uid);
   }
 
   /** Remove all tracked brain states. */
   clear(): void {
     this.brains.clear();
+    this.sprintFlags.clear();
+    this.hideFlags.clear();
   }
 
   // ── Per-frame decision ─────────────────────────────────────
 
   /**
-   * Compute the movement vector and action for one CPU player.
+   * Compute the movement vector for one CPU player.
    * Returns a normalised direction vector (magnitude ≤ WANDER_SPEED)
-   * and an optional action (item use / weapon throw).
+   * and whether the CPU hunter wants to sprint.
    */
   decide(
     uid: string,
     currentPos: Vec3,
     deltaMs: number,
-    nearbyItems: Item[],
-    hasInventoryItem: boolean,
-  ): { movement: Vec3; action: CpuAction } {
+  ): { movement: Vec3; wantsSprint: boolean; wantsHide: boolean } {
     const brain = this.brains.get(uid);
-    if (!brain) return { movement: { x: 0, y: 0, z: 0 }, action: 'none' };
+    if (!brain) return { movement: { x: 0, y: 0, z: 0 }, wantsSprint: false, wantsHide: false };
 
     // ── Cooldown ticks ─────────────────────────────────────
     brain.retargetCooldownMs -= deltaMs;
-    brain.itemCooldownMs -= deltaMs;
 
     // ── Retarget check ─────────────────────────────────────
     const dx = brain.wanderTarget.x - currentPos.x;
@@ -85,6 +86,8 @@ export class CpuBrainService {
     if (needsRetarget) {
       brain.wanderTarget = this.randomWorldPoint();
       brain.retargetCooldownMs = this.randomRetargetDelay();
+      this.sprintFlags.set(uid, Math.random() < SPRINT_CHANCE);
+      this.hideFlags.set(uid, Math.random() < HIDE_CHANCE);
     }
 
     // ── Movement toward wander target ──────────────────────
@@ -95,58 +98,10 @@ export class CpuBrainService {
       ? { x: (toDx / toDist) * WANDER_SPEED, y: 0, z: (toDz / toDist) * WANDER_SPEED }
       : { x: 0, y: 0, z: 0 };
 
-    // ── Item / action decision ─────────────────────────────
-    const action = this.decideAction(brain, nearbyItems, hasInventoryItem);
-
-    return { movement, action };
+    return { movement, wantsSprint: this.sprintFlags.get(uid) ?? false, wantsHide: this.hideFlags.get(uid) ?? false };
   }
 
   // ── Private helpers ────────────────────────────────────────
-
-  private decideAction(
-    brain: BrainState,
-    nearbyItems: Item[],
-    hasInventoryItem: boolean,
-  ): CpuAction {
-    if (brain.itemCooldownMs > 0) return 'none';
-
-    const pickupCandidates = nearbyItems.filter(
-      i => !i.isPickedUp && this.isHiderItem(i.type),
-    );
-
-    // Use a held inventory item
-    if (hasInventoryItem && Math.random() < ITEM_USE_CHANCE) {
-      brain.itemCooldownMs = ITEM_COOLDOWN_MS;
-      return 'use_item';
-    }
-
-    // Pick up a nearby item
-    if (pickupCandidates.length > 0) {
-      brain.itemCooldownMs = ITEM_COOLDOWN_MS;
-      return 'interact';
-    }
-
-    // Try eating nearby edibles (for hunters)
-    const edibleNearby = nearbyItems.some(
-      i => !i.isPickedUp && this.isEdible(i.type),
-    );
-    if (edibleNearby) {
-      brain.itemCooldownMs = ITEM_COOLDOWN_MS;
-      return 'interact';
-    }
-
-    return 'none';
-  }
-
-  private isHiderItem(type: string): boolean {
-    const hiderItems: ReadonlySet<string> = new Set(['smoke_bomb', 'decoy', 'speed_burst']);
-    return hiderItems.has(type);
-  }
-
-  private isEdible(type: string): boolean {
-    const edibles: ReadonlySet<string> = new Set(['berry', 'mushroom', 'grub']);
-    return edibles.has(type);
-  }
 
   private randomWorldPoint(): Vec3 {
     const map = this.mapService.getMap('jungle');

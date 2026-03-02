@@ -8,6 +8,8 @@ import { OBSTACLE_CONFIGS } from '../models/map.model';
  * Uses axis-aligned footprint tests against obstacle placements and
  * clamps to the playable area. If a proposed movement collides with
  * an obstacle the previous position is returned to block the move.
+ *
+ * Hiders can pass through canHideInside obstacles when `allowHiding` is true.
  */
 @Injectable({ providedIn: 'root' })
 export class CollisionService {
@@ -19,24 +21,25 @@ export class CollisionService {
   /**
    * Resolve a proposed movement. Returns an adjusted position that is
    * clamped to the playable bounds and doesn't intersect obstacle footprints.
-   * If a collision with an obstacle is detected the previous position is returned.
+   * When `allowHiding` is true, canHideInside obstacles are ignored.
    */
-  resolvePosition(prev: Vec3, proposed: Vec3, radius = this.playerRadius): Vec3 {
+  resolvePosition(prev: Vec3, proposed: Vec3, radius = this.playerRadius, allowHiding = false): Vec3 {
     const map = this.mapService.getMap('jungle');
 
     const halfW = map.width / 2;
     const halfD = map.depth / 2;
-    const margin = 0; // keep players a few units from exact map edge
+    const margin = 0;
 
     // Clamp to bounds first
     const clampedX = Math.max(-halfW + margin, Math.min(halfW - margin, proposed.x));
     const clampedZ = Math.max(-halfD + margin, Math.min(halfD - margin, proposed.z));
     const candidate = { x: clampedX, y: proposed.y, z: clampedZ } as Vec3;
 
-    // Helper: test if a position intersects any obstacle footprint
+    // Helper: test if a position intersects any blocking obstacle
     const intersects = (pos: Vec3) => {
       for (const obs of map.obstacles) {
         const cfg = OBSTACLE_CONFIGS[obs.type];
+        if (allowHiding && cfg.canHideInside) continue; // hiders pass through
         const halfObsX = cfg.size.x / 2 + radius;
         const halfObsZ = cfg.size.z / 2 + radius;
 
@@ -48,17 +51,13 @@ export class CollisionService {
       return false;
     };
 
-    // If there's no collision, accept candidate immediately
     if (!intersects(candidate)) return candidate;
 
-    // Collision detected — attempt gentle sliding along individual axes.
-    // Compute intended movement delta from previous position.
     const moveDx = proposed.x - prev.x;
     const moveDz = proposed.z - prev.z;
 
-    const SLIDE_FACTOR = 0.6; // how much movement is allowed when sliding (0-1)
+    const SLIDE_FACTOR = 0.6;
 
-    // Try X-only movement
     const testX = { x: prev.x + moveDx * SLIDE_FACTOR, y: proposed.y, z: prev.z } as Vec3;
     const testZ = { x: prev.x, y: proposed.y, z: prev.z + moveDz * SLIDE_FACTOR } as Vec3;
 
@@ -68,15 +67,27 @@ export class CollisionService {
     if (canX && !canZ) return { x: Math.max(-halfW + margin, Math.min(halfW - margin, testX.x)), y: proposed.y, z: prev.z };
     if (!canX && canZ) return { x: prev.x, y: proposed.y, z: Math.max(-halfD + margin, Math.min(halfD - margin, testZ.z)) };
     if (canX && canZ) {
-      // Both axes free — allow sliding on both with reduced magnitude
       const outX = Math.max(-halfW + margin, Math.min(halfW - margin, prev.x + moveDx * SLIDE_FACTOR));
       const outZ = Math.max(-halfD + margin, Math.min(halfD - margin, prev.z + moveDz * SLIDE_FACTOR));
       const out = { x: outX, y: proposed.y, z: outZ } as Vec3;
-      // Final safety check
       return intersects(out) ? prev : out;
     }
 
-    // No sliding possible — block movement
     return prev;
+  }
+
+  /** Check if a position is inside any canHideInside obstacle footprint. */
+  isInsideHidingSpot(pos: Vec3): boolean {
+    const map = this.mapService.getMap('jungle');
+    for (const obs of map.obstacles) {
+      const cfg = OBSTACLE_CONFIGS[obs.type];
+      if (!cfg.canHideInside) continue;
+      const halfX = cfg.size.x / 2;
+      const halfZ = cfg.size.z / 2;
+      if (Math.abs(pos.x - obs.position.x) <= halfX && Math.abs(pos.z - obs.position.z) <= halfZ) {
+        return true;
+      }
+    }
+    return false;
   }
 }
