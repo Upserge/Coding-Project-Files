@@ -26,7 +26,7 @@ import { IdentityService } from './identity.service';
 /**
  * SessionService manages Firestore game sessions:
  * - CRUD operations
- * - Auto-scaling (overflow at MAX_PLAYERS_PER_SESSION → new session)
+ * - Auto-scaling (overflow at MAX_PLAYERS_PER_SESSION \u2192 new session)
  * - Role seeding (count hiders/hunters, assign accordingly)
  *
  * Uses raw Firebase SDK functions (not AngularFire wrappers) for
@@ -38,7 +38,7 @@ export class SessionService {
   private readonly identity = inject(IdentityService);
   private readonly sessionsCol = collection(this.firestore, 'sessions');
 
-  // ── READ ─────────────────────────────────────────────────
+  // \u2500\u2500 READ \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   /** Live-stream of sessions in the lobby phase that aren't full. */
   getOpenSessions$(): Observable<GameSession[]> {
@@ -71,7 +71,7 @@ export class SessionService {
     });
   }
 
-  // ── JOIN / AUTO-SCALE ────────────────────────────────────
+  // \u2500\u2500 JOIN / AUTO-SCALE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   /**
    * Find an open session with room, or create a new one.
@@ -93,11 +93,11 @@ export class SessionService {
       }
     }
 
-    // No room anywhere (or only stale sessions) — spin up a new session
+    // No room anywhere (or only stale sessions) \u2014 spin up a new session
     return this.createSession();
   }
 
-  // ── CREATE ───────────────────────────────────────────────
+  // \u2500\u2500 CREATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   async createSession(config: SessionConfig = DEFAULT_SESSION_CONFIG): Promise<string> {
     const now = Date.now();
@@ -117,7 +117,7 @@ export class SessionService {
     return ref.id;
   }
 
-  // ── PLAYER MANAGEMENT ────────────────────────────────────
+  // \u2500\u2500 PLAYER MANAGEMENT \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   /** Add a player to a session, seeding role based on current counts. */
   async joinSession(sessionId: string, player: PlayerState): Promise<void> {
@@ -138,14 +138,14 @@ export class SessionService {
     });
   }
 
-  // ── UPDATE ───────────────────────────────────────────────
+  // \u2500\u2500 UPDATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   async updateSession(sessionId: string, patch: Partial<GameSession>): Promise<void> {
     const ref = doc(this.firestore, 'sessions', sessionId);
     await updateDoc(ref, { ...patch, updatedAt: Date.now() });
   }
 
-  // ── DELETE ───────────────────────────────────────────────
+  // \u2500\u2500 DELETE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   async deleteSession(sessionId: string): Promise<void> {
     const ref = doc(this.firestore, 'sessions', sessionId);

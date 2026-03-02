@@ -10,6 +10,15 @@ export type ObstacleType =
   | 'safari_gear'
   | 'rock';
 
+export type DecorationType =
+  | 'fern'
+  | 'flower'
+  | 'mushroom_cluster'
+  | 'fallen_log'
+  | 'vine';
+
+export type WaterFeatureType = 'pond' | 'stream';
+
 export interface ObstacleConfig {
   type: ObstacleType;
   /** Width/depth footprint in world-units for collision. */
@@ -27,6 +36,23 @@ export interface ObstaclePlacement {
   rotationY: number;
 }
 
+export interface DecorationPlacement {
+  id: string;
+  type: DecorationType;
+  position: { x: number; y: number; z: number };
+  rotationY: number;
+  scale: number;
+}
+
+export interface WaterPlacement {
+  id: string;
+  type: WaterFeatureType;
+  position: { x: number; y: number; z: number };
+  rotationY: number;
+  /** For ponds: radius. For streams: length. */
+  size: number;
+}
+
 export interface SpawnPoint {
   id: string;
   position: { x: number; y: number; z: number };
@@ -40,6 +66,8 @@ export interface MapConfig {
   width: number;
   depth: number;
   obstacles: ObstaclePlacement[];
+  decorations: DecorationPlacement[];
+  waterFeatures: WaterPlacement[];
   spawnPoints: SpawnPoint[];
 }
 

@@ -11,6 +11,9 @@
         <span class="role-badge">{{ player.role }}</span>
       </div>
     }
+    @if (players().length < 5) {
+      <p class="cpu-hint">🤖 {{ 10 - players().length }} CPU players will fill remaining slots</p>
+    }
     @if (players().length === 0) {
       <p class="empty-hint">Waiting for players to join...</p>
     }
@@ -18,7 +21,7 @@
 
   <div class="lobby-actions">
     @if (isHost()) {
-      <button class="btn btn-primary" (click)="startGame()" [disabled]="players().length < 2">
+      <button class="btn btn-primary" (click)="startGame()" [disabled]="players().length < 1">
         Start Game
       </button>
     } @else {

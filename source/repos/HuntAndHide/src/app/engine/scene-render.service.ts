@@ -5,12 +5,18 @@ import { Item } from '../models/item.model';
 import { ProjectileState } from '../services/hunter.service';
 
 import { ANIMAL_COLORS, BELLY_COLORS, HUNTER_BODY_COLOR, HIDER_BODY_COLOR } from './mesh/animal-palettes';
-import { buildNameSprite } from './mesh/mesh-helpers';
+import { buildNameSprite, applyRimLighting } from './mesh/mesh-helpers';
 import { buildHunterMesh } from './mesh/hunter-mesh.builder';
 import { buildHiderMesh } from './mesh/hider-mesh.builder';
 import { buildItemMesh, buildProjectileMesh } from './mesh/prop-mesh.builder';
+import { tickWaterShaders } from './mesh/water-mesh.builder';
+import { getTerrainHeight } from './mesh/terrain-heightmap.builder';
+import { updateContactShadows } from './mesh/contact-shadow.builder';
 import { ProceduralAnimationService } from './animation/procedural-animation.service';
 import { ParticleVfxService } from './animation/particle-vfx.service';
+import { AmbientVfxService } from './animation/ambient-vfx.service';
+import { FallingLeavesService } from './animation/falling-leaves.service';
+import { MapService } from '../services/map.service';
 
 /** Interval (in frames) between movement-dust spawns to avoid particle overload. */
 const DUST_FRAME_INTERVAL = 6;
@@ -29,6 +35,9 @@ export class SceneRenderService {
 
   private readonly animation = inject(ProceduralAnimationService);
   private readonly particles = inject(ParticleVfxService);
+  private readonly ambientVfx = inject(AmbientVfxService);
+  private readonly fallingLeaves = inject(FallingLeavesService);
+  private readonly mapService = inject(MapService);
 
   private scene!: THREE.Scene;
 
@@ -39,24 +48,105 @@ export class SceneRenderService {
   private projMeshes   = new Map<string, THREE.Mesh>();
 
   private dustFrameCounter = 0;
+  private waterElapsed = 0;
+  // Boundary visual
+  private boundaryGroup?: THREE.Group;
+  private boundaryMaterial?: THREE.MeshBasicMaterial;
+  private boundaryPulse = 0;
+  private readonly boundaryBaseOpacity = 0.12;
+  private readonly boundaryAmplitude = 0.08;
+  // Proximity-based fade
+  private boundaryProximity = 0; // 0..1
+  private readonly boundaryProximityThreshold = 12; // world units from edge to start fading
+  private readonly boundaryMinOpacity = 0.02;
 
   // ── Lifecycle ──────────────────────────────────────────────
 
   init(scene: THREE.Scene): void {
     this.scene = scene;
     this.particles.init(scene);
+    this.ambientVfx.init(scene);
+    this.fallingLeaves.init(scene);
+    this.createBoundary();
+  }
+
+  private createBoundary(): void {
+    const map = this.mapService.getMap('jungle');
+    const halfW = map.width / 2;
+    const halfD = map.depth / 2;
+
+    // Slightly larger thickness and overlap to avoid thin-edge Z-fighting / gaps
+    const thickness = 1.2;
+    const height = 3.0;
+    const extra = 1.0; // extra overlap to cover seams at corners and sprite edges
+
+    this.boundaryGroup = new THREE.Group();
+    this.boundaryMaterial = new THREE.MeshBasicMaterial({
+      color: 0x66ccff,
+      transparent: true,
+      opacity: this.boundaryBaseOpacity,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide,
+    });
+
+    // Four walls
+    const wallGeoH = new THREE.BoxGeometry(map.width + thickness * 2 + extra, height, thickness);
+    const wallGeoV = new THREE.BoxGeometry(thickness, height, map.depth + thickness * 2 + extra);
+
+    const north = new THREE.Mesh(wallGeoH, this.boundaryMaterial);
+    north.position.set(0, height / 2, -halfD - thickness / 2 - extra / 2);
+    this.boundaryGroup.add(north);
+
+    const south = new THREE.Mesh(wallGeoH, this.boundaryMaterial);
+    south.position.set(0, height / 2, halfD + thickness / 2 + extra / 2);
+    this.boundaryGroup.add(south);
+
+    const west = new THREE.Mesh(wallGeoV, this.boundaryMaterial);
+    west.position.set(-halfW - thickness / 2 - extra / 2, height / 2, 0);
+    this.boundaryGroup.add(west);
+
+    const east = new THREE.Mesh(wallGeoV, this.boundaryMaterial);
+    east.position.set(halfW + thickness / 2 + extra / 2, height / 2, 0);
+    this.boundaryGroup.add(east);
+
+    // Render last and on top to avoid any depth-sorting / UI bleed-through issues
+    // Force render order and per-child settings so the boundary always
+    // draws on top of other scene geometry (including sprites/nameplates).
+    this.boundaryGroup.traverse((c: any) => {
+      c.renderOrder = 999999;
+      if (c.material) {
+        c.material.depthTest = false;
+        c.material.depthWrite = false;
+        c.material.transparent = true;
+        c.material.blending = THREE.NormalBlending;
+      }
+    });
+
+    this.scene.add(this.boundaryGroup);
   }
 
   dispose(): void {
     this.playerMeshes.forEach(m => this.scene?.remove(m));
     this.itemMeshes.forEach(m => this.scene?.remove(m));
     this.projMeshes.forEach(m => this.scene?.remove(m));
+    if (this.boundaryGroup) {
+      this.scene?.remove(this.boundaryGroup);
+      this.boundaryGroup.traverse((c: any) => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+      });
+      this.boundaryGroup = undefined;
+      this.boundaryMaterial = undefined;
+    }
     this.playerMeshes.clear();
     this.previousPositions.clear();
     this.itemMeshes.clear();
     this.projMeshes.clear();
     this.animation.dispose();
     this.particles.dispose();
+    this.ambientVfx.dispose();
+    this.fallingLeaves.dispose();
   }
 
   // ── Per-frame sync ─────────────────────────────────────────
@@ -77,8 +167,9 @@ export class SceneRenderService {
       // Store previous position for animation velocity derivation
       const prevPos = this.previousPositions.get(player.uid) ?? player.position;
 
-      // Position
-      group.position.set(player.position.x, player.position.y, player.position.z);
+      // Position — offset Y by terrain height so players walk along the ground surface
+      const terrainY = getTerrainHeight(player.position.x, player.position.z);
+      group.position.set(player.position.x, player.position.y + terrainY, player.position.z);
 
       // Face movement direction with smooth turning.
       // Compute movement vector from previous position and, when moving,
@@ -87,13 +178,18 @@ export class SceneRenderService {
       // fallback so remote-controlled rotations still apply.
       const dxForFacing = player.position.x - prevPos.x;
       const dzForFacing = player.position.z - prevPos.z;
-      const moveThreshold = 0.000001; // squared distance threshold
-      const TURN_SPEED = 10; // radians per second (tweakable)
 
-      if (dxForFacing * dxForFacing + dzForFacing * dzForFacing > moveThreshold) {
+      // Tunable turning parameters
+      const MOVE_THRESHOLD = 0.000001; // squared distance threshold to consider movement
+      const TURN_RESPONSE = 20; // smoothing responsiveness (higher = faster)
+      const TURN_MAX_STEP = 1; // safety clamp for slerp factor
+
+      if (dxForFacing * dxForFacing + dzForFacing * dzForFacing > MOVE_THRESHOLD) {
         const targetY = Math.atan2(dxForFacing, dzForFacing);
         const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, targetY, 0));
-        group.quaternion.slerp(targetQuat, Math.min(1, TURN_SPEED * delta));
+        // Exponential smoothing to produce a smooth, frame-rate independent turn curve.
+        const t = 1 - Math.exp(-TURN_RESPONSE * delta);
+        group.quaternion.slerp(targetQuat, Math.min(TURN_MAX_STEP, t));
       }
 
       // Visibility
@@ -102,6 +198,13 @@ export class SceneRenderService {
       // Local player indicator ring
       const ring = group.getObjectByName('localRing');
       if (ring) ring.visible = player.uid === localUid;
+
+      // Pulse CPU indicator ring
+      const cpuRing = group.getObjectByName('cpuRing') as THREE.Mesh | null;
+      if (cpuRing?.material) {
+        (cpuRing.material as THREE.MeshBasicMaterial).opacity =
+          0.45 + Math.sin(Date.now() * 0.004) * 0.25;
+      }
 
       // Drive procedural animation
       this.animation.tick(player.uid, group, player.position, prevPos, delta, player.isAlive);
@@ -120,6 +223,31 @@ export class SceneRenderService {
       // Save position for next frame
       this.previousPositions.set(player.uid, { ...player.position });
     }
+
+    // Update boundary proximity based on local player position
+    const localPlayer = players.find(p => p.uid === localUid);
+    const localPos = localPlayer ? localPlayer.position : this.previousPositions.get(localUid) ?? null;
+    if (localPos) {
+      const map = this.mapService.getMap('jungle');
+      const halfW = map.width / 2;
+      const halfD = map.depth / 2;
+      const distToEdgeX = halfW - Math.abs(localPos.x);
+      const distToEdgeZ = halfD - Math.abs(localPos.z);
+      const nearest = Math.min(distToEdgeX, distToEdgeZ);
+      const t = Math.max(0, Math.min(1, (this.boundaryProximityThreshold - nearest) / this.boundaryProximityThreshold));
+      this.boundaryProximity = t;
+    } else {
+      this.boundaryProximity = 0;
+    }
+
+    // Update contact shadow decals for alive players
+    const shadowPositions: { x: number; z: number; scale?: number }[] = [];
+    for (const player of players) {
+      if (player.isAlive) {
+        shadowPositions.push({ x: player.position.x, z: player.position.z });
+      }
+    }
+    updateContactShadows(shadowPositions);
 
     // Remove meshes for players no longer present
     for (const [uid, mesh] of this.playerMeshes) {
@@ -154,11 +282,13 @@ export class SceneRenderService {
 
       if (!mesh) {
         mesh = buildItemMesh(item.type);
+        mesh.renderOrder = 3;
         this.itemMeshes.set(item.id, mesh);
         this.scene.add(mesh);
       }
 
-      mesh.position.set(item.position.x, item.position.y + 0.4, item.position.z);
+      const itemTerrainY = getTerrainHeight(item.position.x, item.position.z);
+      mesh.position.set(item.position.x, item.position.y + 0.4 + itemTerrainY, item.position.z);
       mesh.visible = true;
 
       // Gentle bob + spin
@@ -183,11 +313,13 @@ export class SceneRenderService {
 
       if (!mesh) {
         mesh = buildProjectileMesh(proj.type);
+        mesh.renderOrder = 3;
         this.projMeshes.set(proj.id, mesh);
         this.scene.add(mesh);
       }
 
-      mesh.position.set(proj.position.x, proj.position.y + 0.5, proj.position.z);
+      const projTerrainY = getTerrainHeight(proj.position.x, proj.position.z);
+      mesh.position.set(proj.position.x, proj.position.y + 0.5 + projTerrainY, proj.position.z);
     }
 
     for (const [id, mesh] of this.projMeshes) {
@@ -198,9 +330,23 @@ export class SceneRenderService {
     }
   }
 
-  /** Advance particle effects. Call once per frame. */
+  /** Advance particle effects and ambient VFX. Call once per frame. */
   tickParticles(delta: number): void {
     this.particles.tick(delta);
+    this.ambientVfx.tick(delta);
+    this.fallingLeaves.tick(delta);
+    this.waterElapsed += delta;
+    tickWaterShaders(this.waterElapsed);
+    // Pulse + proximity-based opacity for boundary
+    if (this.boundaryMaterial && this.boundaryGroup) {
+      this.boundaryPulse += delta;
+      const pulse = this.boundaryBaseOpacity + Math.sin(this.boundaryPulse * 2) * this.boundaryAmplitude;
+
+      // Use proximity factor computed during syncPlayers (frame-local)
+      const proxFactor = this.boundaryProximity;
+      const opacity = this.boundaryMinOpacity + (pulse - this.boundaryMinOpacity) * proxFactor;
+      this.boundaryMaterial.opacity = Math.max(0, Math.min(1, opacity));
+    }
   }
 
   // ── Player mesh assembly ───────────────────────────────────
@@ -228,6 +374,22 @@ export class SceneRenderService {
     rolering.position.y = 0.02;
     group.add(rolering);
 
+    // CPU indicator ring (purple, pulsing handled in syncPlayers)
+    if (player.isCpu) {
+      const cpuGeo = new THREE.RingGeometry(0.90, 1.05, 24);
+      const cpuMat = new THREE.MeshBasicMaterial({
+        color: 0x7850c8,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.7,
+      });
+      const cpuRing = new THREE.Mesh(cpuGeo, cpuMat);
+      cpuRing.rotation.x = -Math.PI / 2;
+      cpuRing.position.y = 0.01;
+      cpuRing.name = 'cpuRing';
+      group.add(cpuRing);
+    }
+
     // Local-player gold ring
     const localGeo = new THREE.RingGeometry(0.72, 0.88, 24);
     const localMat = new THREE.MeshBasicMaterial({ color: 0xe9c46a, side: THREE.DoubleSide });
@@ -239,11 +401,15 @@ export class SceneRenderService {
     group.add(localRing);
 
     // Floating name label
-    const label = buildNameSprite(player.displayName, isHunter);
+    const label = buildNameSprite(player.displayName, isHunter, player.isCpu);
     label.position.set(0, 2.4, 0);
     group.add(label);
 
     group.castShadow = true;
+    group.renderOrder = 3;
+    // Enable layer 1 so the scene-graph traversal reaches the name-label sprite
+    group.layers.enable(1);
+    applyRimLighting(group);
     return group;
   }
 }

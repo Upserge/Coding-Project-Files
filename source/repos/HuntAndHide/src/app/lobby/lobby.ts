@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { SessionService } from '../services/session.service';
 import { IdentityService } from '../services/identity.service';
-import { PlayerService } from '../services/player.service';
 import { GameSession } from '../models/session.model';
 import { PlayerState } from '../models/player.model';
 
@@ -18,12 +17,10 @@ export class LobbyComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly sessionService = inject(SessionService);
   private readonly identity = inject(IdentityService);
-  private readonly playerService = inject(PlayerService);
 
   protected readonly session = signal<GameSession | undefined>(undefined);
   protected readonly players = signal<PlayerState[]>([]);
   protected readonly isHost = signal(false);
-  protected readonly isJoining = signal(false);
   protected readonly sessionId = signal('');
 
   private sub?: Subscription;
@@ -40,32 +37,10 @@ export class LobbyComponent implements OnInit, OnDestroy {
       const playerMap = session.players ?? {};
       this.players.set(Object.values(playerMap).filter(Boolean) as PlayerState[]);
     });
-
-    this.joinSession(id);
   }
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
-  }
-
-  private async joinSession(sessionId: string): Promise<void> {
-    this.isJoining.set(true);
-    try {
-      const session = this.session();
-      const hiderCount = session?.hiderCount ?? 0;
-      const hunterCount = session?.hunterCount ?? 0;
-      const takenAnimals = this.players().map(p => p.animal);
-
-      const role = this.playerService.assignRole(hiderCount, hunterCount);
-      const animal = this.playerService.assignAnimal(role, takenAnimals);
-      const player = this.playerService.createPlayerState(
-        role, animal, { x: 0, y: 0, z: 0 },
-      );
-
-      await this.sessionService.joinSession(sessionId, player);
-    } finally {
-      this.isJoining.set(false);
-    }
   }
 
   async startGame(): Promise<void> {

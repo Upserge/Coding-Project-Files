@@ -53,6 +53,20 @@
   border-left: 3px solid #ef5350;
 }
 
+.player-card.cpu {
+  opacity: 0.75;
+  border-left: 3px solid #7850c8;
+}
+
+.cpu-badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(120, 80, 200, 0.3);
+  color: #b89eff;
+  font-weight: 600;
+}
+
 .animal-icon {
   font-size: 0.85rem;
   color: #e9c46a;
@@ -80,6 +94,14 @@
   color: #555;
   font-style: italic;
   text-align: center;
+}
+
+.cpu-hint {
+  color: #b89eff;
+  font-size: 0.85rem;
+  text-align: center;
+  margin-top: 0.75rem;
+  opacity: 0.8;
 }
 
 .lobby-actions {

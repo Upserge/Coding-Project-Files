@@ -7,7 +7,10 @@ import { HunterService, ProjectileState } from './hunter.service';
 import { ItemService } from './item.service';
 import { InputService } from './input.service';
 import { MapService } from './map.service';
+import { CollisionService } from './collision.service';
 import { PlayerService } from './player.service';
+import { CpuBrainService } from './cpu-brain.service';
+import { CpuSpawnerService } from './cpu-spawner.service';
 
 /**
  * GameLoopService is the central orchestrator:
@@ -24,7 +27,10 @@ export class GameLoopService {
   private readonly itemService = inject(ItemService);
   private readonly inputService = inject(InputService);
   private readonly mapService = inject(MapService);
+  private readonly collision = inject(CollisionService);
   private readonly playerService = inject(PlayerService);
+  private readonly cpuBrain = inject(CpuBrainService);
+  private readonly cpuSpawner = inject(CpuSpawnerService);
 
   // ── Observable state (signals for UI binding) ──────────────
   readonly phase = signal<GamePhase>('lobby');
@@ -78,6 +84,11 @@ export class GameLoopService {
 
     this.phase.set('lobby');
     this.running = true;
+
+    // Fill empty slots with CPU players
+    const reconciled = this.cpuSpawner.reconcile(this.hiders(), this.hunters());
+    this.hiders.set(reconciled.hiders);
+    this.hunters.set(reconciled.hunters);
   }
 
   /** Transition from lobby to active gameplay once enough players join. */
@@ -94,6 +105,7 @@ export class GameLoopService {
   stopGame(): void {
     this.running = false;
     this.phase.set('results');
+    this.cpuSpawner.dispose();
   }
 
   // ── Tick (called every frame by EngineService) ─────────────
@@ -128,20 +140,30 @@ export class GameLoopService {
     // Move hiders (no idle timer, no conversion)
     this.hiders.update(hiders =>
       hiders.map(hider => {
-        const input = hider.uid === localUid ? movement : { x: 0, y: 0, z: 0 };
+        const cpuDecision = hider.isCpu
+          ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000, this.itemService.findNearbyItems(hider, this.items()), hider.activeItem !== null)
+          : undefined;
+
+        const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
         const { state } = this.hiderService.tick(hider, delta, input);
-        // Reset idle timer in lobby — no consequences
-        const lobbyState = { ...state, idleTimerMs: 0 };
+        let lobbyState = { ...state, idleTimerMs: 0 };
+
+        // Enforce collisions for local + CPU players
+        if ((hider.uid === localUid || hider.isCpu) && this.collision) {
+          const resolved = this.collision.resolvePosition(hider.position, lobbyState.position);
+          lobbyState = { ...lobbyState, position: resolved };
+        }
 
         // Item pickup for local player
-        if (hider.uid === localUid && action === 'use_item' && lobbyState.activeItem === null) {
+        const hiderAction = hider.isCpu ? cpuDecision?.action : action;
+        if (hiderAction === 'use_item' && lobbyState.activeItem === null) {
           const nearby = this.itemService.findNearbyItems(lobbyState, this.items());
           const hiderItem = nearby.find(i =>
             i.type === 'smoke_bomb' || i.type === 'decoy' || i.type === 'speed_burst'
           );
           if (hiderItem) {
             this.items.update(items =>
-              items.map(i => i.id === hiderItem.id ? this.itemService.pickUp(i, localUid) : i)
+              items.map(i => i.id === hiderItem.id ? this.itemService.pickUp(i, hider.uid) : i)
             );
             return this.hiderService.useItem(lobbyState, hiderItem.type as any);
           }
@@ -154,29 +176,39 @@ export class GameLoopService {
     // Move hunters (no hunger drain, no starvation)
     this.hunters.update(hunters =>
       hunters.map(hunter => {
-        const input = hunter.uid === localUid ? movement : { x: 0, y: 0, z: 0 };
-        const { state } = this.hunterService.tick(hunter, delta, input);
-        // Freeze hunger in lobby — no starvation
-        const lobbyState = { ...state, hungerRemainingMs: hunter.hungerRemainingMs };
+        const cpuDecision = hunter.isCpu
+          ? this.cpuBrain.decide(hunter.uid, hunter.position, delta * 1000, this.itemService.findNearbyItems(hunter, this.items()), false)
+          : undefined;
 
-        // Weapon throw still works for fun
-        if (hunter.uid === localUid && action === 'throw_weapon') {
-          const aimDir = movement.x !== 0 || movement.z !== 0
-            ? movement
+        const input = this.resolveInput(hunter.uid, localUid, movement, cpuDecision?.movement);
+        const { state } = this.hunterService.tick(hunter, delta, input);
+        let lobbyState = { ...state, hungerRemainingMs: hunter.hungerRemainingMs };
+
+        // Enforce collisions for local + CPU players
+        if ((hunter.uid === localUid || hunter.isCpu) && this.collision) {
+          const resolved = this.collision.resolvePosition(hunter.position, lobbyState.position);
+          lobbyState = { ...lobbyState, position: resolved };
+        }
+
+        // Weapon throw
+        const hunterAction = hunter.isCpu ? cpuDecision?.action : action;
+        if (hunterAction === 'throw_weapon') {
+          const aimDir = input.x !== 0 || input.z !== 0
+            ? input
             : { x: 0, y: 0, z: -1 };
           const proj = this.hunterService.throwWeapon(lobbyState, aimDir);
           this.projectiles.update(p => [...p, proj]);
         }
 
         // Edible pickup
-        if (hunter.uid === localUid && action === 'interact') {
+        if (hunterAction === 'interact') {
           const nearby = this.itemService.findNearbyItems(lobbyState, this.items());
           const edible = nearby.find(i =>
             i.type === 'berry' || i.type === 'mushroom' || i.type === 'grub'
           );
           if (edible) {
             this.items.update(items =>
-              items.map(i => i.id === edible.id ? this.itemService.pickUp(i, localUid) : i)
+              items.map(i => i.id === edible.id ? this.itemService.pickUp(i, hunter.uid) : i)
             );
             return this.hunterService.eatEdible(lobbyState);
           }
@@ -212,28 +244,37 @@ export class GameLoopService {
     const action = this.inputService.consumeAction();
 
     const updatedHiders = this.hiders().map(hider => {
-      // Only apply local input to the local player
-      const input = hider.uid === localUid ? movement : { x: 0, y: 0, z: 0 };
+      const cpuDecision = hider.isCpu
+        ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000, this.itemService.findNearbyItems(hider, this.items()), hider.activeItem !== null)
+        : undefined;
+
+      const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
       const { state, result } = this.hiderService.tick(hider, delta, input);
 
       if (result.convertToHunter) {
-        // Queue conversion — will be processed after this loop
         this.convertHiderToHunter(state);
-        return null; // Remove from hiders
+        return null;
       }
 
-      // Handle item usage for local player
-      if (hider.uid === localUid && action === 'use_item' && state.activeItem === null) {
+      // Item usage for local + CPU players
+      const hiderAction = hider.isCpu ? cpuDecision?.action : action;
+      if (hiderAction === 'use_item' && state.activeItem === null) {
         const nearby = this.itemService.findNearbyItems(state, this.items());
         const hiderItem = nearby.find(i =>
           i.type === 'smoke_bomb' || i.type === 'decoy' || i.type === 'speed_burst'
         );
         if (hiderItem) {
           this.items.update(items =>
-            items.map(i => i.id === hiderItem.id ? this.itemService.pickUp(i, localUid) : i)
+            items.map(i => i.id === hiderItem.id ? this.itemService.pickUp(i, hider.uid) : i)
           );
           return this.hiderService.useItem(state, hiderItem.type as any);
         }
+      }
+
+      // Enforce collisions and bounds
+      if (this.collision) {
+        const resolved = this.collision.resolvePosition(hider.position, state.position);
+        return { ...state, position: resolved };
       }
 
       return state;
@@ -250,34 +291,45 @@ export class GameLoopService {
     const action = this.inputService.consumeAction();
 
     const updatedHunters = this.hunters().map(hunter => {
-      const input = hunter.uid === localUid ? movement : { x: 0, y: 0, z: 0 };
+      const cpuDecision = hunter.isCpu
+        ? this.cpuBrain.decide(hunter.uid, hunter.position, delta * 1000, this.itemService.findNearbyItems(hunter, this.items()), false)
+        : undefined;
+
+      const input = this.resolveInput(hunter.uid, localUid, movement, cpuDecision?.movement);
       const { state, result } = this.hunterService.tick(hunter, delta, input);
 
       if (result.starved) {
         return { ...state, isAlive: false };
       }
 
-      // Weapon throw for local player
-      if (hunter.uid === localUid && action === 'throw_weapon') {
-        const aimDir: Vec3 = movement.x !== 0 || movement.z !== 0
-          ? movement
-          : { x: 0, y: 0, z: -1 }; // default forward
+      // Weapon throw for local + CPU players
+      const hunterAction = hunter.isCpu ? cpuDecision?.action : action;
+      if (hunterAction === 'throw_weapon') {
+        const aimDir: Vec3 = input.x !== 0 || input.z !== 0
+          ? input
+          : { x: 0, y: 0, z: -1 };
         const proj = this.hunterService.throwWeapon(state, aimDir);
         this.projectiles.update(p => [...p, proj]);
       }
 
       // Feed on nearby edibles
-      if (hunter.uid === localUid && action === 'interact') {
+      if (hunterAction === 'interact') {
         const nearby = this.itemService.findNearbyItems(state, this.items());
         const edible = nearby.find(i =>
           i.type === 'berry' || i.type === 'mushroom' || i.type === 'grub'
         );
         if (edible) {
           this.items.update(items =>
-            items.map(i => i.id === edible.id ? this.itemService.pickUp(i, localUid) : i)
+            items.map(i => i.id === edible.id ? this.itemService.pickUp(i, hunter.uid) : i)
           );
           return this.hunterService.eatEdible(state);
         }
+      }
+
+      // Enforce collisions and bounds
+      if (this.collision) {
+        const resolved = this.collision.resolvePosition(hunter.position, state.position);
+        return { ...state, position: resolved };
       }
 
       return state;
@@ -334,6 +386,7 @@ export class GameLoopService {
     const hunter = this.playerService.createHunterState('wolf', hider.position);
     hunter.uid = hider.uid;
     hunter.displayName = hider.displayName;
+    hunter.isCpu = hider.isCpu;
     this.hunters.update(h => [...h, hunter]);
   }
 
@@ -369,5 +422,19 @@ export class GameLoopService {
 
   getLocalHunter(): HunterState | undefined {
     return this.hunters().find(h => h.uid === this.localPlayerUid());
+  }
+
+  // ── Input resolution ───────────────────────────────────────
+
+  /** Return the appropriate input vector for a player (local keyboard, CPU brain, or zero). */
+  private resolveInput(
+    playerUid: string,
+    localUid: string,
+    keyboardMovement: Vec3,
+    cpuMovement: Vec3 | undefined,
+  ): Vec3 {
+    if (playerUid === localUid) return keyboardMovement;
+    if (cpuMovement) return cpuMovement;
+    return { x: 0, y: 0, z: 0 };
   }
 }

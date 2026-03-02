@@ -1,0 +1,320 @@
+import { Injectable } from '@angular/core';
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+/** Bloom tuning. */
+const BLOOM_STRENGTH = 0.25;
+const BLOOM_RADIUS = 0.4;
+const BLOOM_THRESHOLD = 0.85;
+
+/**
+ * PostProcessingService manages a Three.js EffectComposer pipeline.
+ *
+ * Passes:
+ *   1. RenderPass          — standard scene render
+ *   2. UnrealBloomPass     — glow on bright surfaces (fireflies, water)
+ *   3. ColorGrading        — contrast, saturation, vignette, warm shift
+ *   4. TiltShift           — depth-of-field miniature/diorama effect
+ *   5. ScreenSpaceGodRays  — radial light scatter from sun position
+ *   6. ChromaticAberration — RGB channel offset + film grain
+ *   7. SMAAPass            — subpixel anti-aliasing (last)
+ *
+ * Lifecycle:
+ *   init(renderer, scene, camera) → tick(camera) each frame → resize(w,h) → dispose()
+ */
+@Injectable({ providedIn: 'root' })
+export class PostProcessingService {
+
+  private composer: EffectComposer | null = null;
+  private bloomPass: UnrealBloomPass | null = null;
+  private smaaPass: SMAAPass | null = null;
+  private godRayPass: ShaderPass | null = null;
+  private chromaticPass: ShaderPass | null = null;
+  private camera: THREE.Camera | null = null;
+  private sunLight: THREE.DirectionalLight | null = null;
+
+  init(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, sun?: THREE.DirectionalLight): void {
+    this.camera = camera;
+    this.sunLight = sun ?? null;
+    this.composer = new EffectComposer(renderer);
+    this.addRenderPass(scene, camera);
+    this.addBloomPass(renderer);
+    this.addColorGradingPass();
+    this.addTiltShiftPass();
+    this.addGodRayPass();
+    this.addChromaticAberrationPass();
+    this.addSmaaPass();
+  }
+
+  /** Update uniforms that change per-frame (sun screen position, time). */
+  tick(elapsed: number): void {
+    this.updateGodRayUniforms();
+    if (this.chromaticPass) {
+      this.chromaticPass.uniforms['uTime'].value = elapsed;
+    }
+  }
+
+  /** Render the full post-processing pipeline for one frame. */
+  render(): void {
+    this.composer?.render();
+  }
+
+  resize(width: number, height: number): void {
+    this.composer?.setSize(width, height);
+  }
+
+  dispose(): void {
+    this.bloomPass?.dispose();
+    this.smaaPass?.dispose();
+    this.composer = null;
+    this.bloomPass = null;
+    this.smaaPass = null;
+    this.godRayPass = null;
+    this.chromaticPass = null;
+    this.camera = null;
+    this.sunLight = null;
+  }
+
+  // ── Pass construction ─────────────────────────────────────
+
+  private addRenderPass(scene: THREE.Scene, camera: THREE.Camera): void {
+    this.composer!.addPass(new RenderPass(scene, camera));
+  }
+
+  private addBloomPass(renderer: THREE.WebGLRenderer): void {
+    const size = renderer.getSize(new THREE.Vector2());
+    this.bloomPass = new UnrealBloomPass(size, BLOOM_STRENGTH, BLOOM_RADIUS, BLOOM_THRESHOLD);
+    this.composer!.addPass(this.bloomPass);
+  }
+
+  private addColorGradingPass(): void {
+    const pass = new ShaderPass(COLOR_GRADING_SHADER);
+    this.composer!.addPass(pass);
+  }
+
+  private addTiltShiftPass(): void {
+    const pass = new ShaderPass(TILT_SHIFT_SHADER);
+    this.composer!.addPass(pass);
+  }
+
+  private addGodRayPass(): void {
+    this.godRayPass = new ShaderPass(SCREEN_GOD_RAY_SHADER);
+    this.composer!.addPass(this.godRayPass);
+  }
+
+  private addChromaticAberrationPass(): void {
+    this.chromaticPass = new ShaderPass(CHROMATIC_FILM_SHADER);
+    this.composer!.addPass(this.chromaticPass);
+  }
+
+  private addSmaaPass(): void {
+    this.smaaPass = new SMAAPass();
+    this.composer!.addPass(this.smaaPass);
+  }
+
+  // ── Per-frame uniform updates ─────────────────────────────
+
+  private updateGodRayUniforms(): void {
+    if (!this.godRayPass || !this.camera) return;
+    // Project sun world position to screen UV
+    const sunWorld = this.sunLight
+      ? this.sunLight.position.clone()
+      : new THREE.Vector3(60, 100, 40);
+    const projected = sunWorld.project(this.camera);
+    // Convert NDC (-1..1) to UV (0..1)
+    const uvX = (projected.x + 1) * 0.5;
+    const uvY = (projected.y + 1) * 0.5;
+    this.godRayPass.uniforms['lightPosition'].value.set(uvX, uvY);
+  }
+}
+
+// ── Color grading shader ────────────────────────────────────
+
+const COLOR_GRADING_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+
+      // Brightness
+      color.rgb += 0.02;
+
+      // Contrast
+      color.rgb = (color.rgb - 0.5) * 1.05 + 0.5;
+
+      // Saturation
+      float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+      color.rgb = mix(vec3(gray), color.rgb, 1.15);
+
+      // Warm shift
+      color.r *= 1.03;
+      color.b *= 0.97;
+
+      // Vignette (gentle — never darken below 50%)
+      vec2 uv = vUv * (1.0 - vUv);
+      float vig = uv.x * uv.y * 15.0;
+      color.rgb *= clamp(pow(vig, 0.4), 0.5, 1.0);
+
+      gl_FragColor = color;
+    }
+  `,
+};
+
+// ── Tilt-shift depth of field ───────────────────────────────
+
+const TILT_SHIFT_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    blurAmount: { value: 1.2 },
+    focalCenter: { value: 0.5 },
+    focalRange: { value: 0.25 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float blurAmount;
+    uniform float focalCenter;
+    uniform float focalRange;
+    varying vec2 vUv;
+
+    void main() {
+      float dist = abs(vUv.y - focalCenter);
+      float strength = smoothstep(focalRange * 0.5, focalRange, dist);
+      float blur = strength * blurAmount / 512.0;
+
+      vec4 color = vec4(0.0);
+      float total = 0.0;
+      for (int i = -4; i <= 4; i++) {
+        float fi = float(i);
+        float w = 1.0 - abs(fi) / 4.0;
+        color += texture2D(tDiffuse, vUv + vec2(0.0, fi * blur)) * w;
+        total += w;
+      }
+      gl_FragColor = color / total;
+    }
+  `,
+};
+
+// ── Screen-space god rays ───────────────────────────────────
+
+const SCREEN_GOD_RAY_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    lightPosition: { value: new THREE.Vector2(0.75, 0.85) },
+    exposure: { value: 0.12 },
+    decay: { value: 0.96 },
+    density: { value: 0.8 },
+    weight: { value: 0.4 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform vec2 lightPosition;
+    uniform float exposure;
+    uniform float decay;
+    uniform float density;
+    uniform float weight;
+    varying vec2 vUv;
+
+    const int NUM_SAMPLES = 30;
+
+    void main() {
+      vec4 origColor = texture2D(tDiffuse, vUv);
+      vec2 deltaUV = (vUv - lightPosition) * density / float(NUM_SAMPLES);
+      vec2 coord = vUv;
+      float illumination = 1.0;
+      vec4 accumulated = vec4(0.0);
+
+      for (int i = 0; i < NUM_SAMPLES; i++) {
+        coord -= deltaUV;
+        vec4 samp = texture2D(tDiffuse, coord);
+        // Only scatter bright areas (sky, bloom highlights — not UI sprites)
+        float brightness = dot(samp.rgb, vec3(0.299, 0.587, 0.114));
+        samp *= smoothstep(0.85, 1.0, brightness);
+        samp *= illumination * weight;
+        accumulated += samp;
+        illumination *= decay;
+      }
+
+      gl_FragColor = origColor + accumulated * exposure;
+    }
+  `,
+};
+
+// ── Chromatic aberration + film grain ───────────────────────
+
+const CHROMATIC_FILM_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    uTime: { value: 0 },
+    chromaticStrength: { value: 0.002 },
+    grainStrength: { value: 0.06 },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float uTime;
+    uniform float chromaticStrength;
+    uniform float grainStrength;
+    varying vec2 vUv;
+
+    float random(vec2 co) {
+      return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+
+    void main() {
+      // Distance from center for chromatic strength falloff
+      vec2 center = vUv - 0.5;
+      float dist = length(center);
+      float offset = chromaticStrength * dist;
+      vec2 dir = normalize(center + 0.0001);
+
+      float r = texture2D(tDiffuse, vUv + dir * offset).r;
+      float g = texture2D(tDiffuse, vUv).g;
+      float b = texture2D(tDiffuse, vUv - dir * offset).b;
+      float a = texture2D(tDiffuse, vUv).a;
+
+      vec4 color = vec4(r, g, b, a);
+
+      // Film grain
+      float grain = (random(vUv + fract(uTime)) - 0.5) * grainStrength;
+      color.rgb += grain;
+
+      gl_FragColor = color;
+    }
+  `,
+};

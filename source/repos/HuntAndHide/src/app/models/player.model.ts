@@ -37,6 +37,7 @@ export interface PlayerState {
   rotation: Vec3;
   isAlive: boolean;
   score: number;
+  isCpu: boolean;
 }
 
 export interface HiderState extends PlayerState {

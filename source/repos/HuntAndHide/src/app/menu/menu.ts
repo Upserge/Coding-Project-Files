@@ -72,7 +72,7 @@ export class MenuComponent {
       await this.sessionService.joinSession(sessionId, player);
 
       step = 'navigate';
-      await this.router.navigate(['/game', sessionId]);
+      await this.router.navigate(['/lobby', sessionId]);
     } catch (err: any) {
       console.error(`[QuickPlay] Failed at step="${step}":`, err);
       const detail = err?.code ? `${err.code}: ${err.message}` : (err?.message ?? String(err));

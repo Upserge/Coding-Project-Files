@@ -79,6 +79,7 @@ export class PlayerService {
       rotation: { x: 0, y: 0, z: 0 },
       isAlive: true,
       score: 0,
+      isCpu: false,
     };
   }
 

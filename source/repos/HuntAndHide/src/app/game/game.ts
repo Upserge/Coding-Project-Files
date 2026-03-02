@@ -20,8 +20,8 @@ import { HudComponent } from '../hud/hud';
 import { GameSession } from '../models/session.model';
 import { PlayerState } from '../models/player.model';
 
-/** Minimum players needed to transition from lobby to gameplay. */
-const MIN_PLAYERS_TO_START = 5;
+/** Total player slots (real + CPU). */
+const TOTAL_PLAYER_SLOTS = 10;
 
 @Component({
   selector: 'app-game',
@@ -49,15 +49,13 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   // ── Lobby state (signals for template) ─────────────────────
   protected readonly inLobby = signal(true);
   protected readonly playerCount = signal(0);
-  protected readonly minPlayers = MIN_PLAYERS_TO_START;
+  protected readonly minPlayers = TOTAL_PLAYER_SLOTS;
 
   protected readonly waitingMessage = computed(() => {
     const count = this.playerCount();
-    const needed = MIN_PLAYERS_TO_START - count;
-    if (needed > 0) {
-      return `Waiting for ${needed} more player${needed === 1 ? '' : 's'}...`;
-    }
-    return 'Starting game...';
+    return count >= TOTAL_PLAYER_SLOTS
+      ? 'Starting game...'
+      : `Players: ${count} / ${TOTAL_PLAYER_SLOTS} (CPU filling remaining slots)`;
   });
 
   async ngAfterViewInit(): Promise<void> {
@@ -126,11 +124,12 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   }
 
   private onSessionUpdate(session: GameSession): void {
-    const players = Object.values(session.players ?? {}).filter(Boolean) as PlayerState[];
-    this.playerCount.set(players.length);
+    // Total displayed count includes CPU players from the game loop
+    const totalPlayers = this.gameLoop.hiders().length + this.gameLoop.hunters().length;
+    this.playerCount.set(totalPlayers);
 
-    // Auto-start when enough players join
-    if (!this.gameStarted && players.length >= MIN_PLAYERS_TO_START) {
+    // Transition to gameplay when the host starts the game (phase set to 'hunting')
+    if (!this.gameStarted && session.phase === 'hunting') {
       this.startGameplay(session);
     }
   }

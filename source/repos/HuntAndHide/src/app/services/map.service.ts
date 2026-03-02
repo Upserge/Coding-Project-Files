@@ -4,6 +4,9 @@ import {
   ObstaclePlacement,
   SpawnPoint,
   ObstacleType,
+  DecorationPlacement,
+  DecorationType,
+  WaterPlacement,
 } from '../models/map.model';
 
 /**
@@ -26,6 +29,8 @@ export class MapService {
       width: this.mapWidth,
       depth: this.mapDepth,
       obstacles: this.generateObstacles(),
+      decorations: this.generateDecorations(),
+      waterFeatures: this.generateWaterFeatures(),
       spawnPoints: this.generateSpawnPoints(),
     };
   }
@@ -174,5 +179,88 @@ export class MapService {
       position: { x, y: 0, z },
       rotationY: rotY,
     };
+  }
+
+  // ── Decorations (non-collidable visual scatter) ────────────
+
+  private generateDecorations(): DecorationPlacement[] {
+    const decorations: DecorationPlacement[] = [];
+    let id = 0;
+
+    // Weighted type pool — ferns and flowers dominate (grass is instanced separately)
+    const weightedTypes: DecorationType[] = [
+      'fern', 'fern', 'fern',
+      'flower', 'flower',
+      'mushroom_cluster',
+      'fallen_log',
+      'vine',
+    ];
+
+    const positions = this.scatterPositions(120, 85);
+    for (const [x, z] of positions) {
+      const type = weightedTypes[Math.floor(Math.random() * weightedTypes.length)];
+      const scale = 0.8 + Math.random() * 0.5;
+      decorations.push(this.placeDeco(id++, type, x, z, Math.random() * Math.PI * 2, scale));
+    }
+    return decorations;
+  }
+
+  private placeDeco(id: number, type: DecorationType, x: number, z: number, rotY: number, scale: number): DecorationPlacement {
+    return {
+      id: `deco_${id}`,
+      type,
+      position: { x, y: 0, z },
+      rotationY: rotY,
+      scale,
+    };
+  }
+
+  // ── Water features ────────────────────────────────────────
+
+  private generateWaterFeatures(): WaterPlacement[] {
+    const features: WaterPlacement[] = [];
+    let id = 0;
+
+    const ponds = [
+      { x: -35, z: 15, size: 6 },
+      { x: 50, z: -35, size: 4 },
+      { x: -15, z: -60, size: 5 },
+      { x: 65, z: 60, size: 3.5 },
+    ];
+    for (const p of ponds) {
+      features.push(this.placeWater(id++, 'pond', p.x, p.z, 0, p.size));
+    }
+
+    const streams = [
+      { x: 10, z: -15, rotY: 0.3, size: 12 },
+      { x: -50, z: -25, rotY: 1.1, size: 10 },
+    ];
+    for (const s of streams) {
+      features.push(this.placeWater(id++, 'stream', s.x, s.z, s.rotY, s.size));
+    }
+
+    return features;
+  }
+
+  private placeWater(id: number, type: 'pond' | 'stream', x: number, z: number, rotY: number, size: number): WaterPlacement {
+    return {
+      id: `water_${id}`,
+      type,
+      position: { x, y: 0.02, z },
+      rotationY: rotY,
+      size,
+    };
+  }
+
+  // ── Scatter utility ───────────────────────────────────────
+
+  private scatterPositions(count: number, halfRange: number): [number, number][] {
+    const result: [number, number][] = [];
+    for (let i = 0; i < count; i++) {
+      const x = (Math.random() - 0.5) * halfRange * 2;
+      const z = (Math.random() - 0.5) * halfRange * 2;
+      result.push([x, z]);
+    }
+    return result;
   }
 }

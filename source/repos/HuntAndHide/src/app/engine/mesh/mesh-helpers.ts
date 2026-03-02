@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 /**
  * Well-known child names used by the animation system to find body parts.
@@ -171,9 +171,51 @@ export function attachFeetOnly(
   }
 }
 
+// Rim lighting
+
+/**
+ * Apply a Fresnel-based rim/edge glow to all MeshStandardMaterial
+ * children of a group. Injected via `onBeforeCompile` — zero extra
+ * draw calls, just a small shader snippet per material.
+ */
+export function applyRimLighting(group: THREE.Group, rimColor = new THREE.Color(0xfff8e1), rimPower = 2.5, rimStrength = 0.35): void {
+  group.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mat = mesh.material;
+    if (!(mat instanceof THREE.MeshStandardMaterial)) return;
+
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms['rimColor'] = { value: rimColor };
+      shader.uniforms['rimPower'] = { value: rimPower };
+      shader.uniforms['rimStrength'] = { value: rimStrength };
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'uniform float opacity;',
+        /* glsl */ `
+          uniform float opacity;
+          uniform vec3 rimColor;
+          uniform float rimPower;
+          uniform float rimStrength;
+        `,
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        /* glsl */ `
+          #include <dithering_fragment>
+          float rimFresnel = 1.0 - abs(dot(geometryNormal, geometryViewDir));
+          gl_FragColor.rgb += rimColor * pow(rimFresnel, rimPower) * rimStrength;
+        `,
+      );
+    };
+    mat.needsUpdate = true;
+  });
+}
+
 // Name label
 
-export function buildNameSprite(name: string, isHunter: boolean): THREE.Sprite {
+export function buildNameSprite(name: string, isHunter: boolean, isCpu = false): THREE.Sprite {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 64;
@@ -181,23 +223,32 @@ export function buildNameSprite(name: string, isHunter: boolean): THREE.Sprite {
 
   ctx.clearRect(0, 0, 256, 64);
 
-  ctx.fillStyle = isHunter ? 'rgba(204,51,51,0.7)' : 'rgba(51,170,85,0.7)';
-  const textWidth = Math.min(ctx.measureText(name).width + 24, 240);
+  const label = isCpu ? `🤖 ${name}` : name;
+  const bgColor = isCpu
+    ? 'rgba(120,80,200,0.75)'
+    : isHunter
+      ? 'rgba(204,51,51,0.7)'
+      : 'rgba(51,170,85,0.7)';
+
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillStyle = bgColor;
+  const textWidth = Math.min(ctx.measureText(label).width + 24, 240);
   const pillX = (256 - textWidth) / 2;
   ctx.beginPath();
   ctx.roundRect(pillX, 12, textWidth, 40, 12);
   ctx.fill();
 
-  ctx.font = 'bold 22px sans-serif';
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(name, 128, 32);
+  ctx.fillText(label, 128, 32);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
   const sprite = new THREE.Sprite(spriteMat);
   sprite.scale.set(2.5, 0.6, 1);
+  // Layer 1 = UI overlay, rendered after post-processing to avoid god-ray scatter
+  sprite.layers.set(1);
   return sprite;
 }
