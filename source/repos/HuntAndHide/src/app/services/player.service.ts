@@ -90,7 +90,10 @@ export class PlayerService {
       role: 'hider',
       animal,
       idleTimerMs: 0,
+      inventory: [null, null],
       activeItem: null,
+      activeItemRemainingMs: 0,
+      slowRemainingMs: 0,
     };
   }
 
@@ -101,7 +104,8 @@ export class PlayerService {
       role: 'hunter',
       animal,
       hungerRemainingMs: HUNTER_HUNGER_MS,
-      equippedWeapon: 'spear', // default starting weapon
+      inventory: ['spear', null],
+      equippedWeapon: 'spear',
     };
   }
 }

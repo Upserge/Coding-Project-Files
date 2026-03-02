@@ -45,7 +45,14 @@ export interface HiderState extends PlayerState {
   animal: HiderAnimal;
   /** Milliseconds since last movement — convert to hunter at HIDER_IDLE_LIMIT_MS. */
   idleTimerMs: number;
+  /** 2-slot inventory of held items (not yet activated). */
+  inventory: [HiderItemType | null, HiderItemType | null];
+  /** Currently active timed effect (set when an inventory item is used). */
   activeItem: HiderItemType | null;
+  /** Remaining ms for the currently active item effect (0 = no effect). */
+  activeItemRemainingMs: number;
+  /** Remaining ms of bolo-induced slow debuff (0 = not slowed). */
+  slowRemainingMs: number;
 }
 
 export interface HunterState extends PlayerState {
@@ -53,10 +60,27 @@ export interface HunterState extends PlayerState {
   animal: HunterAnimal;
   /** Milliseconds remaining before starvation. Starts at HUNTER_HUNGER_MS. */
   hungerRemainingMs: number;
+  /** 2-slot weapon inventory. */
+  inventory: [WeaponType | null, WeaponType | null];
   equippedWeapon: WeaponType;
 }
 
-// ── Gameplay constants (all tuneable) ────────────────────────
+// ── Decoy state ──────────────────────────────────────────
+
+export interface DecoyState {
+  id: string;
+  position: Vec3;
+  direction: Vec3;
+  remainingMs: number;
+  /** Matches the spawning hider so the decoy looks identical. */
+  animal: HiderAnimal;
+  displayName: string;
+}
+
+// ── Gameplay constants (all tuneable) ────────────────────
+
+/** Maximum items a player can carry at once. */
+export const MAX_INVENTORY_SLOTS = 2;
 
 /** Hiders must move within this window or they convert to a hunter. */
 export const HIDER_IDLE_LIMIT_MS = 7_000;
@@ -67,3 +91,9 @@ export const HUNTER_HUNGER_MS = 300_000; // 5 minutes
 /** Speed multiplier relative to base movement speed. */
 export const HIDER_SPEED_MULTIPLIER = 1.5;
 export const HUNTER_SPEED_MULTIPLIER = 1.0;
+
+/** Duration of bolo-induced slow debuff in ms. */
+export const BOLO_SLOW_MS = 3_000;
+
+/** Default active-item effect duration in ms. */
+export const ITEM_EFFECT_DURATION_MS = 5_000;

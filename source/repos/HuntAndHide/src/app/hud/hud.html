@@ -32,11 +32,25 @@
                [class.critical]="hungerPercent() < 0.25"></div>
         </div>
       </div>
-      @if (equippedWeapon()) {
-        <div class="weapon-indicator">{{ equippedWeapon() }}</div>
-      }
     </div>
   }
+
+  <!-- Item bar (2 slots) -->
+  <div class="item-bar">
+    <div class="item-slot" [class.empty]="slot1().empty" [class.weapon]="slot1().isWeapon">
+      <span class="slot-key">1</span>
+      @if (!slot1().empty) {
+        <span class="slot-name">{{ slot1().name }}</span>
+      }
+    </div>
+    <div class="item-slot" [class.empty]="slot2().empty" [class.weapon]="slot2().isWeapon">
+      <span class="slot-key">2</span>
+      @if (!slot2().empty) {
+        <span class="slot-name">{{ slot2().name }}</span>
+      }
+    </div>
+    <span class="pickup-hint">[F] Pick up</span>
+  </div>
 
   <!-- Bottom bar: score + player count -->
   <div class="hud-bottom">

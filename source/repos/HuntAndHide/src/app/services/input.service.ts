@@ -2,7 +2,7 @@ import { Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Vec3 } from '../models/player.model';
 
 /** Actions the player can trigger beyond movement. */
-export type PlayerAction = 'use_item' | 'throw_weapon' | 'interact' | 'none';
+export type PlayerAction = 'use_slot_1' | 'use_slot_2' | 'use_item' | 'throw_weapon' | 'interact' | 'none';
 
 /**
  * InputService captures keyboard + mouse state every frame and exposes
@@ -93,9 +93,11 @@ export class InputService implements OnDestroy {
 
     // Map specific keys to game actions
     switch (e.code) {
-      case 'KeyE':  this._lastAction = 'use_item';     break;
-      case 'KeyQ':  this._lastAction = 'throw_weapon';  break;
-      case 'KeyF':  this._lastAction = 'interact';      break;
+      case 'Digit1': this._lastAction = 'use_slot_1';    break;
+      case 'Digit2': this._lastAction = 'use_slot_2';    break;
+      case 'KeyE':   this._lastAction = 'use_item';      break;
+      case 'KeyQ':   this._lastAction = 'throw_weapon';  break;
+      case 'KeyF':   this._lastAction = 'interact';      break;
     }
   }
 

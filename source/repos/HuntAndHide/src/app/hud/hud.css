@@ -86,12 +86,75 @@
   background: #ef5350;
 }
 
-.active-item,
-.weapon-indicator {
+.active-item {
   margin-top: 0.5rem;
   background: rgba(0, 0, 0, 0.4);
   padding: 0.2rem 0.6rem;
   border-radius: 4px;
   font-size: 0.8rem;
   text-transform: capitalize;
+}
+
+/* ── Item bar ────────────────────────────────────────────── */
+
+.item-bar {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  margin-bottom: 0.5rem;
+}
+
+.item-slot {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.item-slot.empty {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.item-slot:not(.empty) {
+  border-color: #66bb6a;
+}
+
+.item-slot.weapon:not(.empty) {
+  border-color: #ef5350;
+}
+
+.slot-key {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+}
+
+.slot-name {
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.15;
+  color: #e0e0e0;
+  padding: 0 2px;
+  word-break: break-word;
+}
+
+.pickup-hint {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-left: 0.25rem;
 }

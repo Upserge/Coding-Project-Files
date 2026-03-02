@@ -16,7 +16,7 @@ import { Vec3, PlayerState } from '../models/player.model';
 @Injectable({ providedIn: 'root' })
 export class ItemService {
 
-  private readonly pickupRadius = 1.5;
+  private readonly pickupRadius = 2.5;
   private nextItemId = 0;
 
   // ── Spawning ───────────────────────────────────────────────
@@ -89,5 +89,23 @@ export class ItemService {
     const dx = a.x - b.x;
     const dz = a.z - b.z;
     return Math.sqrt(dx * dx + dz * dz);
+  }
+
+  // ── Type guards ───────────────────────────────────────────
+
+  private static readonly HIDER_ITEMS: ReadonlySet<string> = new Set<HiderItemType>(['smoke_bomb', 'decoy', 'speed_burst']);
+  private static readonly WEAPONS: ReadonlySet<string> = new Set<WeaponType>(['spear', 'bolo']);
+  private static readonly EDIBLES: ReadonlySet<string> = new Set<EdibleType>(['berry', 'mushroom', 'grub']);
+
+  isHiderItem(type: string): type is HiderItemType {
+    return ItemService.HIDER_ITEMS.has(type);
+  }
+
+  isWeapon(type: string): type is WeaponType {
+    return ItemService.WEAPONS.has(type);
+  }
+
+  isEdible(type: string): type is EdibleType {
+    return ItemService.EDIBLES.has(type);
   }
 }

@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import * as THREE from 'three';
-import { PlayerState, Vec3 } from '../models/player.model';
-import { Item } from '../models/item.model';
+import { PlayerState, HiderState, DecoyState, Vec3, PlayerRole } from '../models/player.model';
+import { Item, isVisibleForRole } from '../models/item.model';
 import { ProjectileState } from '../services/hunter.service';
 
 import { ANIMAL_COLORS, BELLY_COLORS, HUNTER_BODY_COLOR, HIDER_BODY_COLOR } from './mesh/animal-palettes';
@@ -44,10 +44,12 @@ export class SceneRenderService {
   // Mesh registries keyed by entity id
   private playerMeshes = new Map<string, THREE.Group>();
   private previousPositions = new Map<string, Vec3>();
-  private itemMeshes   = new Map<string, THREE.Mesh>();
+  private itemMeshes   = new Map<string, THREE.Object3D>();
   private projMeshes   = new Map<string, THREE.Mesh>();
+  private decoyMeshes  = new Map<string, THREE.Group>();
 
   private dustFrameCounter = 0;
+  private previousActiveItems = new Map<string, string | null>();
   private waterElapsed = 0;
   // Boundary visual
   private boundaryGroup?: THREE.Group;
@@ -130,6 +132,7 @@ export class SceneRenderService {
     this.playerMeshes.forEach(m => this.scene?.remove(m));
     this.itemMeshes.forEach(m => this.scene?.remove(m));
     this.projMeshes.forEach(m => this.scene?.remove(m));
+    this.decoyMeshes.forEach(m => this.scene?.remove(m));
     if (this.boundaryGroup) {
       this.scene?.remove(this.boundaryGroup);
       this.boundaryGroup.traverse((c: any) => {
@@ -141,8 +144,10 @@ export class SceneRenderService {
     }
     this.playerMeshes.clear();
     this.previousPositions.clear();
+    this.previousActiveItems.clear();
     this.itemMeshes.clear();
     this.projMeshes.clear();
+    this.decoyMeshes.clear();
     this.animation.dispose();
     this.particles.dispose();
     this.ambientVfx.dispose();
@@ -220,6 +225,24 @@ export class SceneRenderService {
         }
       }
 
+      // Active-item VFX (hiders only)
+      if (player.role === 'hider') {
+        const hider = player as HiderState;
+        const prevItem = this.previousActiveItems.get(hider.uid) ?? null;
+
+        // One-shot smoke cloud on smoke_bomb activation
+        if (hider.activeItem === 'smoke_bomb' && prevItem !== 'smoke_bomb') {
+          this.particles.spawnSmokeCloud(hider.position);
+        }
+
+        // Continuous speed trail while speed_burst is active
+        if (hider.activeItem === 'speed_burst') {
+          this.particles.spawnSpeedTrail(hider.position);
+        }
+
+        this.previousActiveItems.set(hider.uid, hider.activeItem);
+      }
+
       // Save position for next frame
       this.previousPositions.set(player.uid, { ...player.position });
     }
@@ -255,12 +278,13 @@ export class SceneRenderService {
         this.scene.remove(mesh);
         this.playerMeshes.delete(uid);
         this.previousPositions.delete(uid);
+        this.previousActiveItems.delete(uid);
         this.animation.removeContext(uid);
       }
     }
   }
 
-  syncItems(items: Item[]): void {
+  syncItems(items: Item[], localRole: PlayerRole): void {
     const activeIds = new Set<string>();
 
     for (const item of items) {
@@ -285,6 +309,12 @@ export class SceneRenderService {
         mesh.renderOrder = 3;
         this.itemMeshes.set(item.id, mesh);
         this.scene.add(mesh);
+      }
+
+      // Hide items that don't belong to the local player's role
+      if (!isVisibleForRole(item.type, localRole)) {
+        mesh.visible = false;
+        continue;
       }
 
       const itemTerrainY = getTerrainHeight(item.position.x, item.position.z);
@@ -326,6 +356,54 @@ export class SceneRenderService {
       if (!activeIds.has(id)) {
         this.scene.remove(mesh);
         this.projMeshes.delete(id);
+      }
+    }
+  }
+
+  syncDecoys(decoys: DecoyState[]): void {
+    const activeIds = new Set<string>();
+
+    for (const decoy of decoys) {
+      activeIds.add(decoy.id);
+      let group = this.decoyMeshes.get(decoy.id);
+
+      if (!group) {
+        group = new THREE.Group();
+        const color = ANIMAL_COLORS[decoy.animal];
+        const belly = BELLY_COLORS[decoy.animal];
+        buildHiderMesh(group, color, belly, decoy.animal);
+
+        // Hider-accent ring at feet
+        const ringGeo = new THREE.RingGeometry(0.55, 0.68, 24);
+        const ringMat = new THREE.MeshBasicMaterial({ color: HIDER_BODY_COLOR, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.02;
+        group.add(ring);
+
+        const label = buildNameSprite(decoy.displayName, false, false);
+        label.position.set(0, 2.4, 0);
+        group.add(label);
+
+        group.renderOrder = 3;
+        group.layers.enable(1);
+        applyRimLighting(group);
+        this.decoyMeshes.set(decoy.id, group);
+        this.scene.add(group);
+      }
+
+      const terrainY = getTerrainHeight(decoy.position.x, decoy.position.z);
+      group.position.set(decoy.position.x, decoy.position.y + terrainY, decoy.position.z);
+
+      // Face movement direction
+      const targetY = Math.atan2(decoy.direction.x, decoy.direction.z);
+      group.rotation.y = targetY;
+    }
+
+    for (const [id, mesh] of this.decoyMeshes) {
+      if (!activeIds.has(id)) {
+        this.scene.remove(mesh);
+        this.decoyMeshes.delete(id);
       }
     }
   }

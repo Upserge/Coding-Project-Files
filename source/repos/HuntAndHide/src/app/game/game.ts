@@ -112,8 +112,11 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       ...this.gameLoop.hunters(),
     ];
     this.sceneRender.syncPlayers(allPlayers, uid, delta);
-    this.sceneRender.syncItems(this.gameLoop.items());
+
+    const localRole = this.gameLoop.getLocalPlayer()?.role ?? 'hider';
+    this.sceneRender.syncItems(this.gameLoop.items(), localRole);
     this.sceneRender.syncProjectiles(this.gameLoop.projectiles());
+    this.sceneRender.syncDecoys(this.gameLoop.decoys());
     this.sceneRender.tickParticles(delta);
 
     // Camera follows local player

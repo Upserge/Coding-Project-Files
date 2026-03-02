@@ -7,6 +7,18 @@ export type EdibleType = 'berry' | 'mushroom' | 'grub';
 /** Any item that can exist on the map. */
 export type ItemType = HiderItemType | WeaponType | EdibleType;
 
+// ── Role-based visibility ────────────────────────────────────
+
+const HIDER_TYPES: ReadonlySet<string> = new Set<HiderItemType>(['smoke_bomb', 'decoy', 'speed_burst']);
+const WEAPON_TYPES: ReadonlySet<string> = new Set<WeaponType>(['spear', 'bolo']);
+const EDIBLE_TYPES: ReadonlySet<string> = new Set<EdibleType>(['berry', 'mushroom', 'grub']);
+
+/** Hiders see hider items; hunters see weapons and edibles. */
+export function isVisibleForRole(type: ItemType, role: 'hunter' | 'hider'): boolean {
+  if (role === 'hider') return HIDER_TYPES.has(type);
+  return WEAPON_TYPES.has(type) || EDIBLE_TYPES.has(type);
+}
+
 export interface Item {
   id: string;
   type: ItemType;

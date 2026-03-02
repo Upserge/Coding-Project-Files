@@ -4,6 +4,7 @@ import {
   HiderState,
   HUNTER_HUNGER_MS,
   HUNTER_SPEED_MULTIPLIER,
+  MAX_INVENTORY_SLOTS,
   Vec3,
 } from '../models/player.model';
 import { WeaponType } from '../models/item.model';
@@ -140,6 +141,35 @@ export class HunterService {
   /** Switch weapon (when picking up a different type). */
   equipWeapon(hunter: HunterState, weapon: WeaponType): HunterState {
     return { ...hunter, equippedWeapon: weapon };
+  }
+
+  // ── Inventory management ───────────────────────────────────
+
+  /** Check whether the inventory has a free slot. */
+  hasInventorySpace(hunter: HunterState): boolean {
+    return hunter.inventory.some(slot => slot === null);
+  }
+
+  /** Add a weapon to the first empty inventory slot. Returns unchanged if full. */
+  addToInventory(hunter: HunterState, weapon: WeaponType): HunterState {
+    const inv: [WeaponType | null, WeaponType | null] = [...hunter.inventory];
+    const freeIdx = inv.indexOf(null);
+    if (freeIdx === -1) return hunter;
+    inv[freeIdx] = weapon;
+    return { ...hunter, inventory: inv };
+  }
+
+  /** Equip + throw the weapon from a specific inventory slot (0 or 1). */
+  useSlot(hunter: HunterState, slotIndex: number, aimDir: Vec3): { state: HunterState; proj: ProjectileState } | null {
+    if (slotIndex < 0 || slotIndex >= MAX_INVENTORY_SLOTS) return null;
+    const weapon = hunter.inventory[slotIndex];
+    if (!weapon) return null;
+
+    const inv: [WeaponType | null, WeaponType | null] = [...hunter.inventory];
+    inv[slotIndex] = null;
+    const equipped: HunterState = { ...hunter, inventory: inv, equippedWeapon: weapon };
+    const proj = this.throwWeapon(equipped, aimDir);
+    return { state: equipped, proj };
   }
 
   // ── Feeding ────────────────────────────────────────────────

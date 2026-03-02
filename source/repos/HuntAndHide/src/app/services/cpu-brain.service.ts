@@ -67,7 +67,7 @@ export class CpuBrainService {
     currentPos: Vec3,
     deltaMs: number,
     nearbyItems: Item[],
-    hasActiveItem: boolean,
+    hasInventoryItem: boolean,
   ): { movement: Vec3; action: CpuAction } {
     const brain = this.brains.get(uid);
     if (!brain) return { movement: { x: 0, y: 0, z: 0 }, action: 'none' };
@@ -96,7 +96,7 @@ export class CpuBrainService {
       : { x: 0, y: 0, z: 0 };
 
     // ── Item / action decision ─────────────────────────────
-    const action = this.decideAction(brain, nearbyItems, hasActiveItem);
+    const action = this.decideAction(brain, nearbyItems, hasInventoryItem);
 
     return { movement, action };
   }
@@ -106,7 +106,7 @@ export class CpuBrainService {
   private decideAction(
     brain: BrainState,
     nearbyItems: Item[],
-    hasActiveItem: boolean,
+    hasInventoryItem: boolean,
   ): CpuAction {
     if (brain.itemCooldownMs > 0) return 'none';
 
@@ -114,8 +114,8 @@ export class CpuBrainService {
       i => !i.isPickedUp && this.isHiderItem(i.type),
     );
 
-    // Use an already-held item
-    if (hasActiveItem && Math.random() < ITEM_USE_CHANCE) {
+    // Use a held inventory item
+    if (hasInventoryItem && Math.random() < ITEM_USE_CHANCE) {
       brain.itemCooldownMs = ITEM_COOLDOWN_MS;
       return 'use_item';
     }
@@ -123,7 +123,7 @@ export class CpuBrainService {
     // Pick up a nearby item
     if (pickupCandidates.length > 0) {
       brain.itemCooldownMs = ITEM_COOLDOWN_MS;
-      return 'use_item';
+      return 'interact';
     }
 
     // Try eating nearby edibles (for hunters)

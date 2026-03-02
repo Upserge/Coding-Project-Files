@@ -1,11 +1,11 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { GamePhase } from '../models/session.model';
-import { HiderState, HunterState, PlayerState, Vec3 } from '../models/player.model';
+import { HiderState, HunterState, PlayerState, Vec3, BOLO_SLOW_MS, DecoyState, ITEM_EFFECT_DURATION_MS } from '../models/player.model';
 import { Item } from '../models/item.model';
 import { HiderService } from './hider.service';
 import { HunterService, ProjectileState } from './hunter.service';
 import { ItemService } from './item.service';
-import { InputService } from './input.service';
+import { InputService, PlayerAction } from './input.service';
 import { MapService } from './map.service';
 import { CollisionService } from './collision.service';
 import { PlayerService } from './player.service';
@@ -39,9 +39,10 @@ export class GameLoopService {
   readonly hunters = signal<HunterState[]>([]);
   readonly items = signal<Item[]>([]);
   readonly projectiles = signal<ProjectileState[]>([]);
+  readonly decoys = signal<DecoyState[]>([]);
   readonly localPlayerUid = signal<string>('');
 
-  private roundDurationMs = 120_000; // 2 minutes per round
+  private roundDurationMs = 600_000; // 10 minutes per round -- longer than normal for testing purposes
   private running = false;
 
   // ── Lifecycle ──────────────────────────────────────────────
@@ -105,6 +106,7 @@ export class GameLoopService {
   stopGame(): void {
     this.running = false;
     this.phase.set('results');
+    this.decoys.set([]);
     this.cpuSpawner.dispose();
   }
 
@@ -122,10 +124,14 @@ export class GameLoopService {
       return;
     }
 
+    const movement = this.inputService.getMovementVector();
+    const action = this.inputService.consumeAction();
+
     this.tickRoundTimer(delta);
-    this.tickHiders(delta);
-    this.tickHunters(delta);
+    this.tickHiders(delta, movement, action);
+    this.tickHunters(delta, movement, action);
     this.tickProjectiles(delta);
+    this.tickDecoys(delta);
     this.checkCatches();
     this.checkWinConditions();
   }
@@ -141,7 +147,7 @@ export class GameLoopService {
     this.hiders.update(hiders =>
       hiders.map(hider => {
         const cpuDecision = hider.isCpu
-          ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000, this.itemService.findNearbyItems(hider, this.items()), hider.activeItem !== null)
+          ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000, this.itemService.findNearbyItems(hider, this.items()), hider.inventory.some(s => s !== null))
           : undefined;
 
         const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
@@ -154,19 +160,31 @@ export class GameLoopService {
           lobbyState = { ...lobbyState, position: resolved };
         }
 
-        // Item pickup for local player
         const hiderAction = hider.isCpu ? cpuDecision?.action : action;
-        if (hiderAction === 'use_item' && lobbyState.activeItem === null) {
+
+        // Pick up nearby hider item into inventory (F)
+        if (hiderAction === 'interact' && this.hiderService.hasInventorySpace(lobbyState)) {
           const nearby = this.itemService.findNearbyItems(lobbyState, this.items());
-          const hiderItem = nearby.find(i =>
-            i.type === 'smoke_bomb' || i.type === 'decoy' || i.type === 'speed_burst'
-          );
-          if (hiderItem) {
+          const hiderItem = nearby.find(i => this.itemService.isHiderItem(i.type));
+          if (hiderItem && this.itemService.isHiderItem(hiderItem.type)) {
             this.items.update(items =>
               items.map(i => i.id === hiderItem.id ? this.itemService.pickUp(i, hider.uid) : i)
             );
-            return this.hiderService.useItem(lobbyState, hiderItem.type as any);
+            return this.hiderService.addToInventory(lobbyState, hiderItem.type);
           }
+        }
+
+        // Use item from slot (1 or 2, E = alias for slot 1)
+        const prevActive = lobbyState.activeItem;
+        if (hiderAction === 'use_slot_1' || hiderAction === 'use_item') {
+          lobbyState = this.hiderService.useSlot(lobbyState, 0);
+        } else if (hiderAction === 'use_slot_2') {
+          lobbyState = this.hiderService.useSlot(lobbyState, 1);
+        }
+
+        // Spawn decoy on activation
+        if (lobbyState.activeItem === 'decoy' && prevActive !== 'decoy') {
+          this.spawnDecoy(lobbyState);
         }
 
         return lobbyState;
@@ -190,28 +208,49 @@ export class GameLoopService {
           lobbyState = { ...lobbyState, position: resolved };
         }
 
-        // Weapon throw
         const hunterAction = hunter.isCpu ? cpuDecision?.action : action;
-        if (hunterAction === 'throw_weapon') {
-          const aimDir = input.x !== 0 || input.z !== 0
-            ? input
-            : { x: 0, y: 0, z: -1 };
-          const proj = this.hunterService.throwWeapon(lobbyState, aimDir);
-          this.projectiles.update(p => [...p, proj]);
-        }
 
-        // Edible pickup
+        // Pick up nearby weapon into inventory (F)
         if (hunterAction === 'interact') {
+          // Try weapon pickup first
           const nearby = this.itemService.findNearbyItems(lobbyState, this.items());
-          const edible = nearby.find(i =>
-            i.type === 'berry' || i.type === 'mushroom' || i.type === 'grub'
-          );
+          const weaponItem = nearby.find(i => this.itemService.isWeapon(i.type));
+          if (weaponItem && this.itemService.isWeapon(weaponItem.type) && this.hunterService.hasInventorySpace(lobbyState)) {
+            this.items.update(items =>
+              items.map(i => i.id === weaponItem.id ? this.itemService.pickUp(i, hunter.uid) : i)
+            );
+            return this.hunterService.addToInventory(lobbyState, weaponItem.type);
+          }
+          // Fall back to eating edible
+          const edible = nearby.find(i => this.itemService.isEdible(i.type));
           if (edible) {
             this.items.update(items =>
               items.map(i => i.id === edible.id ? this.itemService.pickUp(i, hunter.uid) : i)
             );
             return this.hunterService.eatEdible(lobbyState);
           }
+        }
+
+        // Throw weapon from inventory slot (1, 2, or E = alias for slot 1)
+        if (hunterAction === 'use_slot_1' || hunterAction === 'use_slot_2' || hunterAction === 'use_item') {
+          const slotIdx = hunterAction === 'use_slot_2' ? 1 : 0;
+          const aimDir = input.x !== 0 || input.z !== 0
+            ? input
+            : { x: 0, y: 0, z: -1 };
+          const result = this.hunterService.useSlot(lobbyState, slotIdx, aimDir);
+          if (result) {
+            this.projectiles.update(p => [...p, result.proj]);
+            return result.state;
+          }
+        }
+
+        // Legacy throw (Q) — throws equipped weapon directly
+        if (hunterAction === 'throw_weapon') {
+          const aimDir = input.x !== 0 || input.z !== 0
+            ? input
+            : { x: 0, y: 0, z: -1 };
+          const proj = this.hunterService.throwWeapon(lobbyState, aimDir);
+          this.projectiles.update(p => [...p, proj]);
         }
 
         return lobbyState;
@@ -238,14 +277,12 @@ export class GameLoopService {
 
   // ── Hider tick ─────────────────────────────────────────────
 
-  private tickHiders(delta: number): void {
+  private tickHiders(delta: number, movement: Vec3, action: PlayerAction): void {
     const localUid = this.localPlayerUid();
-    const movement = this.inputService.getMovementVector();
-    const action = this.inputService.consumeAction();
 
     const updatedHiders = this.hiders().map(hider => {
       const cpuDecision = hider.isCpu
-        ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000, this.itemService.findNearbyItems(hider, this.items()), hider.activeItem !== null)
+        ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000, this.itemService.findNearbyItems(hider, this.items()), hider.inventory.some(s => s !== null))
         : undefined;
 
       const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
@@ -256,28 +293,41 @@ export class GameLoopService {
         return null;
       }
 
-      // Item usage for local + CPU players
+      let updated = state;
       const hiderAction = hider.isCpu ? cpuDecision?.action : action;
-      if (hiderAction === 'use_item' && state.activeItem === null) {
-        const nearby = this.itemService.findNearbyItems(state, this.items());
-        const hiderItem = nearby.find(i =>
-          i.type === 'smoke_bomb' || i.type === 'decoy' || i.type === 'speed_burst'
-        );
-        if (hiderItem) {
+
+      // Pick up nearby hider item into inventory (F)
+      if (hiderAction === 'interact' && this.hiderService.hasInventorySpace(updated)) {
+        const nearby = this.itemService.findNearbyItems(updated, this.items());
+        const hiderItem = nearby.find(i => this.itemService.isHiderItem(i.type));
+        if (hiderItem && this.itemService.isHiderItem(hiderItem.type)) {
           this.items.update(items =>
             items.map(i => i.id === hiderItem.id ? this.itemService.pickUp(i, hider.uid) : i)
           );
-          return this.hiderService.useItem(state, hiderItem.type as any);
+          updated = this.hiderService.addToInventory(updated, hiderItem.type);
         }
+      }
+
+      // Use item from slot (1 or 2, E = alias for slot 1)
+      const prevActive = updated.activeItem;
+      if (hiderAction === 'use_slot_1' || hiderAction === 'use_item') {
+        updated = this.hiderService.useSlot(updated, 0);
+      } else if (hiderAction === 'use_slot_2') {
+        updated = this.hiderService.useSlot(updated, 1);
+      }
+
+      // Spawn decoy on activation
+      if (updated.activeItem === 'decoy' && prevActive !== 'decoy') {
+        this.spawnDecoy(updated);
       }
 
       // Enforce collisions and bounds
       if (this.collision) {
-        const resolved = this.collision.resolvePosition(hider.position, state.position);
-        return { ...state, position: resolved };
+        const resolved = this.collision.resolvePosition(hider.position, updated.position);
+        return { ...updated, position: resolved };
       }
 
-      return state;
+      return updated;
     }).filter((h): h is HiderState => h !== null);
 
     this.hiders.set(updatedHiders);
@@ -285,10 +335,8 @@ export class GameLoopService {
 
   // ── Hunter tick ────────────────────────────────────────────
 
-  private tickHunters(delta: number): void {
+  private tickHunters(delta: number, movement: Vec3, action: PlayerAction): void {
     const localUid = this.localPlayerUid();
-    const movement = this.inputService.getMovementVector();
-    const action = this.inputService.consumeAction();
 
     const updatedHunters = this.hunters().map(hunter => {
       const cpuDecision = hunter.isCpu
@@ -302,37 +350,58 @@ export class GameLoopService {
         return { ...state, isAlive: false };
       }
 
-      // Weapon throw for local + CPU players
+      let updated = state;
       const hunterAction = hunter.isCpu ? cpuDecision?.action : action;
+
+      // Pick up nearby weapon or edible (F)
+      if (hunterAction === 'interact') {
+        const nearby = this.itemService.findNearbyItems(updated, this.items());
+        const weaponItem = nearby.find(i => this.itemService.isWeapon(i.type));
+        if (weaponItem && this.itemService.isWeapon(weaponItem.type) && this.hunterService.hasInventorySpace(updated)) {
+          this.items.update(items =>
+            items.map(i => i.id === weaponItem.id ? this.itemService.pickUp(i, hunter.uid) : i)
+          );
+          updated = this.hunterService.addToInventory(updated, weaponItem.type);
+        } else {
+          const edible = nearby.find(i => this.itemService.isEdible(i.type));
+          if (edible) {
+            this.items.update(items =>
+              items.map(i => i.id === edible.id ? this.itemService.pickUp(i, hunter.uid) : i)
+            );
+            updated = this.hunterService.eatEdible(updated);
+          }
+        }
+      }
+
+      // Throw weapon from inventory slot (1, 2, or E = alias for slot 1)
+      if (hunterAction === 'use_slot_1' || hunterAction === 'use_slot_2' || hunterAction === 'use_item') {
+        const slotIdx = hunterAction === 'use_slot_2' ? 1 : 0;
+        const aimDir: Vec3 = input.x !== 0 || input.z !== 0
+          ? input
+          : { x: 0, y: 0, z: -1 };
+        const slotResult = this.hunterService.useSlot(updated, slotIdx, aimDir);
+        if (slotResult) {
+          this.projectiles.update(p => [...p, slotResult.proj]);
+          updated = slotResult.state;
+        }
+      }
+
+      // Legacy throw (Q) — throws equipped weapon directly
       if (hunterAction === 'throw_weapon') {
         const aimDir: Vec3 = input.x !== 0 || input.z !== 0
           ? input
           : { x: 0, y: 0, z: -1 };
-        const proj = this.hunterService.throwWeapon(state, aimDir);
+        const proj = this.hunterService.throwWeapon(updated, aimDir);
         this.projectiles.update(p => [...p, proj]);
-      }
-
-      // Feed on nearby edibles
-      if (hunterAction === 'interact') {
-        const nearby = this.itemService.findNearbyItems(state, this.items());
-        const edible = nearby.find(i =>
-          i.type === 'berry' || i.type === 'mushroom' || i.type === 'grub'
-        );
-        if (edible) {
-          this.items.update(items =>
-            items.map(i => i.id === edible.id ? this.itemService.pickUp(i, hunter.uid) : i)
-          );
-          return this.hunterService.eatEdible(state);
-        }
       }
 
       // Enforce collisions and bounds
       if (this.collision) {
-        const resolved = this.collision.resolvePosition(hunter.position, state.position);
-        return { ...state, position: resolved };
+        const resolved = this.collision.resolvePosition(hunter.position, updated.position);
+        return { ...updated, position: resolved };
       }
 
-      return state;
+      return updated;
     });
 
     this.hunters.set(updatedHunters);
@@ -345,8 +414,65 @@ export class GameLoopService {
       this.hunterService.tickProjectile(p, delta),
     );
     this.projectiles.set(updated);
+    this.checkProjectileHits();
+  }
 
-    // TODO: check projectile collisions with hiders (bolo = slow, spear = tag)
+  // ── Projectile-hider collision ─────────────────────────────
+
+  private readonly spearHitRadius = 1.5;
+  private readonly boloHitRadius = 3.0;
+
+  private checkProjectileHits(): void {
+    const projs = this.projectiles();
+    const currentHiders = this.hiders();
+
+    const hitProjIds = new Set<string>();
+    const convertUids = new Set<string>();
+    const slowUids = new Set<string>();
+
+    for (const proj of projs) {
+      if (proj.isLanded) continue;
+
+      for (const hider of currentHiders) {
+        if (!hider.isAlive || convertUids.has(hider.uid)) continue;
+
+        const dx = proj.position.x - hider.position.x;
+        const dz = proj.position.z - hider.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const hitRadius = proj.type === 'bolo' ? this.boloHitRadius : this.spearHitRadius;
+
+        if (dist <= hitRadius) {
+          hitProjIds.add(proj.id);
+          if (proj.type === 'spear') {
+            convertUids.add(hider.uid);
+          } else {
+            slowUids.add(hider.uid);
+          }
+          break;
+        }
+      }
+    }
+
+    if (hitProjIds.size === 0) return;
+
+    // Remove consumed projectiles
+    this.projectiles.update(p => p.filter(proj => !hitProjIds.has(proj.id)));
+
+    // Convert spear-hit hiders to hunters
+    for (const uid of convertUids) {
+      const hit = currentHiders.find(h => h.uid === uid);
+      if (hit) this.convertHiderToHunter(hit);
+    }
+
+    // Apply bolo slow and remove converted hiders
+    this.hiders.update(hiders =>
+      hiders
+        .filter(h => !convertUids.has(h.uid))
+        .map(h => slowUids.has(h.uid)
+          ? { ...h, slowRemainingMs: BOLO_SLOW_MS }
+          : h
+        )
+    );
   }
 
   // ── Catch detection ────────────────────────────────────────
@@ -361,6 +487,7 @@ export class GameLoopService {
 
       for (const hider of currentHiders) {
         if (caughtHiderUids.has(hider.uid)) continue;
+        if (hider.activeItem === 'smoke_bomb') continue; // smoke bomb grants catch immunity
         if (this.hunterService.canCatch(hunter, hider)) {
           caughtHiderUids.add(hider.uid);
           return this.hunterService.performCatch(hunter, hider);
@@ -380,6 +507,41 @@ export class GameLoopService {
     }
   }
 
+  // ── Decoy lifecycle ────────────────────────────────────────
+
+  private nextDecoyId = 0;
+
+  private spawnDecoy(hider: HiderState): void {
+    const angle = Math.random() * Math.PI * 2;
+    const decoy: DecoyState = {
+      id: `decoy_${this.nextDecoyId++}`,
+      position: { ...hider.position },
+      direction: { x: Math.cos(angle), y: 0, z: Math.sin(angle) },
+      remainingMs: ITEM_EFFECT_DURATION_MS,
+      animal: hider.animal,
+      displayName: hider.displayName,
+    };
+    this.decoys.update(d => [...d, decoy]);
+  }
+
+  private tickDecoys(delta: number): void {
+    const deltaMs = delta * 1000;
+    const speed = 10; // world-units per second (slightly slower than hiders)
+    this.decoys.update(decoys =>
+      decoys
+        .map(d => ({
+          ...d,
+          position: {
+            x: d.position.x + d.direction.x * speed * delta,
+            y: d.position.y,
+            z: d.position.z + d.direction.z * speed * delta,
+          },
+          remainingMs: d.remainingMs - deltaMs,
+        }))
+        .filter(d => d.remainingMs > 0)
+    );
+  }
+
   // ── Conversion ─────────────────────────────────────────────
 
   private convertHiderToHunter(hider: HiderState): void {
@@ -387,6 +549,7 @@ export class GameLoopService {
     hunter.uid = hider.uid;
     hunter.displayName = hider.displayName;
     hunter.isCpu = hider.isCpu;
+    hunter.inventory = ['spear', null];
     this.hunters.update(h => [...h, hunter]);
   }
 
