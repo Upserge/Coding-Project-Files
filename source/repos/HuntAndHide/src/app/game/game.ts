@@ -156,6 +156,14 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
     // Pass nearby hiding spot position for world-space prompt
     this.sceneRender.setHideSpot(this.gameLoop.nearHidingSpot());
+
+    // Spawn survival bonus floaters (signal is consumed once per award)
+    const bonusPositions = this.gameLoop.survivalBonusPositions();
+    if (bonusPositions.length > 0) {
+      this.sceneRender.showSurvivalBonus(bonusPositions);
+      this.gameLoop.survivalBonusPositions.set([]);
+    }
+
     this.sceneRender.tickParticles(delta);
 
     // Camera follows local player

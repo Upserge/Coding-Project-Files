@@ -17,6 +17,31 @@ function getBarkNormal(): THREE.CanvasTexture {
   return barkNormal;
 }
 
+/** Cached canopy materials keyed by colour. */
+const canopyMatCache = new Map<number, THREE.MeshStandardMaterial>();
+function getCanopyMat(color: number): THREE.MeshStandardMaterial {
+  let m = canopyMatCache.get(color);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: 0.85 }); canopyMatCache.set(color, m); }
+  return m;
+}
+
+let _knotGeo: THREE.SphereGeometry | null = null;
+let _knotMat: THREE.MeshStandardMaterial | null = null;
+function getKnotGeo(): THREE.SphereGeometry { return _knotGeo ??= new THREE.SphereGeometry(0.15, 5, 5); }
+function getKnotMat(): THREE.MeshStandardMaterial { return _knotMat ??= new THREE.MeshStandardMaterial({ color: TRUNK_DARK, roughness: 1 }); }
+
+let _rootGeo: THREE.ConeGeometry | null = null;
+let _rootMat: THREE.MeshStandardMaterial | null = null;
+function getRootGeo(): THREE.ConeGeometry { return _rootGeo ??= new THREE.ConeGeometry(0.12, 0.6, 4); }
+function getRootMat(): THREE.MeshStandardMaterial {
+  return _rootMat ??= new THREE.MeshStandardMaterial({
+    color: ROOT_COLOR, roughness: 0.95, normalMap: getBarkNormal(), normalScale: new THREE.Vector2(0.6, 0.6),
+  });
+}
+
+let _vineMat: THREE.MeshStandardMaterial | null = null;
+function getVineMat(): THREE.MeshStandardMaterial { return _vineMat ??= new THREE.MeshStandardMaterial({ color: VINE_COLOR, roughness: 0.85 }); }
+
 /** Build a multi-part jungle tree with randomized variation. */
 export function buildTreeMesh(): THREE.Group {
   const group = new THREE.Group();
@@ -66,8 +91,7 @@ function buildTrunk(height: number, lean: number): THREE.Mesh {
 
 function buildCanopyLayer(color: number, radius: number, y: number, height: number): THREE.Mesh {
   const geo = new THREE.ConeGeometry(radius, height, 7);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-  const mesh = new THREE.Mesh(geo, mat);
+  const mesh = new THREE.Mesh(geo, getCanopyMat(color));
   mesh.position.y = y;
   // Slight random rotation for asymmetry
   mesh.rotation.y = Math.random() * Math.PI * 2;
@@ -76,9 +100,7 @@ function buildCanopyLayer(color: number, radius: number, y: number, height: numb
 }
 
 function buildTrunkKnot(trunkH: number): THREE.Mesh {
-  const geo = new THREE.SphereGeometry(0.15, 5, 5);
-  const mat = new THREE.MeshStandardMaterial({ color: TRUNK_DARK, roughness: 1 });
-  const mesh = new THREE.Mesh(geo, mat);
+  const mesh = new THREE.Mesh(getKnotGeo(), getKnotMat());
   const knotY = 0.8 + Math.random() * (trunkH * 0.4);
   const angle = Math.random() * Math.PI * 2;
   mesh.position.set(Math.cos(angle) * 0.25, knotY, Math.sin(angle) * 0.25);
@@ -91,9 +113,7 @@ function addCanopyClusters(group: THREE.Group, scale: number, centerY: number): 
   const colors = [CANOPY_BASE, CANOPY_MID, CANOPY_TOP];
   const count = 3 + Math.floor(Math.random() * 3);
   for (let i = 0; i < count; i++) {
-    const color = colors[i % colors.length];
-    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-    const cluster = new THREE.Mesh(geo, mat);
+    const cluster = new THREE.Mesh(geo, getCanopyMat(colors[i % colors.length]));
     const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
     const radius = 0.6 + Math.random() * 0.5;
     cluster.position.set(
@@ -108,16 +128,9 @@ function addCanopyClusters(group: THREE.Group, scale: number, centerY: number): 
 
 /** Flared root buttresses at the trunk base. */
 function addRootButtresses(group: THREE.Group): void {
-  const geo = new THREE.ConeGeometry(0.12, 0.6, 4);
-  const mat = new THREE.MeshStandardMaterial({
-    color: ROOT_COLOR,
-    roughness: 0.95,
-    normalMap: getBarkNormal(),
-    normalScale: new THREE.Vector2(0.6, 0.6),
-  });
   const count = 3 + Math.floor(Math.random() * 2);
   for (let i = 0; i < count; i++) {
-    const root = new THREE.Mesh(geo, mat);
+    const root = new THREE.Mesh(getRootGeo(), getRootMat());
     const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
     root.position.set(Math.cos(angle) * 0.35, 0.15, Math.sin(angle) * 0.35);
     root.rotation.z = Math.cos(angle) * 0.6;
@@ -128,12 +141,11 @@ function addRootButtresses(group: THREE.Group): void {
 
 /** Thin cylinder vines dangling from canopy. */
 function addHangingVines(group: THREE.Group, canopyY: number): void {
-  const mat = new THREE.MeshStandardMaterial({ color: VINE_COLOR, roughness: 0.85 });
   const vineCount = 2 + Math.floor(Math.random() * 3);
   for (let i = 0; i < vineCount; i++) {
     const length = 0.8 + Math.random() * 1.5;
     const geo = new THREE.CylinderGeometry(0.015, 0.02, length, 4);
-    const vine = new THREE.Mesh(geo, mat);
+    const vine = new THREE.Mesh(geo, getVineMat());
     const angle = Math.random() * Math.PI * 2;
     const radius = 0.6 + Math.random() * 0.8;
     vine.position.set(

@@ -72,51 +72,63 @@ export function createTailPivot(
 
 // Cosmetic helpers
 
+// Shared eye materials (identical across all characters)
+let _whiteMat: THREE.MeshStandardMaterial | null = null;
+let _pupilMat: THREE.MeshStandardMaterial | null = null;
+let _shineMat: THREE.MeshStandardMaterial | null = null;
+function getEyeWhiteMat(): THREE.MeshStandardMaterial { return _whiteMat ??= createStandardPart(0xffffff, 'glossy'); }
+function getEyePupilMat(): THREE.MeshStandardMaterial { return _pupilMat ??= createStandardPart(0x222222, 'glossy'); }
+function getEyeShineMat(): THREE.MeshStandardMaterial {
+  return _shineMat ??= new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6 });
+}
+
 export function attachCozyEyes(
   group: THREE.Group, y: number, z: number, spacing = 0.16, size = 0.09,
 ): void {
   const whiteGeo = new THREE.SphereGeometry(size, 16, 16);
-  const whiteMat = createStandardPart(0xffffff, 'glossy');
   const pupilGeo = new THREE.SphereGeometry(size * 0.55, 12, 12);
-  const pupilMat = createStandardPart(0x222222, 'glossy');
   const shineGeo = new THREE.SphereGeometry(size * 0.2, 8, 8);
-  const shineMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.6,
-  });
 
   const pupilNames = ['pupil_L', 'pupil_R'];
   let idx = 0;
   for (const side of [-1, 1]) {
-    const eye = new THREE.Mesh(whiteGeo, whiteMat);
+    const eye = new THREE.Mesh(whiteGeo, getEyeWhiteMat());
     eye.position.set(side * spacing, y, z);
     group.add(eye);
-    const pupil = new THREE.Mesh(pupilGeo, pupilMat);
+    const pupil = new THREE.Mesh(pupilGeo, getEyePupilMat());
     pupil.name = pupilNames[idx++];
     pupil.position.set(side * spacing, y, z + size * 0.7);
     group.add(pupil);
-    const shine = new THREE.Mesh(shineGeo, shineMat);
+    const shine = new THREE.Mesh(shineGeo, getEyeShineMat());
     shine.position.set(side * spacing + 0.03, y + 0.03, z + size * 0.95);
     group.add(shine);
   }
 }
 
+let _noseGeo: THREE.SphereGeometry | null = null;
+function getNoseGeo(): THREE.SphereGeometry { return _noseGeo ??= new THREE.SphereGeometry(0.05, 12, 12); }
+
 export function attachNose(
   group: THREE.Group, y: number, z: number, color: number,
 ): void {
-  const geo = new THREE.SphereGeometry(0.05, 12, 12);
   const mat = createStandardPart(color, 'glossy');
-  const nose = new THREE.Mesh(geo, mat);
+  const nose = new THREE.Mesh(getNoseGeo(), mat);
   nose.position.set(0, y, z);
   group.add(nose);
 }
 
+let _blushGeo: THREE.CircleGeometry | null = null;
+let _blushMat: THREE.MeshBasicMaterial | null = null;
+function getBlushGeo(): THREE.CircleGeometry { return _blushGeo ??= new THREE.CircleGeometry(0.06, 8); }
+function getBlushMat(): THREE.MeshBasicMaterial {
+  return _blushMat ??= new THREE.MeshBasicMaterial({ color: 0xf5a0a0, side: THREE.DoubleSide });
+}
+
 export function attachBlush(
-  group: THREE.Group, y: number, z: number, spacing = 0.28, //0.28 OG
+  group: THREE.Group, y: number, z: number, spacing = 0.28,
 ): void {
-  const geo = new THREE.CircleGeometry(0.06, 8);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xf5a0a0, side: THREE.DoubleSide });
   for (const side of [-1, 1]) {
-    const blush = new THREE.Mesh(geo, mat);
+    const blush = new THREE.Mesh(getBlushGeo(), getBlushMat());
     blush.position.set(side * spacing, y, z);
     blush.lookAt(blush.position.x, blush.position.y, z + 1);
     group.add(blush);

@@ -9,6 +9,41 @@ const TWIG_COLOR = 0x5d4037;
 
 const LEAF_COLORS = [LEAF_BROWN, LEAF_ORANGE, LEAF_GREEN, LEAF_RED];
 
+/** Cached leaf materials keyed by colour. */
+const leafMatCache = new Map<number, THREE.MeshStandardMaterial>();
+function getLeafMat(color: number): THREE.MeshStandardMaterial {
+  let m = leafMatCache.get(color);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide, roughness: 0.9 }); leafMatCache.set(color, m); }
+  return m;
+}
+
+const layerMatCache = new Map<number, THREE.MeshStandardMaterial>();
+function getLayerMat(color: number): THREE.MeshStandardMaterial {
+  let m = layerMatCache.get(color);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: 0.95 }); layerMatCache.set(color, m); }
+  return m;
+}
+
+let _scatterGeo: THREE.PlaneGeometry | null = null;
+function getScatterGeo(): THREE.PlaneGeometry { return _scatterGeo ??= new THREE.PlaneGeometry(0.2, 0.12); }
+
+let _curledGeo: THREE.ShapeGeometry | null = null;
+function getCurledGeo(): THREE.ShapeGeometry {
+  if (!_curledGeo) {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 0);
+    shape.quadraticCurveTo(0.08, 0.06, 0.03, 0.15);
+    shape.lineTo(0, 0.17);
+    shape.lineTo(-0.03, 0.15);
+    shape.quadraticCurveTo(-0.08, 0.06, 0, 0);
+    _curledGeo = new THREE.ShapeGeometry(shape);
+  }
+  return _curledGeo;
+}
+
+let _twigMat: THREE.MeshStandardMaterial | null = null;
+function getTwigMat(): THREE.MeshStandardMaterial { return _twigMat ??= new THREE.MeshStandardMaterial({ color: TWIG_COLOR, roughness: 1 }); }
+
 /** Build a leafy pile from stacked discs with scattered individual leaves. */
 export function buildLeafPileMesh(): THREE.Group {
   const group = new THREE.Group();
@@ -29,8 +64,7 @@ export function buildLeafPileMesh(): THREE.Group {
 
 function buildLayer(color: number, radius: number, height: number, y: number, offsetX: number): THREE.Mesh {
   const geo = new THREE.CylinderGeometry(radius * 0.85, radius, height, 8);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.95 });
-  const mesh = new THREE.Mesh(geo, mat);
+  const mesh = new THREE.Mesh(geo, getLayerMat(color));
   mesh.position.set(offsetX, y, 0);
   mesh.rotation.y = Math.random() * Math.PI;
   mesh.receiveShadow = true;
@@ -39,12 +73,9 @@ function buildLayer(color: number, radius: number, height: number, y: number, of
 
 /** Flat plane leaves scattered around the edges. */
 function addScatteredLeaves(group: THREE.Group, sizeMul: number): void {
-  const geo = new THREE.PlaneGeometry(0.2, 0.12);
   const count = 5 + Math.floor(Math.random() * 4);
   for (let i = 0; i < count; i++) {
-    const color = LEAF_COLORS[i % LEAF_COLORS.length];
-    const mat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide, roughness: 0.9 });
-    const leaf = new THREE.Mesh(geo, mat);
+    const leaf = new THREE.Mesh(getScatterGeo(), getLeafMat(LEAF_COLORS[i % LEAF_COLORS.length]));
     const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
     const dist = 0.7 + Math.random() * 0.5;
     leaf.position.set(
@@ -63,17 +94,7 @@ function addCurledLeaves(group: THREE.Group, sizeMul: number): void {
   const count = 3 + Math.floor(Math.random() * 3);
   for (let i = 0; i < count; i++) {
     const color = LEAF_COLORS[Math.floor(Math.random() * LEAF_COLORS.length)];
-    const mat = new THREE.MeshStandardMaterial({ color, side: THREE.DoubleSide, roughness: 0.9 });
-
-    // Curved leaf via a bent plane
-    const shape = new THREE.Shape();
-    shape.moveTo(0, 0);
-    shape.quadraticCurveTo(0.08, 0.06, 0.03, 0.15);
-    shape.lineTo(0, 0.17);
-    shape.lineTo(-0.03, 0.15);
-    shape.quadraticCurveTo(-0.08, 0.06, 0, 0);
-    const geo = new THREE.ShapeGeometry(shape);
-    const leaf = new THREE.Mesh(geo, mat);
+    const leaf = new THREE.Mesh(getCurledGeo(), getLeafMat(color));
 
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * 0.6 * sizeMul;
@@ -90,11 +111,10 @@ function addCurledLeaves(group: THREE.Group, sizeMul: number): void {
 
 /** Small twigs poking out of the pile. */
 function addTwigs(group: THREE.Group, sizeMul: number): void {
-  const mat = new THREE.MeshStandardMaterial({ color: TWIG_COLOR, roughness: 1 });
   const count = 1 + Math.floor(Math.random() * 2);
   for (let i = 0; i < count; i++) {
     const geo = new THREE.CylinderGeometry(0.01, 0.015, 0.25 + Math.random() * 0.15, 4);
-    const twig = new THREE.Mesh(geo, mat);
+    const twig = new THREE.Mesh(geo, getTwigMat());
     const angle = Math.random() * Math.PI * 2;
     twig.position.set(
       Math.cos(angle) * 0.4 * sizeMul,

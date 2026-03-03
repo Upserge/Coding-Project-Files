@@ -156,6 +156,13 @@ export class SceneRenderService {
     this.pendingHideSpot = position;
   }
 
+  /** Spawn score floaters for hider survival bonus awards. */
+  showSurvivalBonus(positions: Vec3[]): void {
+    for (const pos of positions) {
+      this.scoreFloater.spawn(pos, '+50', '#81c784');
+    }
+  }
+
   // ── Per-frame sync ─────────────────────────────────────────
 
   syncPlayers(players: PlayerState[], localUid: string, delta: number, localRole: PlayerRole): void {

@@ -49,6 +49,8 @@ export class GameLoopService {
   readonly roundMvp = signal<RoundMvp | null>(null);
   /** Which team won the round (null before results). */
   readonly roundWinner = signal<RoundWinner>(null);
+  /** Positions where survival bonus was just awarded (consumed by scene-render for floaters). */
+  readonly survivalBonusPositions = signal<Vec3[]>([]);
 
   private roundDurationMs = 300_000; // Change how long each round lasts here
   private running = false;
@@ -59,6 +61,16 @@ export class GameLoopService {
   private readonly catchAnimDuration = 0.6;
   /** Pending caught hiders awaiting conversion (uid → remaining seconds). */
   private pendingCatches = new Map<string, number>();
+
+  // ── Hider survival scoring ─────────────────────────────────
+  /** Seconds between each survival score award. */
+  private readonly survivalIntervalS = 30;
+  /** Points awarded to each alive hider per interval. */
+  private readonly survivalBonusPoints = 50;
+  /** Accumulator tracking elapsed seconds since last survival award. */
+  private survivalAccumulatorS = 0;
+  /** Per-hider survival time in seconds (uid → seconds alive during hunting). */
+  private survivalTimes = new Map<string, number>();
 
   // ── Hit-stop (brief slow-motion on catch) ──────────────────
   private timeScale = 1;
@@ -82,6 +94,8 @@ export class GameLoopService {
     this.roundWinner.set(null);
     this.timeScale = 1;
     this.hitStopRemaining = 0;
+    this.survivalAccumulatorS = 0;
+    this.survivalTimes.clear();
 
     const map = this.mapService.generateJungleMap();
     const hiderSpawns = map.spawnPoints.filter(s => s.forRole === 'hider');
@@ -137,6 +151,7 @@ export class GameLoopService {
     this.hidingService.clear();
     this.pendingCatches.clear();
     this.catchCounts.clear();
+    this.survivalAccumulatorS = 0;
   }
 
   // ── Tick (called every frame by EngineService) ─────────────
@@ -262,10 +277,42 @@ export class GameLoopService {
     const remaining = this.roundTimeRemainingMs() - delta * 1000;
     this.roundTimeRemainingMs.set(Math.max(0, remaining));
 
+    // Track per-hider survival time
+    const aliveHiders = this.hiders().filter(h => h.isAlive && !h.isCaught);
+    for (const hider of aliveHiders) {
+      this.survivalTimes.set(
+        hider.uid,
+        (this.survivalTimes.get(hider.uid) ?? 0) + delta,
+      );
+    }
+
+    // Award survival bonus every interval
+    this.survivalAccumulatorS += delta;
+    if (this.survivalAccumulatorS >= this.survivalIntervalS) {
+      this.survivalAccumulatorS -= this.survivalIntervalS;
+      this.awardSurvivalBonus(aliveHiders);
+    }
+
     if (remaining <= 0) {
       // Time's up — hiders win this round
       this.stopGame('hiders');
     }
+  }
+
+  /** Award survival score to all alive hiders and emit positions for floaters. */
+  private awardSurvivalBonus(aliveHiders: HiderState[]): void {
+    const positions: Vec3[] = [];
+    this.hiders.update(hiders =>
+      hiders.map(h => {
+        const alive = aliveHiders.some(a => a.uid === h.uid);
+        if (alive) {
+          positions.push({ ...h.position });
+          return { ...h, score: h.score + this.survivalBonusPoints };
+        }
+        return h;
+      }),
+    );
+    this.survivalBonusPositions.set(positions);
   }
 
   // ── Hider tick ─────────────────────────────────────────────
@@ -518,9 +565,13 @@ export class GameLoopService {
       return;
     }
 
-    // Find top scorer
-    const sorted = [...allPlayers].sort((a, b) => b.score - a.score);
-    const top = sorted[0];
+    const winner = this.roundWinner();
+
+    // Hiders win → MVP is the hider who survived the longest
+    const top = winner === 'hiders'
+      ? this.pickLongestSurvivor(allPlayers)
+      : this.pickTopScorer(allPlayers);
+
     const catches = this.catchCounts.get(top.uid) ?? 0;
     const survived = top.role === 'hider' ? top.isAlive : true;
 
@@ -531,5 +582,20 @@ export class GameLoopService {
       catches,
       survived,
     });
+  }
+
+  /** Select the hider with the longest survival time; falls back to top scorer. */
+  private pickLongestSurvivor(players: PlayerState[]): PlayerState {
+    const hiders = players.filter(p => p.role === 'hider');
+    if (hiders.length === 0) return this.pickTopScorer(players);
+
+    return [...hiders].sort((a, b) =>
+      (this.survivalTimes.get(b.uid) ?? 0) - (this.survivalTimes.get(a.uid) ?? 0),
+    )[0];
+  }
+
+  /** Select the player with the highest score. */
+  private pickTopScorer(players: PlayerState[]): PlayerState {
+    return [...players].sort((a, b) => b.score - a.score)[0];
   }
 }

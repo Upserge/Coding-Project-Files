@@ -8,6 +8,27 @@ const BERRY_COLOR = 0xe53935;
 const BERRY_ALT = 0xffa726;
 const TWIG_COLOR = 0x5d4037;
 
+/** Cached lobe materials keyed by colour. */
+const lobeMatCache = new Map<number, THREE.MeshStandardMaterial>();
+function getLobeMat(color: number): THREE.MeshStandardMaterial {
+  let m = lobeMatCache.get(color);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: 0.85 }); lobeMatCache.set(color, m); }
+  return m;
+}
+
+const berryMatCache = new Map<number, THREE.MeshStandardMaterial>();
+function getBerryMat(color: number): THREE.MeshStandardMaterial {
+  let m = berryMatCache.get(color);
+  if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.05 }); berryMatCache.set(color, m); }
+  return m;
+}
+
+let _berryGeo: THREE.SphereGeometry | null = null;
+function getBerryGeo(): THREE.SphereGeometry { return _berryGeo ??= new THREE.SphereGeometry(0.06, 6, 6); }
+
+let _twigMat: THREE.MeshStandardMaterial | null = null;
+function getTwigMat(): THREE.MeshStandardMaterial { return _twigMat ??= new THREE.MeshStandardMaterial({ color: TWIG_COLOR, roughness: 1 }); }
+
 /** Lobe config: [color, radius, x, y, z]. */
 const BASE_LOBES: [number, number, number, number, number][] = [
   [BUSH_MID,   1.0,   0,    0.7,  0],
@@ -46,8 +67,7 @@ export function buildBushMesh(): THREE.Group {
 
 function buildLobe(color: number, radius: number, x: number, y: number, z: number): THREE.Mesh {
   const geo = new THREE.SphereGeometry(radius, 7, 6);
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.85 });
-  const mesh = new THREE.Mesh(geo, mat);
+  const mesh = new THREE.Mesh(geo, getLobeMat(color));
   mesh.position.set(x, y, z);
   // Slight random squash for organic look
   const squash = 0.9 + Math.random() * 0.2;
@@ -57,16 +77,10 @@ function buildLobe(color: number, radius: number, x: number, y: number, z: numbe
 }
 
 function addBerries(group: THREE.Group, sizeMul: number): void {
-  const geo = new THREE.SphereGeometry(0.06, 6, 6);
   const colors = [BERRY_COLOR, BERRY_ALT, BERRY_COLOR];
   const count = 3 + Math.floor(Math.random() * 3);
   for (let i = 0; i < count; i++) {
-    const mat = new THREE.MeshStandardMaterial({
-      color: colors[i % colors.length],
-      roughness: 0.4,
-      metalness: 0.05,
-    });
-    const berry = new THREE.Mesh(geo, mat);
+    const berry = new THREE.Mesh(getBerryGeo(), getBerryMat(colors[i % colors.length]));
     const angle = (i / count) * Math.PI * 2 + Math.random();
     berry.position.set(
       Math.cos(angle) * 0.55 * sizeMul,
@@ -79,11 +93,10 @@ function addBerries(group: THREE.Group, sizeMul: number): void {
 
 /** Small protruding twig sticks for natural detail. */
 function addTwigs(group: THREE.Group, sizeMul: number): void {
-  const mat = new THREE.MeshStandardMaterial({ color: TWIG_COLOR, roughness: 1 });
   const count = 2 + Math.floor(Math.random() * 2);
   for (let i = 0; i < count; i++) {
     const geo = new THREE.CylinderGeometry(0.012, 0.018, 0.3 + Math.random() * 0.2, 4);
-    const twig = new THREE.Mesh(geo, mat);
+    const twig = new THREE.Mesh(geo, getTwigMat());
     const angle = Math.random() * Math.PI * 2;
     twig.position.set(
       Math.cos(angle) * 0.5 * sizeMul,
