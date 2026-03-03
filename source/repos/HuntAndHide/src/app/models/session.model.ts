@@ -37,7 +37,7 @@ export const DEFAULT_SESSION_CONFIG: SessionConfig = {
   maxPlayers: 10,
   hiderSlots: 7,
   hunterSlots: 3,
-  roundTimeSeconds: 120,
+  roundTimeSeconds: 120, // this get's overwritten in game-loop.service by roundDurationMs, but serves as a default. Do not alter time here.
   maxRounds: 3,
   mapId: 'jungle',
 };

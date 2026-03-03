@@ -191,7 +191,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       const role = this.playerService.assignRole(hiderCount, hunterCount);
       const animal = this.playerService.assignAnimal(role, takenAnimals);
       const player = this.playerService.createPlayerState(role, animal, { x: 0, y: 0, z: 0 });
-      await this.sessionService.joinSession(sessionId, player);
+      await this.sessionService.joinSession(sessionId, player); 
 
       // Navigation triggers ngOnDestroy which handles cleanup
       await this.router.navigate(['/game', sessionId]);

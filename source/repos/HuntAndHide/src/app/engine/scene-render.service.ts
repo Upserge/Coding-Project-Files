@@ -250,15 +250,15 @@ export class SceneRenderService {
       }
 
       // Spawn dust puffs when moving
-      this.dustFrameCounter++;
-      if (this.dustFrameCounter >= DUST_FRAME_INTERVAL) {
-        const dx = player.position.x - prevPos.x;
-        const dz = player.position.z - prevPos.z;
-        if (dx * dx + dz * dz > 0.001) {
-          this.particles.spawnDustPuff(player.position);
-          this.dustFrameCounter = 0;
-        }
-      }
+      //this.dustFrameCounter++;
+      //if (this.dustFrameCounter >= DUST_FRAME_INTERVAL) {
+      //  const dx = player.position.x - prevPos.x;
+      //  const dz = player.position.z - prevPos.z;
+      //  if (dx * dx + dz * dz > 0.001) {
+      //    this.particles.spawnDustPuff(player.position);
+      //    this.dustFrameCounter = 0;
+      //  }
+      //}
 
       // Hiding visual — hidden hiders are invisible to hunters, ghostly to fellow hiders
       if (player.role === 'hider') {

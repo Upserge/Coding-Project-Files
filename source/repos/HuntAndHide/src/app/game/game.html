@@ -18,59 +18,60 @@
 
         <!-- Winner banner -->
         @if (roundWinner(); as winner) {
-          <div class="winner-banner" [class.hunters-win]="winner === 'hunters'" [class.hiders-win]="winner === 'hiders'">
-            <span class="winner-icon">{{ winner === 'hunters' ? '🐺' : '🌿' }}</span>
-            <h1 class="winner-title">{{ winner === 'hunters' ? 'Hunters Win!' : 'Hiders Win!' }}</h1>
-            <p class="winner-flavor">
-              {{ winner === 'hunters' ? 'Every last hider was caught!' : 'Time ran out — the hiders survived!' }}
-            </p>
-          </div>
+        <div class="winner-banner" [class.hunters-win]="winner === 'hunters'" [class.hiders-win]="winner === 'hiders'">
+          <span class="winner-icon">{{ winner === 'hunters' ? '🐺' : '🌿' }}</span>
+          <h1 class="winner-title">{{ winner === 'hunters' ? 'Hunters Win!' : 'Hiders Win!' }}</h1>
+          <p class="winner-flavor">
+            {{ winner === 'hunters' ? 'Every last hider was caught!' : 'Time ran out — the hiders survived!' }}
+          </p>
+        </div>
         }
 
         <!-- MVP ceremony card -->
         @if (roundMvp(); as mvp) {
-          <div class="mvp-section">
-            <div class="mvp-card">
-              <span class="mvp-crown">👑</span>
-              <h2 class="mvp-title">ROUND MVP</h2>
-              <span class="mvp-name">{{ mvp.displayName }}</span>
-              <span class="mvp-role" [class.hunter]="mvp.role === 'hunter'" [class.hider]="mvp.role === 'hider'">
-                {{ mvp.role | uppercase }}
-              </span>
-              <div class="mvp-stats">
-                <div class="mvp-stat">
-                  <span class="mvp-stat-value">{{ mvp.score }}</span>
-                  <span class="mvp-stat-label">Score</span>
-                </div>
-                @if (mvp.role === 'hunter') {
-                  <div class="mvp-stat">
-                    <span class="mvp-stat-value">{{ mvp.catches }}</span>
-                    <span class="mvp-stat-label">Catches</span>
-                  </div>
-                }
-                @if (mvp.role === 'hider') {
-                  <div class="mvp-stat">
-                    <span class="mvp-stat-value">{{ mvp.survived ? 'Yes' : 'No' }}</span>
-                    <span class="mvp-stat-label">Survived</span>
-                  </div>
-                }
+        <div class="mvp-section">
+          <div class="mvp-card">
+            <span class="mvp-crown">👑</span>
+            <h2 class="mvp-title">ROUND MVP</h2>
+            <span class="mvp-name">{{ mvp.displayName }}</span>
+            <span class="mvp-role" [class.hunter]="mvp.role === 'hunter'" [class.hider]="mvp.role === 'hider'">
+              {{ mvp.role | uppercase }}
+            </span>
+            <div class="mvp-stats">
+              <div class="mvp-stat">
+                <span class="mvp-stat-value">{{ mvp.score }}</span>
+                <span class="mvp-stat-label">Score</span>
               </div>
+              @if (mvp.role === 'hunter') {
+              <div class="mvp-stat">
+                <span class="mvp-stat-value">{{ mvp.catches }}</span>
+                <span class="mvp-stat-label">Catches</span>
+              </div>
+              }
+              @if (mvp.role === 'hider') {
+              <div class="mvp-stat">
+                <span class="mvp-stat-value">{{ mvp.survived ? 'Yes' : 'No' }}</span>
+                <span class="mvp-stat-label">Survived</span>
+              </div>
+              }
             </div>
           </div>
+        </div>
         }
 
         <!-- Round scoreboard -->
         <div class="round-scores">
           <h2 class="scores-heading">Round Results</h2>
           @for (player of roundPlayers(); track player.uid) {
-            <div class="score-row">
-              <span class="rank">{{ $index + 1 }}</span>
-              <span class="name">{{ player.displayName }}</span>
-              <span class="role">{{ player.role }}</span>
-              <span class="pts">{{ player.score }}</span>
-            </div>
+          <div class="score-row">
+            <span class="rank">{{ $index + 1 }}</span>
+            <span class="name">{{ player.displayName }}</span>
+            <span class="role">{{ player.role }}</span>
+            <span class="pts">{{ player.score }}</span>
+          </div>
           }
         </div>
+       
 
         <!-- Action buttons -->
         <div class="results-actions">

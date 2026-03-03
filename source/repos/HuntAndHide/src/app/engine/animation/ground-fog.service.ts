@@ -11,8 +11,8 @@ import * as THREE from 'three';
  * Call `init(scene)` once, then `tick(delta)` every frame.
  */
 
-const FOG_SIZE = 200;
-const FOG_Y = 0.08;
+const FOG_SIZE = 500;
+const FOG_Y = 0.06;
 
 @Injectable({ providedIn: 'root' })
 export class GroundFogService {

@@ -24,8 +24,8 @@ export interface HunterTickResult {
 @Injectable({ providedIn: 'root' })
 export class HunterService {
 
-  private readonly baseSpeed = 10;
-  private readonly catchRadius = 1.5;
+  private readonly baseSpeed = 11;
+  private readonly catchRadius = 1.0;
 
   // ── Per-frame update ───────────────────────────────────────
 

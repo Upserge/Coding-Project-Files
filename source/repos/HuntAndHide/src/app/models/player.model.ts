@@ -68,7 +68,7 @@ export interface HunterState extends PlayerState {
 export const HIDER_IDLE_LIMIT_MS = 7_000;
 
 /** Hunter hunger gauge — dies when it reaches 0. */
-export const HUNTER_HUNGER_MS = 300_000; // 5 minutes
+export const HUNTER_HUNGER_MS = 120_000; // 2 minutes
 
 /** Speed multiplier relative to base movement speed. */
 export const HIDER_SPEED_MULTIPLIER = 1.5;

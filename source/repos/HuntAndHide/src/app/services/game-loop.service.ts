@@ -50,7 +50,7 @@ export class GameLoopService {
   /** Which team won the round (null before results). */
   readonly roundWinner = signal<RoundWinner>(null);
 
-  private roundDurationMs = 100_000; // 10 minutes per round -- longer than normal for testing purposes
+  private roundDurationMs = 30_000; // 10 minutes per round -- longer than normal for testing purposes
   private running = false;
   /** Per-hunter catch counter (uid → count) built up during the round. */
   private catchCounts = new Map<string, number>();
