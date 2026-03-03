@@ -48,7 +48,7 @@ export class AmbientVfxService {
   // ── Fireflies ─────────────────────────────────────────────
 
   private spawnFireflies(): void {
-    const count = 80;
+    const count = 500;
     const spread = 160;
 
     const positions = new Float32Array(count * 3);
@@ -161,7 +161,7 @@ export class AmbientVfxService {
   // ── Glow texture ──────────────────────────────────────────
 
   private createGlowTexture(): THREE.CanvasTexture {
-    const size = 64;
+    const size = 128; //64
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;

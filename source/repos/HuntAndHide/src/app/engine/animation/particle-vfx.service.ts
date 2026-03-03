@@ -121,7 +121,7 @@ export class ParticleVfxService {
     for (const color of confettiColors) {
       this.spawnBurst({
         position,
-        count: 6,
+        count: 12,
         color,
         size: 7,
         speed: 3.5,

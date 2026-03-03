@@ -181,7 +181,7 @@ const COLOR_GRADING_SHADER = {
 const TILT_SHIFT_SHADER = {
   uniforms: {
     tDiffuse: { value: null as THREE.Texture | null },
-    blurAmount: { value: 1.2 },
+    blurAmount: { value: 1.2 }, // 1.2
     focalCenter: { value: 0.5 },
     focalRange: { value: 0.25 },
   },

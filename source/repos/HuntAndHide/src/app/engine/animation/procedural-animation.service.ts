@@ -16,7 +16,7 @@ import { Vec3 } from '../../models/player.model';
  *
  * Architecture note: this service owns *only* the maths of procedural motion.
  * It reads/writes AnimationContext but never touches the scene graph registry.
- * Designed for a drop-in replacement with AnimationMixer (Option B) later —
+ * Designed for a drop-in replacement with AnimationMixer later —
  * the public API (`tick`) stays the same; internals swap to clip playback.
  */
 @Injectable({ providedIn: 'root' })
@@ -240,7 +240,7 @@ export class ProceduralAnimationService {
 
   private applyCaught(group: THREE.Group, ctx: AnimationContext, _delta: number): void {
     const totalDuration = 0.6;
-    const bounceDuration = 0.15; // initial pop-up phase
+    const bounceDuration = 0.40; // initial pop-up phase
     const t = ctx.elapsed / totalDuration; // normalised 0..1 over 0.6s
 
     if (ctx.elapsed < bounceDuration) {
