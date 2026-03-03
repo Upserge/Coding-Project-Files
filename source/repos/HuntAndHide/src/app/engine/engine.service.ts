@@ -16,6 +16,7 @@ import { buildPondCaustics, buildStreamCaustics, tickCaustics } from './mesh/wat
 import { buildContactShadows } from './mesh/contact-shadow.builder';
 import { GroundFogService } from './animation/ground-fog.service';
 import { TimeOfDayService } from './animation/time-of-day.service';
+import { ScreenShakeService } from './animation/screen-shake.service';
 
 /**
  * EngineService owns the Three.js render loop and scene graph.
@@ -29,6 +30,7 @@ export class EngineService implements OnDestroy {
   private readonly postProcessing = inject(PostProcessingService);
   private readonly groundFog = inject(GroundFogService);
   private readonly timeOfDay = inject(TimeOfDayService);
+  private readonly screenShake = inject(ScreenShakeService);
 
   // ── Core Three.js objects ──────────────────────────────────
   private renderer!: THREE.WebGLRenderer;
@@ -79,15 +81,24 @@ export class EngineService implements OnDestroy {
     }
   }
 
+  /** Trigger a camera shake effect (called externally on catch events). */
+  triggerShake(intensity = 0.35, duration = 0.3): void {
+    this.screenShake.trigger(intensity, duration);
+  }
+
   /** Move camera to follow a target position while keeping isometric angle. */
-  followTarget(target: { x: number; y: number; z: number }): void {
+  followTarget(target: { x: number; y: number; z: number }, delta: number): void {
+    // Advance screen shake before applying offset
+    this.screenShake.tick(delta);
+    const shake = this.screenShake.getOffset();
+
     const isoDistance = 30;
     const angle = Math.PI / 6;  // 30°
     const yaw = Math.PI / 4;    // 45°
     this.camera.position.set(
-      target.x + isoDistance * Math.cos(angle) * Math.sin(yaw),
-      target.y + isoDistance * Math.sin(angle),
-      target.z + isoDistance * Math.cos(angle) * Math.cos(yaw),
+      target.x + isoDistance * Math.cos(angle) * Math.sin(yaw) + shake.x,
+      target.y + isoDistance * Math.sin(angle) + shake.y,
+      target.z + isoDistance * Math.cos(angle) * Math.cos(yaw) + shake.z,
     );
     this.camera.lookAt(target.x, target.y, target.z);
 

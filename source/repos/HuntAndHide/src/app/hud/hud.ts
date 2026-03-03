@@ -1,4 +1,4 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal, effect } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
 import { GameLoopService } from '../services/game-loop.service';
 import { HiderService } from '../services/hider.service';
@@ -55,4 +55,28 @@ export class HudComponent {
 
   // Kill-feed
   protected readonly catchFeed = this.gameLoop.catchFeed;
+
+  // Last hider standing
+  protected readonly lastHider = this.gameLoop.lastHiderStanding;
+
+  // Catch flash overlay — brief red vignette pulse on each catch event
+  protected readonly catchFlashActive = signal(false);
+  private lastCatchCount = 0;
+  private catchFlashTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const feed = this.catchFeed();
+      if (feed.length > this.lastCatchCount && this.lastCatchCount > 0) {
+        this.triggerCatchFlash();
+      }
+      this.lastCatchCount = feed.length;
+    });
+  }
+
+  private triggerCatchFlash(): void {
+    this.catchFlashActive.set(true);
+    if (this.catchFlashTimer) clearTimeout(this.catchFlashTimer);
+    this.catchFlashTimer = setTimeout(() => this.catchFlashActive.set(false), 400);
+  }
 }

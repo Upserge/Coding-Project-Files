@@ -1,6 +1,38 @@
 <div class="scoreboard-container">
   <h1 class="title">Round Over</h1>
 
+  <!-- MVP ceremony card -->
+  @if (mvp(); as mvp) {
+    <section class="mvp-section">
+      <div class="mvp-card">
+        <span class="mvp-crown">👑</span>
+        <h2 class="mvp-title">MVP</h2>
+        <span class="mvp-name">{{ mvp.displayName }}</span>
+        <span class="mvp-role" [class.hunter]="mvp.role === 'hunter'" [class.hider]="mvp.role === 'hider'">
+          {{ mvp.role | uppercase }}
+        </span>
+        <div class="mvp-stats">
+          <div class="mvp-stat">
+            <span class="mvp-stat-value">{{ mvp.score }}</span>
+            <span class="mvp-stat-label">Score</span>
+          </div>
+          @if (mvp.role === 'hunter') {
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ mvp.catches }}</span>
+              <span class="mvp-stat-label">Catches</span>
+            </div>
+          }
+          @if (mvp.role === 'hider') {
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ mvp.survived ? 'Yes' : 'No' }}</span>
+              <span class="mvp-stat-label">Survived</span>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
   <!-- Round results -->
   <section class="round-results">
     <h2>This Round</h2>

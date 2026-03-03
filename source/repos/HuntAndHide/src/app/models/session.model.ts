@@ -46,3 +46,15 @@ export const DEFAULT_SESSION_CONFIG: SessionConfig = {
 
 /** Maximum players per session before overflow to a new one. */
 export const MAX_PLAYERS_PER_SESSION = 10;
+
+// ── Round-end MVP ───────────────────────────────────────
+
+export type RoundWinner = 'hunters' | 'hiders' | null;
+
+export interface RoundMvp {
+  displayName: string;
+  role: 'hunter' | 'hider';
+  score: number;
+  catches: number;
+  survived: boolean;
+}

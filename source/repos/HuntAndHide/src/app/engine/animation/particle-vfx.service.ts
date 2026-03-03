@@ -115,6 +115,24 @@ export class ParticleVfxService {
     });
   }
 
+  /** Celebratory confetti shower — multi-coloured particles fountain upward then fall. */
+  spawnConfetti(position: Vec3): void {
+    const confettiColors = [0xff4444, 0xffd700, 0x42a5f5, 0x66bb6a, 0xff69b4, 0xffa726];
+    for (const color of confettiColors) {
+      this.spawnBurst({
+        position,
+        count: 6,
+        color,
+        size: 7,
+        speed: 3.5,
+        lifetime: 1.2,
+        gravity: -2.0,
+        spread: 0.6,
+        yOffset: 1.0,
+      });
+    }
+  }
+
   // ── Internal ─────────────────────────────────────────────
 
   private spawnBurst(opts: {

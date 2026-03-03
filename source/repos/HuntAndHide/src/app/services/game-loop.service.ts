@@ -1,5 +1,5 @@
-import { inject, Injectable, signal } from '@angular/core';
-import { GamePhase } from '../models/session.model';
+import { inject, Injectable, signal, computed } from '@angular/core';
+import { GamePhase, RoundMvp, RoundWinner } from '../models/session.model';
 import { HiderState, HunterState, PlayerState, Vec3, HUNTER_STAMINA_MAX } from '../models/player.model';
 import { HiderService } from './hider.service';
 import { HunterService } from './hunter.service';
@@ -41,14 +41,30 @@ export class GameLoopService {
   readonly nearHidingSpot = signal<Vec3 | null>(null);
   /** Recent catch events for the HUD kill-feed (auto-expire after display). */
   readonly catchFeed = signal<{ hunterName: string; hiderName: string; time: number }[]>([]);
+  /** True when exactly one alive (non-caught) hider remains during hunting phase. */
+  readonly lastHiderStanding = computed(() =>
+    this.phase() === 'hunting' && this.hiders().filter(h => h.isAlive && !h.isCaught).length === 1
+  );
+  /** MVP stats computed at round end for the scoreboard ceremony. */
+  readonly roundMvp = signal<RoundMvp | null>(null);
+  /** Which team won the round (null before results). */
+  readonly roundWinner = signal<RoundWinner>(null);
 
-  private roundDurationMs = 600_000; // 10 minutes per round -- longer than normal for testing purposes
+  private roundDurationMs = 100_000; // 10 minutes per round -- longer than normal for testing purposes
   private running = false;
+  /** Per-hunter catch counter (uid → count) built up during the round. */
+  private catchCounts = new Map<string, number>();
 
   /** Duration (seconds) to keep caught hiders visible before converting. */
   private readonly catchAnimDuration = 0.6;
   /** Pending caught hiders awaiting conversion (uid → remaining seconds). */
   private pendingCatches = new Map<string, number>();
+
+  // ── Hit-stop (brief slow-motion on catch) ──────────────────
+  private timeScale = 1;
+  private hitStopRemaining = 0;
+  private readonly hitStopDuration = 0.15;
+  private readonly hitStopScale = 0.2;
 
   // ── Lifecycle ──────────────────────────────────────────────
 
@@ -101,18 +117,28 @@ export class GameLoopService {
     this.roundTimeRemainingMs.set(this.roundDurationMs);
   }
 
-  stopGame(): void {
+  stopGame(winner: RoundWinner = null): void {
     this.running = false;
+    this.roundWinner.set(winner);
+    this.computeRoundMvp();
     this.phase.set('results');
     this.cpuSpawner.dispose();
     this.hidingService.clear();
     this.pendingCatches.clear();
+    this.catchCounts.clear();
   }
 
   // ── Tick (called every frame by EngineService) ─────────────
 
   tick(delta: number): void {
     if (!this.running) return;
+
+    // Advance hit-stop timer with raw delta, then scale game delta
+    if (this.hitStopRemaining > 0) {
+      this.hitStopRemaining = Math.max(0, this.hitStopRemaining - delta);
+      this.timeScale = this.hitStopRemaining > 0 ? this.hitStopScale : 1;
+    }
+    delta *= this.timeScale;
 
     const currentPhase = this.phase();
     if (currentPhase === 'results') return;
@@ -227,7 +253,7 @@ export class GameLoopService {
 
     if (remaining <= 0) {
       // Time's up — hiders win this round
-      this.stopGame();
+      this.stopGame('hiders');
     }
   }
 
@@ -361,6 +387,15 @@ export class GameLoopService {
 
     if (catchPairs.length > 0) {
       this.hunters.set(updatedHunters);
+      this.hitStopRemaining = this.hitStopDuration;
+
+      // Track per-hunter catch counts for MVP
+      for (const pair of catchPairs) {
+        const hunter = updatedHunters.find(h => h.displayName === pair.hunterName);
+        if (hunter) {
+          this.catchCounts.set(hunter.uid, (this.catchCounts.get(hunter.uid) ?? 0) + 1);
+        }
+      }
 
       const now = Date.now();
       this.catchFeed.update(f => [
@@ -424,12 +459,12 @@ export class GameLoopService {
     const aliveHunters = this.hunters().filter(h => h.isAlive);
 
     if (aliveHiders.length === 0) {
-      this.stopGame();
+      this.stopGame('hunters');
       return;
     }
 
     if (aliveHunters.length === 0) {
-      this.stopGame();
+      this.stopGame('hiders');
     }
   }
 
@@ -460,5 +495,29 @@ export class GameLoopService {
     if (playerUid === localUid) return keyboardMovement;
     if (cpuMovement) return cpuMovement;
     return { x: 0, y: 0, z: 0 };
+  }
+
+  // ── MVP computation ────────────────────────────────────────
+
+  private computeRoundMvp(): void {
+    const allPlayers = [...this.hiders(), ...this.hunters()];
+    if (allPlayers.length === 0) {
+      this.roundMvp.set(null);
+      return;
+    }
+
+    // Find top scorer
+    const sorted = [...allPlayers].sort((a, b) => b.score - a.score);
+    const top = sorted[0];
+    const catches = this.catchCounts.get(top.uid) ?? 0;
+    const survived = top.role === 'hider' ? top.isAlive : true;
+
+    this.roundMvp.set({
+      displayName: top.displayName,
+      role: top.role,
+      score: top.score,
+      catches,
+      survived,
+    });
   }
 }

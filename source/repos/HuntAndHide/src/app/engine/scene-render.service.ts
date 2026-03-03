@@ -16,6 +16,8 @@ import { AmbientVfxService } from './animation/ambient-vfx.service';
 import { FallingLeavesService } from './animation/falling-leaves.service';
 import { BlinkService } from './animation/blink.service';
 import { HidePromptService } from './animation/hide-prompt.service';
+import { ScreenShakeService } from './animation/screen-shake.service';
+import { ScoreFloaterService } from './animation/score-floater.service';
 import { MapService } from '../services/map.service';
 
 /** Interval (in frames) between movement-dust spawns to avoid particle overload. */
@@ -39,12 +41,15 @@ export class SceneRenderService {
   private readonly fallingLeaves = inject(FallingLeavesService);
   private readonly blink = inject(BlinkService);
   private readonly hidePrompt = inject(HidePromptService);
+  private readonly screenShake = inject(ScreenShakeService);
+  private readonly scoreFloater = inject(ScoreFloaterService);
   private readonly mapService = inject(MapService);
 
   private scene!: THREE.Scene;
 
   // Mesh registries keyed by entity id
   private playerMeshes = new Map<string, THREE.Group>();
+  private playerMeshRoles = new Map<string, PlayerRole>();
   private previousPositions = new Map<string, Vec3>();
 
   private dustFrameCounter = 0;
@@ -72,6 +77,7 @@ export class SceneRenderService {
     this.ambientVfx.init(scene);
     this.fallingLeaves.init(scene);
     this.hidePrompt.init(scene);
+    this.scoreFloater.init(scene);
     this.createBoundary();
   }
 
@@ -134,12 +140,14 @@ export class SceneRenderService {
       this.boundaryMaterial = undefined;
     }
     this.playerMeshes.clear();
+    this.playerMeshRoles.clear();
     this.previousPositions.clear();
     this.caughtVfxSpawned.clear();
     this.animation.dispose();
     this.particles.dispose();
     this.ambientVfx.dispose();
     this.fallingLeaves.dispose();
+    this.scoreFloater.dispose();
     this.hidePrompt.dispose();
   }
 
@@ -157,9 +165,20 @@ export class SceneRenderService {
       activeIds.add(player.uid);
       let group = this.playerMeshes.get(player.uid);
 
+      // Rebuild mesh when role changes (hider → hunter conversion)
+      if (group && this.playerMeshRoles.get(player.uid) !== player.role) {
+        this.scene.remove(group);
+        this.playerMeshes.delete(player.uid);
+        this.playerMeshRoles.delete(player.uid);
+        this.animation.removeContext(player.uid);
+        this.caughtVfxSpawned.delete(player.uid);
+        group = undefined;
+      }
+
       if (!group) {
         group = this.buildPlayerMesh(player);
         this.playerMeshes.set(player.uid, group);
+        this.playerMeshRoles.set(player.uid, player.role);
         this.scene.add(group);
       }
 
@@ -214,6 +233,13 @@ export class SceneRenderService {
       if (isCaughtHider && !this.caughtVfxSpawned.has(player.uid)) {
         this.caughtVfxSpawned.add(player.uid);
         this.particles.spawnCatchBurst(player.position);
+        this.particles.spawnConfetti(player.position);
+        this.screenShake.trigger(0.3, 0.3);
+        this.scoreFloater.spawn(player.position, '+100', '#e9c46a');
+        this.scoreFloater.spawn(
+          { x: player.position.x + 0.3, y: player.position.y, z: player.position.z + 0.3 },
+          '+40% Hunger', '#66bb6a',
+        );
       }
 
       // Spawn footstep particles on foot-strike events
@@ -293,6 +319,7 @@ export class SceneRenderService {
       if (!activeIds.has(uid)) {
         this.scene.remove(mesh);
         this.playerMeshes.delete(uid);
+        this.playerMeshRoles.delete(uid);
         this.previousPositions.delete(uid);
         this.animation.removeContext(uid);
         this.caughtVfxSpawned.delete(uid);
@@ -305,6 +332,7 @@ export class SceneRenderService {
     this.particles.tick(delta);
     this.ambientVfx.tick(delta);
     this.fallingLeaves.tick(delta);
+    this.scoreFloater.tick(delta);
     this.waterElapsed += delta;
     tickWaterShaders(this.waterElapsed);
     // Update world-space hide prompt

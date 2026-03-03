@@ -76,6 +76,13 @@ export class ProceduralAnimationService {
     // State transitions
     const newState = this.resolveState(ctx, isAlive, isCaught);
     if (newState !== ctx.state) {
+      // Reset group-level transforms that terminal states modified
+      if (ctx.state === 'caught') {
+        group.scale.set(1, 1, 1);
+      }
+      if (ctx.state === 'death') {
+        group.rotation.z = 0;
+      }
       ctx.state = newState;
       ctx.elapsed = 0;
       ctx.phase = 0;
@@ -229,13 +236,31 @@ export class ProceduralAnimationService {
     this.applyEarBounce(group, sinPhase, 0.1);
   }
 
-  // ── Caught: comedic spin + shrink ────────────────────────
+  // ── Caught: pop-up bounce → comedic spin + shrink ─────────
 
   private applyCaught(group: THREE.Group, ctx: AnimationContext, _delta: number): void {
-    const t = ctx.elapsed / 0.6; // normalised 0..1 over 0.6s
-    group.rotation.y += 0.3;
-    const scale = Math.max(0, 1 - t);
-    group.scale.set(scale, scale, scale);
+    const totalDuration = 0.6;
+    const bounceDuration = 0.15; // initial pop-up phase
+    const t = ctx.elapsed / totalDuration; // normalised 0..1 over 0.6s
+
+    if (ctx.elapsed < bounceDuration) {
+      // Phase 1: quick upward pop + squash-stretch
+      const bt = ctx.elapsed / bounceDuration; // 0..1 within bounce
+      const bounce = Math.sin(bt * Math.PI); // peaks at 0.5
+      const body = group.getObjectByName(PART_NAMES.body);
+      if (body) {
+        const baseY = (body.userData['baseY'] as number) ?? 0.65;
+        body.position.y = baseY + bounce * 0.5;
+        // Squash horizontally, stretch vertically at peak
+        body.scale.set(1 - bounce * 0.2, 1 + bounce * 0.3, 1 - bounce * 0.2);
+      }
+    } else {
+      // Phase 2: spin + shrink (original behaviour)
+      group.rotation.y += 0.3;
+      const shrinkT = (ctx.elapsed - bounceDuration) / (totalDuration - bounceDuration);
+      const scale = Math.max(0, 1 - shrinkT);
+      group.scale.set(scale, scale, scale);
+    }
   }
 
   // ── Death: fall over sideways ────────────────────────────

@@ -1,4 +1,9 @@
 <div class="hud-overlay">
+  <!-- Catch flash vignette -->
+  @if (catchFlashActive()) {
+    <div class="catch-flash"></div>
+  }
+
   <!-- Top bar: phase + timer -->
   <div class="hud-top">
     <span class="phase-badge">{{ phase() | uppercase }}</span>
@@ -54,6 +59,11 @@
         </div>
       }
     </div>
+  }
+
+  <!-- Last hider standing alert -->
+  @if (lastHider()) {
+    <div class="last-hider-banner">LAST ONE!</div>
   }
 
   <!-- Bottom bar: score + player count -->

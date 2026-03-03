@@ -9,15 +9,17 @@ import {
   computed,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { UpperCasePipe } from '@angular/common';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { EngineService } from '../engine/engine.service';
 import { SceneRenderService } from '../engine/scene-render.service';
 import { GameLoopService } from '../services/game-loop.service';
 import { SessionService } from '../services/session.service';
 import { IdentityService } from '../services/identity.service';
 import { InputService } from '../services/input.service';
+import { PlayerService } from '../services/player.service';
 import { HudComponent } from '../hud/hud';
-import { GameSession } from '../models/session.model';
+import { GameSession, RoundMvp, RoundWinner } from '../models/session.model';
 import { PlayerState, PlayerRole } from '../models/player.model';
 
 /** Total player slots (real + CPU). */
@@ -26,7 +28,7 @@ const TOTAL_PLAYER_SLOTS = 10;
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [HudComponent],
+  imports: [HudComponent, UpperCasePipe],
   templateUrl: './game.html',
   styleUrl: './game.css',
 })
@@ -37,6 +39,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
   private readonly identity = inject(IdentityService);
   private readonly inputService = inject(InputService);
+  private readonly playerService = inject(PlayerService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -50,6 +53,16 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   protected readonly inLobby = signal(true);
   protected readonly playerCount = signal(0);
   protected readonly minPlayers = TOTAL_PLAYER_SLOTS;
+
+  // ── Round-results overlay (signals for template) ──────────
+  protected readonly showResults = computed(() => this.gameLoop.phase() === 'results');
+  protected readonly roundWinner = this.gameLoop.roundWinner;
+  protected readonly roundMvp = this.gameLoop.roundMvp;
+  protected readonly roundPlayers = computed(() => {
+    const all: PlayerState[] = [...this.gameLoop.hiders(), ...this.gameLoop.hunters()];
+    return [...all].sort((a, b) => b.score - a.score);
+  });
+  protected readonly isJoining = signal(false);
 
   protected readonly waitingMessage = computed(() => {
     const count = this.playerCount();
@@ -121,7 +134,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     // Camera follows local player
     const localPlayer = this.gameLoop.getLocalPlayer();
     if (localPlayer) {
-      this.engine.followTarget(localPlayer.position);
+      this.engine.followTarget(localPlayer.position, delta);
     }
   }
 
@@ -148,13 +161,45 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   protected async leaveLobby(): Promise<void> {
     const sessionId = this.route.snapshot.paramMap.get('sessionId') ?? '';
     const uid = this.identity.getToken();
-    // Determine local player role from session
     try {
       await this.sessionService.removePlayer(sessionId, uid, 'hider');
     } catch {
-      // Try hunter if hider removal fails
       try { await this.sessionService.removePlayer(sessionId, uid, 'hunter'); } catch {}
     }
+    await this.router.navigate(['/']);
+  }
+
+  /** Start a new quickplay match from the results screen. */
+  protected async playAgain(): Promise<void> {
+    this.isJoining.set(true);
+    try {
+      const sessionId = await this.sessionService.findOrCreateSession();
+      const session = await firstValueFrom(this.sessionService.getSession$(sessionId));
+      const hiderCount = session?.hiderCount ?? 0;
+      const hunterCount = session?.hunterCount ?? 0;
+      const takenAnimals = Object.values(session?.players ?? {})
+        .filter(Boolean)
+        .map((p: any) => p.animal);
+
+      const role = this.playerService.assignRole(hiderCount, hunterCount);
+      const animal = this.playerService.assignAnimal(role, takenAnimals);
+      const player = this.playerService.createPlayerState(role, animal, { x: 0, y: 0, z: 0 });
+      await this.sessionService.joinSession(sessionId, player);
+
+      // Clean up current game before navigating
+      this.sceneRender.dispose();
+      this.engine.dispose();
+      await this.router.navigate(['/game', sessionId]);
+    } catch (err) {
+      console.error('[PlayAgain] Failed:', err);
+      await this.router.navigate(['/']);
+    } finally {
+      this.isJoining.set(false);
+    }
+  }
+
+  /** Leave to main menu from results screen. */
+  protected async leaveToMenu(): Promise<void> {
     await this.router.navigate(['/']);
   }
 }
