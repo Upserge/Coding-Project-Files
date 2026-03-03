@@ -72,6 +72,17 @@ export class GameLoopService {
   startLobby(localUid: string, hiderCount: number, hunterCount: number): void {
     this.localPlayerUid.set(localUid);
 
+    // Clear stale state from any previous round
+    this.hiders.set([]);
+    this.hunters.set([]);
+    this.pendingCatches.clear();
+    this.catchCounts.clear();
+    this.catchFeed.set([]);
+    this.roundMvp.set(null);
+    this.roundWinner.set(null);
+    this.timeScale = 1;
+    this.hitStopRemaining = 0;
+
     const map = this.mapService.generateJungleMap();
     const hiderSpawns = map.spawnPoints.filter(s => s.forRole === 'hider');
     const hunterSpawns = map.spawnPoints.filter(s => s.forRole === 'hunter');

@@ -54,6 +54,7 @@ export class TimeOfDayService {
     this.scene = scene;
     this.sun = sun;
     this.ambient = ambient;
+    this.elapsed = 0;
   }
 
   tick(delta: number): void {

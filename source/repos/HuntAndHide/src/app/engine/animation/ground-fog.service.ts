@@ -22,6 +22,7 @@ export class GroundFogService {
   private elapsed = 0;
 
   init(scene: THREE.Scene): void {
+    this.elapsed = 0;
     const geo = new THREE.PlaneGeometry(FOG_SIZE, FOG_SIZE);
     this.material = this.createFogMaterial();
     this.mesh = new THREE.Mesh(geo, this.material);

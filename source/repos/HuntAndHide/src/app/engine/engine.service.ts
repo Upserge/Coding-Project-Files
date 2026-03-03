@@ -56,10 +56,37 @@ export class EngineService implements OnDestroy {
   // ── Public API ─────────────────────────────────────────────
 
   async init(canvas: HTMLCanvasElement): Promise<void> {
+    // Reset lifecycle flag so the render loop can run after a previous dispose
+    this.disposed = false;
+    cancelAnimationFrame(this.animationFrameId);
+    this.clock = new THREE.Clock();
+    this.grassElapsed = 0;
+    this.godRayElapsed = 0;
+    this.causticsElapsed = 0;
+    this.ppElapsed = 0;
+    this.onTick = null;
+    this.usePostProcessing = false;
+    this.grassMesh = null;
+    this.sunLight = null;
+    this.ambientLight = null;
+
     this.createScene();
     this.createCamera(canvas.clientWidth, canvas.clientHeight);
     await this.createRenderer(canvas);
+
     this.buildJungleScene();
+
+    // Guarantee the scene always has lighting even if buildLighting() failed
+    if (!this.sunLight) {
+      this.sunLight = this.buildSun();
+      this.scene.add(this.sunLight);
+      this.scene.add(this.sunLight.target);
+    }
+    if (!this.ambientLight) {
+      this.ambientLight = this.buildAmbient();
+      this.scene.add(this.ambientLight);
+    }
+
     this.initPostProcessing();
     this.startLoop();
   }
@@ -183,6 +210,7 @@ export class EngineService implements OnDestroy {
       this.usePostProcessing = true;
     } catch (e) {
       console.warn('[Engine] Post-processing init failed, using direct rendering', e);
+      this.usePostProcessing = false;
     }
   }
 
@@ -190,16 +218,19 @@ export class EngineService implements OnDestroy {
 
   private buildJungleScene(): void {
     const map = this.mapService.generateJungleMap();
-    this.buildGround(map);
-    this.buildDappledLight();
-    this.buildObstacles(map);
-    this.buildDecorations(map);
-    this.buildWater(map);
-    this.buildInstancedGrass(map);
-    this.buildGodRays();
-    this.buildLighting();
-    this.buildContactShadows();
-    this.groundFog.init(this.scene);
+    const safe = (label: string, fn: () => void) => {
+      try { fn(); } catch (e) { console.error(`[Engine] ${label} failed:`, e); }
+    };
+    safe('buildGround',          () => this.buildGround(map));
+    safe('buildDappledLight',    () => this.buildDappledLight());
+    safe('buildObstacles',       () => this.buildObstacles(map));
+    safe('buildDecorations',     () => this.buildDecorations(map));
+    safe('buildWater',           () => this.buildWater(map));
+    safe('buildInstancedGrass',  () => this.buildInstancedGrass(map));
+    safe('buildGodRays',         () => this.buildGodRays());
+    safe('buildLighting',        () => this.buildLighting());
+    safe('buildContactShadows',  () => this.buildContactShadows());
+    safe('groundFog.init',       () => this.groundFog.init(this.scene));
   }
 
   private buildDappledLight(): void {
@@ -362,51 +393,56 @@ export class EngineService implements OnDestroy {
     if (this.disposed) return;
     this.animationFrameId = requestAnimationFrame(this.tick);
 
-    const delta = this.clock.getDelta();
-    this.onTick?.(delta);
+    try {
+      const delta = this.clock.getDelta();
+      this.onTick?.(delta);
 
-    // Advance instanced grass wind animation
-    this.grassElapsed += delta;
-    if (this.grassMesh) tickInstancedGrass(this.grassMesh, this.grassElapsed);
+      // Advance instanced grass wind animation
+      this.grassElapsed += delta;
+      if (this.grassMesh) tickInstancedGrass(this.grassMesh, this.grassElapsed);
 
-    // Advance god ray breathing animation
-    this.godRayElapsed += delta;
-    tickGodRays(this.godRayElapsed);
+      // Advance god ray breathing animation
+      this.godRayElapsed += delta;
+      tickGodRays(this.godRayElapsed);
 
-    // Advance water caustics animation
-    this.causticsElapsed += delta;
-    tickCaustics(this.causticsElapsed);
+      // Advance water caustics animation
+      this.causticsElapsed += delta;
+      tickCaustics(this.causticsElapsed);
 
-    // Advance ground fog drift
-    this.groundFog.tick(delta);
+      // Advance ground fog drift
+      this.groundFog.tick(delta);
 
-    // Advance time-of-day lighting cycle
-    this.timeOfDay.tick(delta);
+      // Advance time-of-day lighting cycle
+      this.timeOfDay.tick(delta);
 
-    // Advance post-processing per-frame uniforms
-    this.ppElapsed += delta;
-    if (this.usePostProcessing) {
-      this.postProcessing.tick(this.ppElapsed);
-      this.postProcessing.render();
+      // Advance post-processing per-frame uniforms
+      this.ppElapsed += delta;
+      if (this.usePostProcessing) {
+        this.postProcessing.tick(this.ppElapsed);
+        this.postProcessing.render();
 
-      // Overlay pass: render UI-layer sprites (name labels) directly on top,
-      // bypassing all post-processing so god rays / tilt-shift don't ghost them.
-      // Null out background & fog so they don't overwrite the post-processed image,
-      // and clear depth so sprites aren't rejected by the composer's fullscreen quad.
-      this.renderer.autoClear = false;
-      const savedBg = this.scene.background;
-      const savedFog = this.scene.fog;
-      this.scene.background = null;
-      this.scene.fog = null;
-      this.camera.layers.set(1);
-      this.renderer.clearDepth();
-      this.renderer.render(this.scene, this.camera);
-      this.scene.background = savedBg;
-      this.scene.fog = savedFog;
-      this.camera.layers.set(0);
-      this.renderer.autoClear = true;
-    } else {
-      this.renderer.render(this.scene, this.camera);
+        // Overlay pass: render UI-layer sprites (name labels) directly on top,
+        // bypassing all post-processing so god rays / tilt-shift don't ghost them.
+        // Null out background & fog so they don't overwrite the post-processed image,
+        // and clear depth so sprites aren't rejected by the composer's fullscreen quad.
+        this.renderer.autoClear = false;
+        const savedBg = this.scene.background;
+        const savedFog = this.scene.fog;
+        this.scene.background = null;
+        this.scene.fog = null;
+        this.camera.layers.set(1);
+        this.renderer.clearDepth();
+        this.renderer.render(this.scene, this.camera);
+        this.scene.background = savedBg;
+        this.scene.fog = savedFog;
+        this.camera.layers.set(0);
+        this.renderer.autoClear = true;
+      } else {
+        this.renderer.render(this.scene, this.camera);
+      }
+    } catch (e) {
+      // Fallback: attempt direct render so the screen is never blank
+      try { this.renderer.render(this.scene, this.camera); } catch {}
     }
   };
 }

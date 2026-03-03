@@ -11,7 +11,7 @@ import * as THREE from 'three';
  * Sun direction assumed at (60, 100, 40).
  */
 
-const RAY_COUNT = 4;
+const RAY_COUNT = 5;
 const RAY_COLOR = 0xfff8e1;
 
 /** Module-level material refs for breathing animation. */

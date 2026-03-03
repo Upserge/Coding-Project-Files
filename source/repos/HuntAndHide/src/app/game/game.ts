@@ -73,8 +73,12 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit(): Promise<void> {
     const canvas = this.canvasRef().nativeElement;
-    await this.engine.init(canvas);
-    this.engine.resize(canvas.clientWidth, canvas.clientHeight);
+    try {
+      await this.engine.init(canvas);
+      this.engine.resize(canvas.clientWidth, canvas.clientHeight);
+    } catch (err) {
+      console.error('[Game] Engine init failed:', err);
+    }
 
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
@@ -84,25 +88,28 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
     // Subscribe to live session updates
     const sessionId = this.route.snapshot.paramMap.get('sessionId') ?? '';
-    this.sessionSub = this.sessionService.getSession$(sessionId).subscribe(session => {
-      if (!session) return;
+    this.sessionSub = this.sessionService.getSession$(sessionId).subscribe({
+      next: session => {
+        if (!session) return;
 
-      // Start lobby mode immediately so the player can roam
-      if (!this.lobbyStarted) {
-        this.lobbyStarted = true;
-        const uid = this.identity.getToken();
-        this.inputService.attach();
-        this.sceneRender.init(this.engine.getScene());
+        // Start lobby mode immediately so the player can roam
+        if (!this.lobbyStarted) {
+          this.lobbyStarted = true;
+          const uid = this.identity.getToken();
+          this.inputService.attach();
+          this.sceneRender.init(this.engine.getScene());
 
-        this.engine.onTick = (delta: number) => {
-          this.gameLoop.tick(delta);
-          this.syncScene(delta);
-        };
+          this.engine.onTick = (delta: number) => {
+            this.gameLoop.tick(delta);
+            this.syncScene(delta);
+          };
 
-        this.gameLoop.startLobby(uid, session.hiderCount, session.hunterCount);
-      }
+          this.gameLoop.startLobby(uid, session.hiderCount, session.hunterCount);
+        }
 
-      this.onSessionUpdate(session);
+        this.onSessionUpdate(session);
+      },
+      error: err => console.error('[Game] Session subscription error:', err),
     });
   }
 
@@ -186,9 +193,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       const player = this.playerService.createPlayerState(role, animal, { x: 0, y: 0, z: 0 });
       await this.sessionService.joinSession(sessionId, player);
 
-      // Clean up current game before navigating
-      this.sceneRender.dispose();
-      this.engine.dispose();
+      // Navigation triggers ngOnDestroy which handles cleanup
       await this.router.navigate(['/game', sessionId]);
     } catch (err) {
       console.error('[PlayAgain] Failed:', err);
