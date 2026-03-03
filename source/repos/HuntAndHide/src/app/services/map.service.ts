@@ -9,9 +9,41 @@ import {
   WaterPlacement,
 } from '../models/map.model';
 
+// ── Placement distribution table ─────────────────────────────
+// Each entry defines how many of a given obstacle type to spawn,
+// the minimum spacing between same-type instances (minSpacing),
+// and the minimum clearance from all previously placed objects (crossTypeSpacing).
+
+interface PlacementSpec {
+  count: number;
+  minSpacing: number;
+  crossTypeSpacing: number;
+  rotationRange: number;
+}
+
+const OBSTACLE_DISTRIBUTION: Record<ObstacleType, PlacementSpec> = {
+  tree:        { count: 55, minSpacing: 8,  crossTypeSpacing: 5,  rotationRange: Math.PI * 2 },
+  bush:        { count: 55, minSpacing: 7,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
+  leaf_pile:   { count: 30, minSpacing: 8,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
+  hole:        { count: 20, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: 0 },
+  jeep:        { count: 4,  minSpacing: 30, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
+  truck:       { count: 3,  minSpacing: 30, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
+  safari_gear: { count: 10, minSpacing: 12, crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
+  rock:        { count: 14, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: Math.PI * 2 },
+};
+
+const DECORATION_WEIGHTS: { type: DecorationType; weight: number }[] = [
+  { type: 'fern',             weight: 3 },
+  { type: 'flower',           weight: 2 },
+  { type: 'mushroom_cluster', weight: 1 },
+  { type: 'fallen_log',       weight: 1 },
+  { type: 'vine',             weight: 1 },
+];
+
 /**
  * MapService generates and provides the jungle map layout.
- * Obstacle positions are deterministic per map ID so all clients agree.
+ * All placement uses Poisson-disc–style scatter with minimum-distance
+ * enforcement so objects are spread out and never overlap.
  */
 @Injectable({ providedIn: 'root' })
 export class MapService {
@@ -19,11 +51,14 @@ export class MapService {
   private readonly mapWidth = 200;
   private readonly mapDepth = 200;
 
+  /** Cached map — generated once, reused for collision and rendering. */
+  private cachedMap: MapConfig | null = null;
+
   // ── Map generation ─────────────────────────────────────────
 
-  /** Build the default jungle map. */
+  /** Build the default jungle map (generates once, then caches). */
   generateJungleMap(): MapConfig {
-    return {
+    this.cachedMap ??= {
       id: 'jungle',
       displayName: 'Jungle',
       width: this.mapWidth,
@@ -33,119 +68,47 @@ export class MapService {
       waterFeatures: this.generateWaterFeatures(),
       spawnPoints: this.generateSpawnPoints(),
     };
+    return this.cachedMap;
   }
 
   getMap(mapId: string): MapConfig {
-    // Only one map for now
-    if (mapId === 'jungle') return this.generateJungleMap();
     return this.generateJungleMap();
+  }
+
+  /** Clear cached map so the next call regenerates a fresh layout. */
+  resetMap(): void {
+    this.cachedMap = null;
   }
 
   // ── Obstacle placement ─────────────────────────────────────
 
   private generateObstacles(): ObstaclePlacement[] {
     const obstacles: ObstaclePlacement[] = [];
+    const allPositions: [number, number][] = [];
+    const margin = 10;
+    const halfW = this.mapWidth / 2 - margin;
+    const halfD = this.mapDepth / 2 - margin;
     let id = 0;
-    const half = 90; // keep a 10-unit margin inside the 200×200 ground
 
-    // Dense tree line along edges (every 6 units)
-    for (let x = -half; x <= half; x += 6) {
-      obstacles.push(this.place(id++, 'tree', x, -half, 0));
-      obstacles.push(this.place(id++, 'tree', x, half, 0));
-    }
-    for (let z = -half + 6; z <= half - 6; z += 6) {
-      obstacles.push(this.place(id++, 'tree', -half, z, 0));
-      obstacles.push(this.place(id++, 'tree', half, z, 0));
-    }
-
-    // Scattered interior trees — fill the larger space
-    const treePositions = [
-      [-40, -30], [30, -50], [-20, 20], [50, 40], [-60, 60],
-      [0, -70], [70, -20], [-70, 0], [20, 70], [-50, -60],
-      [-30, 45], [60, -60], [-10, -40], [40, 10], [-75, -30],
-      [10, 55], [-55, 25], [35, -35], [-25, -75], [65, 65],
-      [0, 0], [-45, -10], [55, -45], [-65, 50], [25, -65],
-      [75, 25], [-80, -60], [45, 75], [-35, 70], [80, -75],
-    ];
-    for (const [x, z] of treePositions) {
-      obstacles.push(this.place(id++, 'tree', x, z, Math.random() * Math.PI));
-    }
-
-    // Bushes (hide-able) — dense coverage for terrain hiding gameplay
-    const bushPositions = [
-      [-30, -10], [10, -35], [-55, 40], [40, 25], [0, 5],
-      [-20, 50], [60, -55], [-70, -35], [25, 75], [75, 10],
-      [-45, -50], [50, -15], [-15, 65], [35, 55], [-65, -15],
-      [15, -60], [-35, 30], [70, 45], [-10, -80], [80, -40],
-      [-80, 20], [5, 30], [-50, -70], [55, 70], [-25, -25],
-      // Additional bushes for denser hiding coverage
-      [-12, -50], [22, -22], [-42, 10], [62, 32], [8, 48],
-      [-28, 68], [48, -42], [-62, -55], [32, 82], [78, -18],
-      [-38, -38], [58, 8], [-8, 52], [42, 62], [-72, 8],
-      [18, -72], [-52, 38], [68, 58], [-18, -68], [82, -58],
-      [-78, 42], [12, 18], [-58, -62], [52, 78], [-32, -32],
-      [28, -48], [-48, 52], [72, -28], [-22, 42], [38, -58],
-      [-68, -22], [8, 72], [-82, -38], [62, -68], [-42, 78],
-    ];
-    for (const [x, z] of bushPositions) {
-      obstacles.push(this.place(id++, 'bush', x, z, Math.random() * Math.PI));
-    }
-
-    // Leaf piles (hide-able) — dense coverage for terrain hiding gameplay
-    const leafPositions = [
-      [-15, -20], [25, 10], [-40, -65], [55, 55], [-65, 30],
-      [10, -50], [-30, 60], [70, -30], [-5, 40], [45, -70],
-      [-55, -40], [30, 80], [-75, 10], [60, 15], [-20, -55],
-      // Additional leaf piles for denser hiding coverage
-      [-8, -35], [38, -28], [-52, 18], [22, 42], [-70, -12],
-      [15, -75], [-28, 48], [65, 22], [-42, -58], [48, 68],
-      [-18, 72], [72, -48], [-62, 42], [8, -62], [52, -32],
-      [-35, -28], [42, 38], [-58, 68], [28, -52], [78, 52],
-    ];
-    for (const [x, z] of leafPositions) {
-      obstacles.push(this.place(id++, 'leaf_pile', x, z, 0));
-    }
-
-    // Holes (hide-able) — additional hiding spots
-    const holePositions = [
-      [-10, -55], [35, -15], [-45, 25], [10, 60],
-      [-60, -20], [50, -50], [-25, 45], [75, 35],
-      [0, -30], [-40, 70],
-      // Additional holes for denser hiding coverage
-      [-18, -42], [28, 22], [-52, -32], [62, -18], [5, 52],
-      [-32, 58], [42, -62], [-72, 15], [18, 78], [58, -38],
-      [-48, -68], [72, 62], [-78, -48], [32, -42], [-22, 32],
-    ];
-    for (const [x, z] of holePositions) {
-      obstacles.push(this.place(id++, 'hole', x, z, 0));
-    }
-
-    // Abandoned vehicles — spread across the map
-    obstacles.push(this.place(id++, 'jeep', -55, -45, 0.3));
-    obstacles.push(this.place(id++, 'truck', 65, 50, -0.5));
-    obstacles.push(this.place(id++, 'jeep', 30, -70, 1.2));
-    obstacles.push(this.place(id++, 'truck', -70, 30, 0.8));
-    obstacles.push(this.place(id++, 'jeep', 10, 40, -0.3));
-    obstacles.push(this.place(id++, 'truck', -30, -70, 2.0));
-
-    // Safari gear
-    const gearPositions = [
-      [-25, 30], [40, -30], [0, -40], [-65, -20],
-      [55, 20], [-40, 55], [20, -55], [-15, 75],
-      [70, -65], [-50, -55],
-    ];
-    for (const [x, z] of gearPositions) {
-      obstacles.push(this.place(id++, 'safari_gear', x, z, Math.random() * Math.PI));
-    }
-
-    // Rocks
-    const rockPositions = [
-      [-35, -70], [75, -40], [-70, 75], [20, -20],
-      [-60, -10], [45, 60], [-10, -65], [60, -10],
-      [0, 50], [-45, 15], [30, 30], [-80, -45],
-    ];
-    for (const [x, z] of rockPositions) {
-      obstacles.push(this.place(id++, 'rock', x, z, Math.random() * Math.PI));
+    // Process each obstacle type from the distribution table
+    const types = Object.keys(OBSTACLE_DISTRIBUTION) as ObstacleType[];
+    for (const type of types) {
+      const spec = OBSTACLE_DISTRIBUTION[type];
+      const positions = poissonDiscScatter(
+        spec.count, halfW, halfD, spec.minSpacing, allPositions, spec.crossTypeSpacing,
+      );
+      for (const [x, z] of positions) {
+        allPositions.push([x, z]);
+        const rotY = spec.rotationRange > 0
+          ? Math.random() * spec.rotationRange
+          : 0;
+        obstacles.push({
+          id: `obs_${id++}`,
+          type,
+          position: { x, y: 0, z },
+          rotationY: rotY,
+        });
+      }
     }
 
     return obstacles;
@@ -158,78 +121,46 @@ export class MapService {
     let id = 0;
 
     // Hider spawns — scattered around the interior
-    const hiderSpawns = [
-      [-30, -20], [30, -30], [-10, 30], [50, 10], [-50, -50],
-      [0, 60], [-60, 20],
-    ];
-    for (const [x, z] of hiderSpawns) {
+    const hiderPositions = poissonDiscScatter(7, 60, 60, 15, []);
+    for (const [x, z] of hiderPositions) {
       points.push({ id: `spawn_${id++}`, position: { x, y: 0, z }, forRole: 'hider' });
     }
 
     // Hunter spawns — at the edges
-    const hunterSpawns = [[0, -80], [-75, 0], [75, 0]];
+    const hunterSpawns: [number, number][] = [[0, -80], [-75, 0], [75, 0]];
     for (const [x, z] of hunterSpawns) {
       points.push({ id: `spawn_${id++}`, position: { x, y: 0, z }, forRole: 'hunter' });
     }
 
     // Item spawns — spread across the larger map
-    const itemSpawns = [
-      [-20, -40], [20, -10], [-40, 20], [40, -40], [0, 40],
-      [-25, -60], [60, 20], [-60, -20], [10, 50], [70, -10],
-      [-10, -75], [50, 70], [-70, 50], [25, -60], [-40, 70],
-      [30, 50], [-55, -35], [65, -55], [-15, 15], [45, -20],
-      [-75, 40], [10, -30], [-30, -10], [55, 35], [-5, 65],
-    ];
-    for (const [x, z] of itemSpawns) {
+    const itemPositions = poissonDiscScatter(25, 75, 75, 10, []);
+    for (const [x, z] of itemPositions) {
       points.push({ id: `spawn_${id++}`, position: { x, y: 0, z }, forRole: 'item' });
     }
 
     return points;
   }
 
-  // ── Helpers ────────────────────────────────────────────────
-
-  private place(id: number, type: ObstacleType, x: number, z: number, rotY: number): ObstaclePlacement {
-    return {
-      id: `obs_${id}`,
-      type,
-      position: { x, y: 0, z },
-      rotationY: rotY,
-    };
-  }
-
   // ── Decorations (non-collidable visual scatter) ────────────
 
   private generateDecorations(): DecorationPlacement[] {
     const decorations: DecorationPlacement[] = [];
+    const weightedPool = buildWeightedPool(DECORATION_WEIGHTS);
+    const positions = poissonDiscScatter(120, 85, 85, 3, []);
     let id = 0;
 
-    // Weighted type pool — ferns and flowers dominate (grass is instanced separately)
-    const weightedTypes: DecorationType[] = [
-      'fern', 'fern', 'fern',
-      'flower', 'flower',
-      'mushroom_cluster',
-      'fallen_log',
-      'vine',
-    ];
-
-    const positions = this.scatterPositions(120, 85);
     for (const [x, z] of positions) {
-      const type = weightedTypes[Math.floor(Math.random() * weightedTypes.length)];
+      const type = weightedPool[Math.floor(Math.random() * weightedPool.length)];
       const scale = 0.8 + Math.random() * 0.5;
-      decorations.push(this.placeDeco(id++, type, x, z, Math.random() * Math.PI * 2, scale));
+      decorations.push({
+        id: `deco_${id++}`,
+        type,
+        position: { x, y: 0, z },
+        rotationY: Math.random() * Math.PI * 2,
+        scale,
+      });
     }
     return decorations;
-  }
-
-  private placeDeco(id: number, type: DecorationType, x: number, z: number, rotY: number, scale: number): DecorationPlacement {
-    return {
-      id: `deco_${id}`,
-      type,
-      position: { x, y: 0, z },
-      rotationY: rotY,
-      scale,
-    };
   }
 
   // ── Water features ────────────────────────────────────────
@@ -237,47 +168,90 @@ export class MapService {
   private generateWaterFeatures(): WaterPlacement[] {
     const features: WaterPlacement[] = [];
     let id = 0;
-
-    const ponds = [
-      { x: -35, z: 15, size: 6 },
-      { x: 50, z: -35, size: 4 },
-      { x: -15, z: -60, size: 5 },
-      { x: 65, z: 60, size: 3.5 },
-    ];
-    for (const p of ponds) {
-      features.push(this.placeWater(id++, 'pond', p.x, p.z, 0, p.size));
+    const pondPositions = poissonDiscScatter(4, 65, 65, 25, []);
+    for (const [x, z] of pondPositions) {
+      const size = 3.5 + Math.random() * 3;
+      features.push({
+        id: `water_${id++}`,
+        type: 'pond',
+        position: { x, y: 0.02, z },
+        rotationY: 0,
+        size,
+      });
     }
 
-    const streams = [
-      { x: 10, z: -15, rotY: 0.3, size: 12 },
-      { x: -50, z: -25, rotY: 1.1, size: 10 },
-    ];
-    for (const s of streams) {
-      features.push(this.placeWater(id++, 'stream', s.x, s.z, s.rotY, s.size));
+    const streamPositions = poissonDiscScatter(2, 50, 50, 30, pondPositions);
+    for (const [x, z] of streamPositions) {
+      features.push({
+        id: `water_${id++}`,
+        type: 'stream',
+        position: { x, y: 0.02, z },
+        rotationY: Math.random() * Math.PI,
+        size: 10 + Math.random() * 4,
+      });
     }
 
     return features;
   }
+}
 
-  private placeWater(id: number, type: 'pond' | 'stream', x: number, z: number, rotY: number, size: number): WaterPlacement {
-    return {
-      id: `water_${id}`,
-      type,
-      position: { x, y: 0.02, z },
-      rotationY: rotY,
-      size,
-    };
-  }
+// ── Scatter utilities (module-level, pure functions) ─────────
 
-  // ── Scatter utility ───────────────────────────────────────
+/**
+ * Poisson-disc–style scatter: generates up to `count` random positions
+ * within [−halfW..halfW] × [−halfD..halfD].
+ *
+ * Newly placed points enforce `minDist` between each other.
+ * Previously placed `existing` points enforce `minDistExisting`
+ * (defaults to `minDist` when omitted).
+ */
+function poissonDiscScatter(
+  count: number,
+  halfW: number,
+  halfD: number,
+  minDist: number,
+  existing: [number, number][],
+  minDistExisting: number = minDist,
+): [number, number][] {
+  const result: [number, number][] = [];
+  const minDistSq = minDist * minDist;
+  const crossDistSq = minDistExisting * minDistExisting;
+  const maxAttempts = count * 30;
+  let attempts = 0;
 
-  private scatterPositions(count: number, halfRange: number): [number, number][] {
-    const result: [number, number][] = [];
-    for (let i = 0; i < count; i++) {
-      const x = (Math.random() - 0.5) * halfRange * 2;
-      const z = (Math.random() - 0.5) * halfRange * 2;
+  while (result.length < count && attempts < maxAttempts) {
+    attempts++;
+    const x = (Math.random() - 0.5) * halfW * 2;
+    const z = (Math.random() - 0.5) * halfD * 2;
+
+    // Check against previously placed cross-type positions
+    const tooCloseExisting = existing.some(([ex, ez]) => {
+      const dx = x - ex;
+      const dz = z - ez;
+      return dx * dx + dz * dz < crossDistSq;
+    });
+    // Check against same-batch positions (same type)
+    const tooCloseSameType = result.some(([rx, rz]) => {
+      const dx = x - rx;
+      const dz = z - rz;
+      return dx * dx + dz * dz < minDistSq;
+    });
+
+    if (!tooCloseExisting && !tooCloseSameType) {
       result.push([x, z]);
     }
-    return result;
   }
+
+  return result;
+}
+
+/** Expand a weighted spec array into a flat pool for uniform random pick. */
+function buildWeightedPool(weights: { type: DecorationType; weight: number }[]): DecorationType[] {
+  const pool: DecorationType[] = [];
+  for (const entry of weights) {
+    for (let i = 0; i < entry.weight; i++) {
+      pool.push(entry.type);
+    }
+  }
+  return pool;
 }

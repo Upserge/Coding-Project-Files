@@ -1,6 +1,6 @@
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { GamePhase, RoundMvp, RoundWinner } from '../models/session.model';
-import { HiderState, HunterState, PlayerState, Vec3, HUNTER_STAMINA_MAX } from '../models/player.model';
+import { HiderState, HunterState, PlayerState, Vec3, HUNTER_STAMINA_MAX, HUNTER_ANIMALS } from '../models/player.model';
 import { HiderService } from './hider.service';
 import { HunterService } from './hunter.service';
 import { InputService } from './input.service';
@@ -50,7 +50,7 @@ export class GameLoopService {
   /** Which team won the round (null before results). */
   readonly roundWinner = signal<RoundWinner>(null);
 
-  private roundDurationMs = 30_000; // 10 minutes per round -- longer than normal for testing purposes
+  private roundDurationMs = 300_000; // Change how long each round lasts here
   private running = false;
   /** Per-hunter catch counter (uid → count) built up during the round. */
   private catchCounts = new Map<string, number>();
@@ -456,7 +456,8 @@ export class GameLoopService {
 
   private convertHiderToHunter(hider: HiderState): void {
     this.hidingService.vacate(hider.uid);
-    const hunter = this.playerService.createHunterState('wolf', hider.position);
+    const animal = HUNTER_ANIMALS[Math.floor(Math.random() * HUNTER_ANIMALS.length)];
+    const hunter = this.playerService.createHunterState(animal, hider.position);
     hunter.uid = hider.uid;
     hunter.displayName = hider.displayName;
     hunter.isCpu = hider.isCpu;

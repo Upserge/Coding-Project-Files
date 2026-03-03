@@ -42,6 +42,17 @@ const FOG_KEYS: { t: number; color: THREE.Color; density: number }[] = [
   { t: 1.0,  color: new THREE.Color(0x87ceaa), density: 0.003 },
 ];
 
+/** Dedicated sky background gradient — richer palette than fog. */
+const SKY_KEYS: ColorKey[] = [
+  { t: 0.0,  color: new THREE.Color(0xa8d8b8), intensity: 1.0 },
+  { t: 0.2,  color: new THREE.Color(0xc5e8c0), intensity: 1.0 },
+  { t: 0.4,  color: new THREE.Color(0xe8c8a0), intensity: 1.0 },
+  { t: 0.5,  color: new THREE.Color(0xd4926a), intensity: 1.0 },
+  { t: 0.6,  color: new THREE.Color(0x8a7eaa), intensity: 1.0 },
+  { t: 0.75, color: new THREE.Color(0x98b0c0), intensity: 1.0 },
+  { t: 1.0,  color: new THREE.Color(0xa8d8b8), intensity: 1.0 },
+];
+
 @Injectable({ providedIn: 'root' })
 export class TimeOfDayService {
 
@@ -92,7 +103,7 @@ export class TimeOfDayService {
   }
 
   private lerpBackground(t: number): void {
-    const { a, b, f } = this.findSegment(FOG_KEYS, t);
+    const { a, b, f } = this.findSegment(SKY_KEYS, t);
     const bg = this.scene!.background;
     if (bg instanceof THREE.Color) {
       bg.copy(a.color).lerp(b.color, f);

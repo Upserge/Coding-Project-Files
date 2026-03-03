@@ -28,6 +28,9 @@ export class HudComponent {
 
   protected readonly isHider = computed(() => !!this.gameLoop.getLocalHider());
   protected readonly isHunter = computed(() => !!this.gameLoop.getLocalHunter());
+  protected readonly roleClass = computed(() =>
+    this.isHider() ? 'role-hider' : this.isHunter() ? 'role-hunter' : ''
+  );
 
   // Hider-specific
   protected readonly idlePercent = computed(() => {

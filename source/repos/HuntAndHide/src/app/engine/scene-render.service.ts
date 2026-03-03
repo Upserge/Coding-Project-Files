@@ -227,7 +227,12 @@ export class SceneRenderService {
 
       // Drive procedural animation (pass isCaught so caught anim plays instead of death)
       this.animation.tick(player.uid, group, player.position, prevPos, delta, player.isAlive, isCaughtHider);
-      this.blink.tick(player.uid, group, delta);
+
+      // Eye tracking — derive movement direction for pupil offset
+      const moveLen = Math.sqrt(dxForFacing * dxForFacing + dzForFacing * dzForFacing);
+      const eyeDirX = moveLen > 0.0001 ? dxForFacing / moveLen : 0;
+      const eyeDirZ = moveLen > 0.0001 ? dzForFacing / moveLen : 0;
+      this.blink.tick(player.uid, group, delta, eyeDirX, eyeDirZ);
 
       // Spawn catch VFX burst once when a hider first enters caught state
       if (isCaughtHider && !this.caughtVfxSpawned.has(player.uid)) {

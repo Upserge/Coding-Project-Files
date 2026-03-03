@@ -12,11 +12,24 @@ import * as THREE from 'three';
  */
 
 const causticMaterials: THREE.MeshBasicMaterial[] = [];
+let causticResetDone = false;
+
+/** Clear stale material refs from previous scene build. */
+function resetCausticMaterials(): void {
+  if (!causticResetDone) {
+    causticMaterials.length = 0;
+    sharedCausticTexture = null;
+    causticResetDone = true;
+    // Reset flag after microtask so subsequent calls in the same build cycle don't re-clear
+    queueMicrotask(() => { causticResetDone = false; });
+  }
+}
 
 // ── Public API ──────────────────────────────────────────────
 
 /** Create a caustic overlay for a circular water feature (pond). */
 export function buildPondCaustics(radius: number): THREE.Mesh {
+  resetCausticMaterials();
   const geo = new THREE.CircleGeometry(radius * 0.9, 24);
   const mat = createCausticMaterial();
   const mesh = new THREE.Mesh(geo, mat);

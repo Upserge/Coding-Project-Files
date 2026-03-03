@@ -206,7 +206,7 @@ export class EngineService implements OnDestroy {
   /** Initialise the EffectComposer post-processing pipeline. */
   private initPostProcessing(): void {
     try {
-      this.postProcessing.init(this.renderer, this.scene, this.camera, this.sunLight ?? undefined);
+      this.postProcessing.init(this.renderer, this.scene, this.camera);
       this.usePostProcessing = true;
     } catch (e) {
       console.warn('[Engine] Post-processing init failed, using direct rendering', e);

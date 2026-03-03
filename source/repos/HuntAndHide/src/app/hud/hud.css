@@ -27,10 +27,28 @@
   letter-spacing: 0.08em;
 }
 
+.role-hider .phase-badge {
+  background: rgba(30, 70, 30, 0.55);
+  color: #b9f6ca;
+}
+
+.role-hunter .phase-badge {
+  background: rgba(80, 30, 30, 0.55);
+  color: #ffcdd2;
+}
+
 .timer {
   font-size: 1.5rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.role-hider .timer {
+  color: #a5d6a7;
+}
+
+.role-hunter .timer {
+  color: #ef9a9a;
 }
 
 .score,
@@ -45,6 +63,24 @@
 
 .hud-role {
   align-self: flex-start;
+}
+
+/* Hider theming — green accent */
+.hider-hud .bar-label {
+  color: #81c784;
+}
+
+.hider-hud .bar-track {
+  background: rgba(46, 80, 46, 0.5);
+}
+
+/* Hunter theming — warm/red accent */
+.hunter-hud .bar-label {
+  color: #ef9a9a;
+}
+
+.hunter-hud .bar-track {
+  background: rgba(80, 40, 40, 0.5);
 }
 
 .bar-label {

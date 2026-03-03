@@ -7,6 +7,9 @@ const BODY_DARK = 0x5d4037;
 const WHEEL_COLOR = 0x212121;
 const WINDOW_COLOR = 0x80cbc4;
 const RUST_COLOR = 0xbf360c;
+const VINE_COLOR = 0x33691e;
+const MOSS_COLOR = 0x558b2f;
+const CRACK_COLOR = 0xb0bec5;
 
 /** Shared vehicle roughness map (generated once). */
 let vehicleRoughness: THREE.CanvasTexture | null = null;
@@ -21,7 +24,7 @@ const VEHICLE_DIMS: Record<string, { w: number; d: number; h: number }> = {
   truck: { w: 2.5, d: 5,   h: 2.2 },
 };
 
-/** Build a multi-part abandoned vehicle (body + cabin + wheels + rust). */
+/** Build a multi-part abandoned vehicle with overgrowth and wear detail. */
 export function buildVehicleMesh(type: string): THREE.Group {
   const dims = VEHICLE_DIMS[type] ?? VEHICLE_DIMS['jeep'];
   const group = new THREE.Group();
@@ -29,6 +32,9 @@ export function buildVehicleMesh(type: string): THREE.Group {
   group.add(buildCabin(dims));
   addWheels(group, dims);
   addRustPatches(group, dims);
+  addVineOvergrowth(group, dims);
+  addMossPatches(group, dims);
+  addWindowCracks(group, dims);
   return group;
 }
 
@@ -75,7 +81,12 @@ function addWheels(group: THREE.Group, d: { w: number; d: number; h: number }): 
   const xOff = d.w * 0.55;
   const zOff = d.d * 0.32;
 
-  const positions = [
+  // Hubcap detail material
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0x616161, metalness: 0.3, roughness: 0.5 });
+  const hubGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.26, 6);
+  hubGeo.rotateZ(Math.PI / 2);
+
+  const positions: [number, number, number][] = [
     [-xOff, 0.35, -zOff], [xOff, 0.35, -zOff],
     [-xOff, 0.35, zOff],  [xOff, 0.35, zOff],
   ];
@@ -83,20 +94,91 @@ function addWheels(group: THREE.Group, d: { w: number; d: number; h: number }): 
     const wheel = new THREE.Mesh(geo, mat);
     wheel.position.set(x, y, z);
     group.add(wheel);
+    // Hubcap
+    const hub = new THREE.Mesh(hubGeo, hubMat);
+    hub.position.set(x, y, z);
+    group.add(hub);
   }
 }
 
 function addRustPatches(group: THREE.Group, d: { w: number; d: number; h: number }): void {
   const geo = new THREE.SphereGeometry(0.2, 4, 4);
   const mat = new THREE.MeshStandardMaterial({ color: RUST_COLOR, roughness: 1 });
-  const patches = [
-    [d.w * 0.5, d.h * 0.3, d.d * 0.3],
-    [-d.w * 0.45, d.h * 0.15, -d.d * 0.25],
-  ];
-  for (const [x, y, z] of patches) {
+  const count = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
     const rust = new THREE.Mesh(geo, mat);
-    rust.position.set(x, y, z);
-    rust.scale.set(1.5, 0.3, 1);
+    rust.position.set(
+      (Math.random() - 0.5) * d.w,
+      d.h * (0.1 + Math.random() * 0.3),
+      (Math.random() - 0.5) * d.d,
+    );
+    rust.scale.set(1.2 + Math.random() * 0.5, 0.2 + Math.random() * 0.2, 0.8 + Math.random() * 0.4);
     group.add(rust);
+  }
+}
+
+/** Vine tendrils climbing over the vehicle body. */
+function addVineOvergrowth(group: THREE.Group, d: { w: number; d: number; h: number }): void {
+  const mat = new THREE.MeshStandardMaterial({ color: VINE_COLOR, roughness: 0.85 });
+  const count = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    const length = 0.8 + Math.random() * 1.2;
+    const geo = new THREE.CylinderGeometry(0.02, 0.025, length, 4);
+    const vine = new THREE.Mesh(geo, mat);
+    vine.position.set(
+      (Math.random() - 0.5) * d.w * 0.8,
+      d.h * 0.4 + Math.random() * d.h * 0.3,
+      (Math.random() - 0.5) * d.d * 0.6,
+    );
+    vine.rotation.z = (Math.random() - 0.5) * 1.2;
+    vine.rotation.x = (Math.random() - 0.5) * 0.5;
+    group.add(vine);
+
+    // Small leaf clusters on vine
+    const leafGeo = new THREE.SphereGeometry(0.06, 4, 4);
+    const leaf = new THREE.Mesh(leafGeo, mat);
+    leaf.position.copy(vine.position);
+    leaf.position.y += length * 0.3;
+    leaf.scale.set(1.5, 0.5, 1.5);
+    group.add(leaf);
+  }
+}
+
+/** Moss growing on the body and wheels. */
+function addMossPatches(group: THREE.Group, d: { w: number; d: number; h: number }): void {
+  const geo = new THREE.SphereGeometry(0.15, 5, 4);
+  const mat = new THREE.MeshStandardMaterial({ color: MOSS_COLOR, roughness: 0.9 });
+  const count = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < count; i++) {
+    const moss = new THREE.Mesh(geo, mat);
+    moss.position.set(
+      (Math.random() - 0.5) * d.w,
+      d.h * (0.05 + Math.random() * 0.15),
+      (Math.random() - 0.5) * d.d,
+    );
+    moss.scale.set(1.5, 0.3, 1.2);
+    group.add(moss);
+  }
+}
+
+/** Subtle crack lines on windshield area. */
+function addWindowCracks(group: THREE.Group, d: { w: number; d: number; h: number }): void {
+  const mat = new THREE.MeshStandardMaterial({
+    color: CRACK_COLOR,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.4,
+  });
+  const crackCount = 1 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < crackCount; i++) {
+    const geo = new THREE.BoxGeometry(d.w * 0.3 * Math.random() + 0.1, 0.005, 0.005);
+    const crack = new THREE.Mesh(geo, mat);
+    crack.position.set(
+      (Math.random() - 0.5) * d.w * 0.3,
+      d.h * 0.65,
+      -d.d * 0.12 + d.d * 0.23,
+    );
+    crack.rotation.z = (Math.random() - 0.5) * 0.5;
+    group.add(crack);
   }
 }

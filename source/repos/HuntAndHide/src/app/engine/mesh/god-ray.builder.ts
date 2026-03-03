@@ -20,6 +20,7 @@ const rayMaterials: THREE.MeshBasicMaterial[] = [];
 // ── Public API ──────────────────────────────────────────────
 
 export function buildGodRays(): THREE.Group {
+  rayMaterials.length = 0;
   const group = new THREE.Group();
   const texture = createRayTexture();
 

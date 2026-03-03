@@ -29,8 +29,11 @@ export function buildHunterMesh(
 
   const bodyPivot = createBodyPivot(group, 0.65);
 
+  // Per-animal body proportions — similar silhouette, different build
+  const { torsoScale, headScale, earScale, armScale } = getHunterProportions(animal);
+
   const torso = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 14), mat);
-  torso.scale.set(1, 1.15, 0.9);
+  torso.scale.set(torsoScale.x, torsoScale.y, torsoScale.z);
   torso.castShadow = true;
   bodyPivot.add(torso);
 
@@ -42,6 +45,7 @@ export function buildHunterMesh(
   const headPivot = createHeadPivot(bodyPivot, 0.8);
 
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 16, 14), mat);
+  head.scale.set(headScale.x, headScale.y, headScale.z);
   head.castShadow = true;
   headPivot.add(head);
 
@@ -55,7 +59,7 @@ export function buildHunterMesh(
   attachBlush(headPivot, -0.07, 0.36, 0.3);
   attachFangs(headPivot);
 
-  const earGeo = new THREE.ConeGeometry(0.14, 0.32, 8);
+  const earGeo = new THREE.ConeGeometry(0.14 * earScale, 0.32 * earScale, 8);
   const earNames = [PART_NAMES.leftEar, PART_NAMES.rightEar];
   let earIdx = 0;
   for (const side of [-1, 1]) {
@@ -64,7 +68,7 @@ export function buildHunterMesh(
     ear.position.set(side * 0.3, 0.45, -0.05);
     ear.rotation.z = side * 0.25;
     headPivot.add(ear);
-    const innerGeo = new THREE.ConeGeometry(0.07, 0.18, 8);
+    const innerGeo = new THREE.ConeGeometry(0.07 * earScale, 0.18 * earScale, 8);
     const inner = new THREE.Mesh(innerGeo, createSurfaceMatcap(0xf0a0a0));
     inner.position.set(side * 0.3, 0.43, 0.0);
     inner.rotation.z = side * 0.25;
@@ -81,11 +85,47 @@ export function buildHunterMesh(
     const arm = new THREE.Mesh(armGeo, mat);
     arm.name = armNames[armIdx++];
     arm.position.set(side * 0.42, 0.1, 0.15);
-    arm.scale.set(0.8, 1.2, 0.8);
+    arm.scale.set(armScale.x, armScale.y, armScale.z);
     bodyPivot.add(arm);
   }
 
   attachLegs(group, color, 0.2, 0.22);
+}
+
+/** Per-animal proportion tweaks — keeps the shared silhouette readable. */
+function getHunterProportions(animal: string): {
+  torsoScale: { x: number; y: number; z: number };
+  headScale: { x: number; y: number; z: number };
+  earScale: number;
+  armScale: { x: number; y: number; z: number };
+} {
+  switch (animal) {
+    case 'wolf':
+      // Leaner, taller build — narrow shoulders, upright
+      return {
+        torsoScale: { x: 0.9, y: 1.25, z: 0.85 },
+        headScale:  { x: 0.95, y: 1.0, z: 1.05 },
+        earScale: 1.15,
+        armScale: { x: 0.7, y: 1.3, z: 0.7 },
+      };
+    case 'lion':
+      // Stockier, broader build — wide chest, rounder
+      return {
+        torsoScale: { x: 1.15, y: 1.05, z: 0.95 },
+        headScale:  { x: 1.1, y: 1.0, z: 0.95 },
+        earScale: 0.85,
+        armScale: { x: 0.95, y: 1.1, z: 0.95 },
+      };
+    case 'panther':
+    default:
+      // Sleeker, elongated build — longer body, slim
+      return {
+        torsoScale: { x: 0.92, y: 1.12, z: 1.05 },
+        headScale:  { x: 0.95, y: 0.95, z: 1.08 },
+        earScale: 1.0,
+        armScale: { x: 0.75, y: 1.2, z: 0.8 },
+      };
+  }
 }
 
 function attachHunterTail(

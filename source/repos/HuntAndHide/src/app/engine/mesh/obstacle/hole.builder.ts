@@ -4,13 +4,17 @@ import * as THREE from 'three';
 const HOLE_COLOR = 0x3e2723;
 const RIM_COLOR = 0x5d4037;
 const DIRT_COLOR = 0x795548;
+const GRASS_TUFT = 0x4a7a3a;
+const ROOT_COLOR = 0x4e342e;
 
-/** Build a ground hole with rim and loose dirt accents. */
+/** Build a ground hole with rim, dirt, grass tufts, and root detail. */
 export function buildHoleMesh(): THREE.Group {
   const group = new THREE.Group();
   group.add(buildHoleDisc());
   group.add(buildRim());
   addDirtMounds(group);
+  addGrassTufts(group);
+  addRootTendrils(group);
   return group;
 }
 
@@ -34,11 +38,69 @@ function buildRim(): THREE.Mesh {
 function addDirtMounds(group: THREE.Group): void {
   const geo = new THREE.SphereGeometry(0.18, 5, 4);
   const mat = new THREE.MeshStandardMaterial({ color: DIRT_COLOR, roughness: 1 });
-  const offsets = [[0.7, 0.05, 0.5], [-0.6, 0.04, -0.6], [0.9, 0.03, -0.2]];
-  for (const [x, y, z] of offsets) {
+  const count = 3 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < count; i++) {
     const mound = new THREE.Mesh(geo, mat);
-    mound.position.set(x, y, z);
-    mound.scale.set(1.5, 0.5, 1.2);
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 0.7 + Math.random() * 0.3;
+    mound.position.set(
+      Math.cos(angle) * dist,
+      0.04,
+      Math.sin(angle) * dist,
+    );
+    mound.scale.set(
+      1.2 + Math.random() * 0.5,
+      0.3 + Math.random() * 0.3,
+      1.0 + Math.random() * 0.3,
+    );
     group.add(mound);
+  }
+}
+
+/** Small grass tufts around the hole rim. */
+function addGrassTufts(group: THREE.Group): void {
+  const mat = new THREE.MeshStandardMaterial({
+    color: GRASS_TUFT,
+    roughness: 0.85,
+    side: THREE.DoubleSide,
+  });
+  const count = 4 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+    const dist = 0.8 + Math.random() * 0.15;
+
+    // Each tuft is a cluster of 2-3 thin blades
+    const blades = 2 + Math.floor(Math.random() * 2);
+    for (let b = 0; b < blades; b++) {
+      const geo = new THREE.PlaneGeometry(0.04, 0.15 + Math.random() * 0.1);
+      const blade = new THREE.Mesh(geo, mat);
+      blade.position.set(
+        Math.cos(angle) * dist + (Math.random() - 0.5) * 0.05,
+        0.06,
+        Math.sin(angle) * dist + (Math.random() - 0.5) * 0.05,
+      );
+      blade.rotation.y = angle + Math.PI / 2 + (Math.random() - 0.5) * 0.4;
+      blade.rotation.x = -0.3 + Math.random() * 0.2;
+      group.add(blade);
+    }
+  }
+}
+
+/** Thin root tendrils peeking over the hole edge. */
+function addRootTendrils(group: THREE.Group): void {
+  const mat = new THREE.MeshStandardMaterial({ color: ROOT_COLOR, roughness: 0.95 });
+  const count = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < count; i++) {
+    const geo = new THREE.CylinderGeometry(0.015, 0.02, 0.3 + Math.random() * 0.15, 4);
+    const root = new THREE.Mesh(geo, mat);
+    const angle = Math.random() * Math.PI * 2;
+    root.position.set(
+      Math.cos(angle) * 0.7,
+      0.02,
+      Math.sin(angle) * 0.7,
+    );
+    root.rotation.z = Math.cos(angle) * 0.8;
+    root.rotation.x = Math.sin(angle) * 0.8;
+    group.add(root);
   }
 }

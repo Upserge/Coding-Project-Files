@@ -58,32 +58,42 @@ function buildFox(
 
   const headPivot = createHeadPivot(bodyPivot, 0.75);
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 14), mat);
+  // Slightly flattened sphere stretched forward for a tapered fox face
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 16, 14), mat);
+  head.scale.set(1.0, 0.95, 1.12);
   head.castShadow = true;
   headPivot.add(head);
 
-  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 12), bellyMat);
-  snout.position.set(0, -0.1, 0.36);
-  snout.scale.set(1, 0.65, 0.8);
+  // Larger snout that blends into the head for a smooth muzzle profile
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 12), bellyMat);
+  snout.position.set(0, -0.12, 0.32);
+  snout.scale.set(0.8, 0.6, 0.9);
   headPivot.add(snout);
 
-  attachNose(headPivot, -0.07, 0.5, 0x222222);
-  attachCozyEyes(headPivot, 0.07, 0.34, 0.16, 0.08);
-  attachBlush(headPivot, -0.07, 0.32, 0.26);
-  attachWhiskers(headPivot, -0.06, 0.4);
+  // Small bridge between head and snout to smooth the transition
+  const bridge = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), mat);
+  bridge.position.set(0, -0.04, 0.3);
+  bridge.scale.set(0.7, 0.55, 0.9);
+  headPivot.add(bridge);
 
-  const earGeo = new THREE.ConeGeometry(0.13, 0.35, 8);
+  attachNose(headPivot, -0.1, 0.5, 0x222222);
+  attachCozyEyes(headPivot, 0.07, 0.32, 0.16, 0.08);
+  attachBlush(headPivot, -0.08, 0.3, 0.24);
+  attachWhiskers(headPivot, -0.08, 0.38);
+
+  // Tall, pointed fox ears
+  const earGeo = new THREE.ConeGeometry(0.14, 0.44, 8);
   const earNames = [PART_NAMES.leftEar, PART_NAMES.rightEar];
   let earIdx = 0;
   for (const side of [-1, 1]) {
     const ear = new THREE.Mesh(earGeo, mat);
     ear.name = earNames[earIdx++];
-    ear.position.set(side * 0.28, 0.43, -0.04);
-    ear.rotation.z = side * 0.2;
+    ear.position.set(side * 0.24, 0.45, -0.08);
+    ear.rotation.z = side * 0.15;
     headPivot.add(ear);
-    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 8), bellyMat);
-    inner.position.set(side * 0.28, 0.41, 0.0);
-    inner.rotation.z = side * 0.2;
+    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.28, 8), bellyMat);
+    inner.position.set(side * 0.24, 0.44, -0.04);
+    inner.rotation.z = side * 0.15;
     headPivot.add(inner);
   }
 

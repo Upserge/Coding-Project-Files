@@ -26,8 +26,8 @@ export function buildDappledLight(): THREE.Mesh {
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.y = 0.08;
-  mesh.renderOrder = 0;
+  mesh.position.y = 0.12;
+  mesh.renderOrder = 1;
   mesh.castShadow = false;
   mesh.receiveShadow = false;
   return mesh;

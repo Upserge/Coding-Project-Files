@@ -22,6 +22,7 @@ const dummy = new THREE.Object3D();
 
 /** Create the instanced shadow plane and add to scene. */
 export function buildContactShadows(scene: THREE.Scene): THREE.InstancedMesh {
+  shadowMesh = null;
   const geo = new THREE.PlaneGeometry(SHADOW_RADIUS * 2, SHADOW_RADIUS * 2);
   const mat = new THREE.MeshBasicMaterial({
     map: createShadowTexture(),

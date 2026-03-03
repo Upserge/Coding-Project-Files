@@ -35,7 +35,18 @@ function getWaterNormalMap(): THREE.CanvasTexture {
   return sharedWaterNormal;
 }
 
+/** Collect all water materials for per-frame normal-map offset updates. */
+const waterMaterials: THREE.MeshStandardMaterial[] = [];
+let waterResetDone = false;
+
 function createWaterMaterial(): THREE.MeshStandardMaterial {
+  // Clear stale refs from previous scene build (once per build cycle)
+  if (!waterResetDone) {
+    waterMaterials.length = 0;
+    sharedWaterNormal = null;
+    waterResetDone = true;
+    queueMicrotask(() => { waterResetDone = false; });
+  }
   const normalMap = getWaterNormalMap();
   const mat = new THREE.MeshStandardMaterial({
     color: 0x2a9fd6,
@@ -52,9 +63,6 @@ function createWaterMaterial(): THREE.MeshStandardMaterial {
   waterMaterials.push(mat);
   return mat;
 }
-
-/** Collect all water materials for per-frame normal-map offset updates. */
-const waterMaterials: THREE.MeshStandardMaterial[] = [];
 
 /** Call from the render loop to advance water ripple animation. */
 export function tickWaterShaders(elapsed: number): void {

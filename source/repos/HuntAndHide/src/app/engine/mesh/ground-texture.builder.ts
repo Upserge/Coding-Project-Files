@@ -87,6 +87,7 @@ function createBaseMaterial(
     roughnessMap,
     roughness: 0.92,
     metalness: 0,
+    vertexColors: true,
   });
 }
 
@@ -113,7 +114,7 @@ function addDetailBlend(frag: string): string {
     '#include <map_fragment>',
     `#include <map_fragment>
      vec4 detail = texture2D(detailMap, vMapUv * 10.0);
-     diffuseColor.rgb *= 0.7 + detail.r * 0.6;`,
+     diffuseColor.rgb *= 0.82 + detail.r * 0.36;`,
   );
 }
 
