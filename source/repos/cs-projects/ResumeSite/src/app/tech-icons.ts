@@ -163,6 +163,13 @@ export const PROJECT_ICONS: { [key: string]: string } = {
     <line x1="30" y1="46" x2="44" y2="44" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
     <line x1="30" y1="56" x2="42" y2="54" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
   </svg>`,
+  'hunt and hide': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <!-- Folded map with X marker -->
+    <path d="M12 18 L36 8 L60 18 L88 12 L88 82 L60 72 L36 82 L12 72 Z" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.9"/>
+    <line x1="36" y1="8" x2="36" y2="82" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+    <circle cx="70" cy="40" r="6" fill="currentColor" opacity="0.95"/>
+    <path d="M66 36 L74 44 M74 36 L66 44" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>`,
 };
 
 export function getProjectSVG(title: string): string {
