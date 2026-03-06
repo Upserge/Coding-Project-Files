@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+﻿import { inject, Injectable } from '@angular/core';
 import { Firestore } from '@angular/fire/firestore';
 import {
   collection,
@@ -78,12 +78,22 @@ export class SessionService {
    * Returns the session ID the player should join.
    */
   async findOrCreateSession(): Promise<string> {
-    // Fetch open lobby sessions (one-shot read for matchmaking)
     const q = query(this.sessionsCol, where('phase', '==', 'lobby'));
     const snapshot = await getDocs(q);
+    const now = Date.now();
+    const STALE_AGE_MS = 10 * 60 * 1000;
+    const INACTIVE_MS = 30 * 1000;
 
     for (const docSnap of snapshot.docs) {
       const session = docSnap.data() as GameSession;
+      const createdAge = now - (session.createdAt ?? 0);
+      const lastActivity = now - (session.updatedAt ?? session.createdAt ?? 0);
+
+      if (createdAge > STALE_AGE_MS || lastActivity > INACTIVE_MS) {
+        deleteDoc(docSnap.ref).catch(() => {});
+        continue;
+      }
+
       const playerCount = Object.keys(session.players ?? {}).length;
       const hasRequiredFields =
         typeof session.hiderCount === 'number' &&
@@ -93,7 +103,6 @@ export class SessionService {
       }
     }
 
-    // No room anywhere (or only stale sessions) \u2014 spin up a new session
     return this.createSession();
   }
 
@@ -136,6 +145,26 @@ export class SessionService {
       [`${role}Count`]: increment(-1),
       updatedAt: Date.now(),
     });
+  }
+
+  /** Remove the current player from every lobby session (pre-join cleanup).
+   *  Does NOT bump updatedAt so stale detection remains accurate. */
+  async removePlayerFromAllSessions(): Promise<void> {
+    const uid = this.identity.getToken();
+    const q = query(this.sessionsCol, where('phase', '==', 'lobby'));
+    const snapshot = await getDocs(q);
+
+    for (const docSnap of snapshot.docs) {
+      const session = docSnap.data() as GameSession;
+      if (session.players?.[uid]) {
+        const role = session.players[uid].role as 'hider' | 'hunter';
+        const ref = doc(this.firestore, 'sessions', docSnap.id);
+        await updateDoc(ref, {
+          [`players.${uid}`]: deleteField(),
+          [`${role}Count`]: increment(-1),
+        }).catch(() => {});
+      }
+    }
   }
 
   // \u2500\u2500 UPDATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500

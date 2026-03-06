@@ -56,6 +56,10 @@ export class HudComponent {
     this.gameLoop.getLocalPlayer()?.score ?? 0
   );
 
+  // Hunter death overlay
+  protected readonly hunterDeathActive = this.gameLoop.hunterDeathActive;
+  protected readonly hunterDeathCountdown = this.gameLoop.hunterDeathCountdown;
+
   // Kill-feed
   protected readonly catchFeed = this.gameLoop.catchFeed;
 

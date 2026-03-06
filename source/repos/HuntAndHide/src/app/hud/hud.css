@@ -217,6 +217,57 @@
   }
 }
 
+/* ── Hunter death overlay (Dark Souls) ─────────────────── */
+
+.death-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 8;
+  animation: death-fade-in 0.6s ease-out forwards;
+}
+
+.death-text {
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  color: #b71c1c;
+  text-shadow:
+    0 0 30px rgba(183, 28, 28, 0.8),
+    0 0 60px rgba(183, 28, 28, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.9);
+  animation: death-text-entrance 0.8s ease-out forwards;
+}
+
+.death-countdown {
+  margin-top: 1rem;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: #bdbdbd;
+  opacity: 0;
+  animation: death-sub-fade 0.5s ease-out 0.6s forwards;
+}
+
+@keyframes death-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes death-text-entrance {
+  0%   { opacity: 0; transform: scale(1.6); letter-spacing: 0.5em; }
+  100% { opacity: 1; transform: scale(1);   letter-spacing: 0.25em; }
+}
+
+@keyframes death-sub-fade {
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Last hider standing banner ───────────────────────── */
 
 .last-hider-banner {

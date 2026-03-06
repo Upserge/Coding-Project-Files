@@ -1,6 +1,6 @@
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { GamePhase, RoundMvp, RoundWinner } from '../models/session.model';
-import { HiderState, HunterState, PlayerState, Vec3, HUNTER_STAMINA_MAX, HUNTER_ANIMALS } from '../models/player.model';
+import { HiderState, HunterState, PlayerState, Vec3, HUNTER_STAMINA_MAX, HUNTER_ANIMALS, HUNTER_HUNGER_MS } from '../models/player.model';
 import { HiderService } from './hider.service';
 import { HunterService } from './hunter.service';
 import { InputService } from './input.service';
@@ -72,6 +72,16 @@ export class GameLoopService {
   /** Per-hider survival time in seconds (uid → seconds alive during hunting). */
   private survivalTimes = new Map<string, number>();
 
+  // ── Hunter death / respawn ─────────────────────────────────
+  /** Seconds the "YOU DIED" overlay stays before respawn. */
+  private readonly deathTimerS = 3;
+  /** Starved hunters awaiting respawn (uid → remaining seconds). */
+  private pendingDeaths = new Map<string, number>();
+  /** True while the local hunter is in the death/respawn window. */
+  readonly hunterDeathActive = signal(false);
+  /** Countdown seconds remaining for the local hunter's death overlay. */
+  readonly hunterDeathCountdown = signal(0);
+
   // ── Hit-stop (brief slow-motion on catch) ──────────────────
   private timeScale = 1;
   private hitStopRemaining = 0;
@@ -88,6 +98,9 @@ export class GameLoopService {
     this.hiders.set([]);
     this.hunters.set([]);
     this.pendingCatches.clear();
+    this.pendingDeaths.clear();
+    this.hunterDeathActive.set(false);
+    this.hunterDeathCountdown.set(0);
     this.catchCounts.clear();
     this.catchFeed.set([]);
     this.roundMvp.set(null);
@@ -182,6 +195,7 @@ export class GameLoopService {
     this.tickRoundTimer(delta);
     this.tickHiders(delta, movement, wantsInteract);
     this.tickHunters(delta, movement, wantsSprint);
+    this.processPendingDeaths(delta);
     this.checkCatches();
     this.tickPendingCatches(delta);
     this.checkWinConditions();
@@ -409,7 +423,12 @@ export class GameLoopService {
       const input = this.resolveInput(hunter.uid, localUid, movement, cpuDecision?.movement);
       const { state, result } = this.hunterService.tick(hunter, delta, input, sprint);
 
-      if (result.starved) {
+      if (result.starved && !this.pendingDeaths.has(hunter.uid)) {
+        this.pendingDeaths.set(hunter.uid, this.deathTimerS);
+        if (hunter.uid === localUid) {
+          this.hunterDeathActive.set(true);
+          this.hunterDeathCountdown.set(this.deathTimerS);
+        }
         return { ...state, isAlive: false };
       }
 
@@ -504,6 +523,50 @@ export class GameLoopService {
     }
   }
 
+  // ── Hunter death / respawn processing ──────────────────────
+
+  private processPendingDeaths(delta: number): void {
+    const localUid = this.localPlayerUid();
+    const respawned = new Set<string>();
+
+    for (const [uid, remaining] of this.pendingDeaths) {
+      const t = remaining - delta;
+      if (t <= 0) {
+        respawned.add(uid);
+        this.pendingDeaths.delete(uid);
+        if (uid === localUid) {
+          this.hunterDeathActive.set(false);
+          this.hunterDeathCountdown.set(0);
+        }
+      } else {
+        this.pendingDeaths.set(uid, t);
+        if (uid === localUid) {
+          this.hunterDeathCountdown.set(Math.ceil(t));
+        }
+      }
+    }
+
+    if (respawned.size > 0) {
+      this.hunters.update(hunters =>
+        hunters.map(hunter => {
+          if (!respawned.has(hunter.uid)) return hunter;
+          return this.respawnHunter(hunter);
+        }),
+      );
+    }
+  }
+
+  private respawnHunter(hunter: HunterState): HunterState {
+    const spawnPos = this.collision.ejectFromObstacles({ x: 0, y: 0, z: 0 });
+    return {
+      ...hunter,
+      position: spawnPos,
+      hungerRemainingMs: HUNTER_HUNGER_MS,
+      stamina: HUNTER_STAMINA_MAX,
+      isAlive: true,
+    };
+  }
+
   // ── Conversion ─────────────────────────────────────────────
 
   private convertHiderToHunter(hider: HiderState): void {
@@ -523,13 +586,15 @@ export class GameLoopService {
   private checkWinConditions(): void {
     const aliveHiders = this.hiders().filter(h => h.isAlive);
     const aliveHunters = this.hunters().filter(h => h.isAlive);
+    // Hunters pending respawn still count — don't end the round while any are reviving
+    const huntersEffective = aliveHunters.length + this.pendingDeaths.size;
 
     if (aliveHiders.length === 0) {
       this.stopGame('hunters');
       return;
     }
 
-    if (aliveHunters.length === 0) {
+    if (huntersEffective === 0) {
       this.stopGame('hiders');
     }
   }

@@ -47,6 +47,9 @@ export class MenuComponent {
     this.errorMsg.set('');
     let step = 'init';
     try {
+      step = 'cleanStale';
+      await this.sessionService.removePlayerFromAllSessions();
+
       step = 'findOrCreate';
       const sessionId = await this.sessionService.findOrCreateSession();
 

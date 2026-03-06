@@ -61,6 +61,14 @@
     </div>
   }
 
+  <!-- Hunter death overlay -->
+  @if (hunterDeathActive()) {
+    <div class="death-overlay">
+      <div class="death-text">YOU DIED</div>
+      <div class="death-countdown">Respawning in {{ hunterDeathCountdown() }}...</div>
+    </div>
+  }
+
   <!-- Last hider standing alert -->
   @if (lastHider()) {
     <div class="last-hider-banner">LAST ONE!</div>
