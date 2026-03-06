@@ -329,14 +329,19 @@ export class GameLoopService {
       const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
       const isMoving = input.x !== 0 || input.z !== 0;
 
-      // ── Exit hiding on movement ───────────────────────────
-      if (hider.isHiding && isMoving) {
-        this.hidingService.vacate(hider.uid);
-        hider = { ...hider, isHiding: false, hidingSpotId: null };
+      // ── Resolve hide intent (needed before exit check for CPU hiders) ──
+      const wantsHide = hider.uid === localUid ? localWantsInteract : (cpuDecision?.wantsHide ?? false);
+
+      // ── Exit hiding (local: movement key, CPU: brain no longer wants to hide) ──
+      if (hider.isHiding) {
+        const shouldExit = hider.isCpu ? !wantsHide : isMoving;
+        if (shouldExit) {
+          this.hidingService.vacate(hider.uid);
+          hider = { ...hider, isHiding: false, hidingSpotId: null };
+        }
       }
 
       // ── Attempt to enter a hiding spot (F key / CPU) ───────
-      const wantsHide = hider.uid === localUid ? localWantsInteract : (cpuDecision?.wantsHide ?? false);
       if (wantsHide && !hider.isHiding) {
         const spot = this.hidingService.getNearbyHidingSpot(hider.position);
         if (spot && this.hidingService.occupy(spot.id, hider.uid)) {

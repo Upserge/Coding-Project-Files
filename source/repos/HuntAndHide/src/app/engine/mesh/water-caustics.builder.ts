@@ -41,6 +41,7 @@ export function buildPondCaustics(radius: number): THREE.Mesh {
 
 /** Create a caustic overlay for a rectangular water feature (stream). */
 export function buildStreamCaustics(length: number): THREE.Mesh {
+  resetCausticMaterials();
   const geo = new THREE.PlaneGeometry(1.6, length * 0.9, 1, 1);
   const mat = createCausticMaterial();
   const mesh = new THREE.Mesh(geo, mat);

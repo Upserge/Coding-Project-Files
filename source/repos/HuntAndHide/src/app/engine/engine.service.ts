@@ -308,13 +308,11 @@ export class EngineService implements OnDestroy {
     group.rotation.y = water.rotationY;
     this.scene.add(group);
 
-    // Add caustic overlay
+    // Add caustic overlay as child so it inherits group transform
     const caustic = water.type === 'pond'
       ? buildPondCaustics(water.size)
       : buildStreamCaustics(water.size);
-    caustic.position.copy(group.position);
-    caustic.rotation.y = water.rotationY;
-    this.scene.add(caustic);
+    group.add(caustic);
   }
 
   private buildContactShadows(): void {

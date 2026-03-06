@@ -18,6 +18,7 @@ import { SessionService } from '../services/session.service';
 import { IdentityService } from '../services/identity.service';
 import { InputService } from '../services/input.service';
 import { PlayerService } from '../services/player.service';
+import { LeaderboardService } from '../services/leaderboard.service';
 import { HudComponent } from '../hud/hud';
 import { GameSession, RoundMvp, RoundWinner } from '../models/session.model';
 import { PlayerState, PlayerRole } from '../models/player.model';
@@ -40,6 +41,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private readonly identity = inject(IdentityService);
   private readonly inputService = inject(InputService);
   private readonly playerService = inject(PlayerService);
+  private readonly leaderboardService = inject(LeaderboardService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -50,6 +52,8 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private lobbyStarted = false;
   private gameStarted = false;
   private engineReady = false;
+  private resultRecorded = false;
+  private currentSessionId = '';
 
   // ── Lobby state (signals for template) ─────────────────────
   protected readonly inLobby = signal(true);
@@ -102,6 +106,8 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.sessionSub?.unsubscribe();
     this.lobbyStarted = false;
     this.gameStarted = false;
+    this.resultRecorded = false;
+    this.currentSessionId = sessionId;
     this.inLobby.set(true);
 
     this.sessionSub = this.sessionService.getSession$(sessionId).subscribe({
@@ -139,12 +145,19 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.inputService.detach();
     this.sceneRender.dispose();
     this.engine.dispose();
+    this.cleanupSession();
   }
 
   // ── Per-frame scene sync ───────────────────────────────────
 
   private syncScene(delta: number): void {
     const uid = this.identity.getToken();
+
+    // Detect round end → record result + update Firestore (once)
+    if (this.gameLoop.phase() === 'results' && !this.resultRecorded) {
+      this.resultRecorded = true;
+      this.recordRoundResult();
+    }
 
     // Combine hiders + hunters for player mesh sync
     const allPlayers: PlayerState[] = [
@@ -192,6 +205,34 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.gameLoop.startGame(uid, session.hiderCount, session.hunterCount);
   }
 
+  /** Record game result to Firestore leaderboard and update session phase. */
+  private async recordRoundResult(): Promise<void> {
+    const sessionId = this.currentSessionId;
+    const uid = this.identity.getToken();
+    const username = this.identity.getUsername();
+    if (!username) return; // no leaderboard entry without a username
+
+    const localPlayer = this.gameLoop.getLocalPlayer();
+    const winner = this.gameLoop.roundWinner();
+    if (!localPlayer || !winner) return;
+
+    const won = winner === (localPlayer.role === 'hider' ? 'hiders' : 'hunters');
+
+    try {
+      await this.leaderboardService.recordGameResult(
+        username, localPlayer.score, won, localPlayer.role,
+      );
+    } catch (err) {
+      console.error('[Game] Failed to record leaderboard result:', err);
+    }
+
+    try {
+      await this.sessionService.updateSession(sessionId, { phase: 'results' as any });
+    } catch (err) {
+      console.error('[Game] Failed to update session phase:', err);
+    }
+  }
+
   /** Allow leaving the lobby before game starts. */
   protected async leaveLobby(): Promise<void> {
     const sessionId = this.route.snapshot.paramMap.get('sessionId') ?? '';
@@ -208,6 +249,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   protected async playAgain(): Promise<void> {
     this.isJoining.set(true);
     try {
+      await this.cleanupSession();
       const sessionId = await this.sessionService.findOrCreateSession();
       const session = await firstValueFrom(this.sessionService.getSession$(sessionId));
       const hiderCount = session?.hiderCount ?? 0;
@@ -236,6 +278,15 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   /** Leave to main menu from results screen. */
   protected async leaveToMenu(): Promise<void> {
+    await this.cleanupSession();
     await this.router.navigate(['/']);
+  }
+
+  /** Remove the Firestore session document if the game is over. */
+  private async cleanupSession(): Promise<void> {
+    if (!this.currentSessionId) return;
+    try {
+      await this.sessionService.deleteSession(this.currentSessionId);
+    } catch { /* another player may have already deleted it */ }
   }
 }
