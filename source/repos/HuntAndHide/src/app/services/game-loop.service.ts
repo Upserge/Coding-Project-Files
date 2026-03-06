@@ -504,7 +504,9 @@ export class GameLoopService {
   private convertHiderToHunter(hider: HiderState): void {
     this.hidingService.vacate(hider.uid);
     const animal = HUNTER_ANIMALS[Math.floor(Math.random() * HUNTER_ANIMALS.length)];
-    const hunter = this.playerService.createHunterState(animal, hider.position);
+    // Eject from any obstacle the hider was hiding inside
+    const spawnPos = this.collision.ejectFromObstacles(hider.position);
+    const hunter = this.playerService.createHunterState(animal, spawnPos);
     hunter.uid = hider.uid;
     hunter.displayName = hider.displayName;
     hunter.isCpu = hider.isCpu;

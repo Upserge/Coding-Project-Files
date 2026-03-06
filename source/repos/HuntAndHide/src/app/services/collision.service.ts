@@ -90,4 +90,43 @@ export class CollisionService {
     }
     return false;
   }
+
+  /**
+   * Push a position outside any obstacle it overlaps (for hunters spawning
+   * inside hiding-spot obstacles after conversion). Finds the nearest edge
+   * and ejects along the shortest axis.
+   */
+  ejectFromObstacles(pos: Vec3, radius = this.playerRadius): Vec3 {
+    const map = this.mapService.getMap('jungle');
+    let out = { ...pos };
+
+    for (const obs of map.obstacles) {
+      const cfg = OBSTACLE_CONFIGS[obs.type];
+      const halfX = cfg.size.x / 2 + radius;
+      const halfZ = cfg.size.z / 2 + radius;
+
+      const dx = out.x - obs.position.x;
+      const dz = out.z - obs.position.z;
+
+      if (Math.abs(dx) < halfX && Math.abs(dz) < halfZ) {
+        // Overlap — push out along the shortest escape axis
+        const overlapX = halfX - Math.abs(dx);
+        const overlapZ = halfZ - Math.abs(dz);
+
+        if (overlapX < overlapZ) {
+          out = { ...out, x: obs.position.x + Math.sign(dx || 1) * halfX };
+        } else {
+          out = { ...out, z: obs.position.z + Math.sign(dz || 1) * halfZ };
+        }
+      }
+    }
+
+    // Clamp back into bounds
+    const halfW = map.width / 2;
+    const halfD = map.depth / 2;
+    out.x = Math.max(-halfW, Math.min(halfW, out.x));
+    out.z = Math.max(-halfD, Math.min(halfD, out.z));
+
+    return out;
+  }
 }
