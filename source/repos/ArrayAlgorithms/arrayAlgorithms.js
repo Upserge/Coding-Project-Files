@@ -15,7 +15,7 @@ reverseArray([1, 2, 3, 4]);
 //2️⃣ Replace a value at a given index
 // Input: ([10, 20, 30], index = 1, value = 99) -- Output: [10, 99, 30]
 function replaceValue(inputArray, index, value) {
-    inputArray[index] = value; // is this a joke
+    inputArray[index] = value;
     return inputArray;
 }
 replaceValue([10, 20, 30], 1, 99);
