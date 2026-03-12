@@ -25,19 +25,20 @@ export function buildHiderMesh(
 ): void {
   const mat = createBodyMatcap(color);
   const bellyMat = createSurfaceMatcap(belly);
-
-  switch (animal) {
-    case 'fox':       buildFox(group, mat, bellyMat, color); break;
-    case 'rabbit':    buildRabbit(group, mat, bellyMat, color); break;
-    case 'deer':      buildDeer(group, mat, bellyMat, color); break;
-    case 'frog':      buildFrog(group, mat, bellyMat, color); break;
-    case 'owl':       buildOwl(group, mat, bellyMat, color); break;
-    case 'snake':     buildSnake(group, mat, bellyMat, color); break;
-    case 'pig':       buildPig(group, mat, bellyMat, color); break;
-    case 'chameleon':
-    default:          buildChameleon(group, mat, bellyMat, color); break;
-  }
+  const buildAnimal = HIDER_BUILDERS[animal] ?? buildChameleon;
+  buildAnimal(group, mat, bellyMat, color);
 }
+
+const HIDER_BUILDERS: Record<string, typeof buildFox> = {
+  fox: buildFox,
+  rabbit: buildRabbit,
+  deer: buildDeer,
+  frog: buildFrog,
+  owl: buildOwl,
+  snake: buildSnake,
+  pig: buildPig,
+  chameleon: buildChameleon,
+};
 
 // ── Fox ─────────────────────────────────────────────────────
 

@@ -11,6 +11,11 @@
   overflow: hidden;
 }
 
+.game-viewport:fullscreen {
+  width: 100vw;
+  height: 100vh;
+}
+
 canvas {
   display: block;
   width: 100%;

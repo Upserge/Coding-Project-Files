@@ -18,6 +18,41 @@
   align-items: center;
 }
 
+.hud-top-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+.fullscreen-toggle {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #cfcfcf;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+  opacity: 0.72;
+}
+
+.fullscreen-toggle:hover {
+  opacity: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
 .phase-badge {
   background: rgba(0, 0, 0, 0.5);
   padding: 0.3rem 0.75rem;

@@ -33,42 +33,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('sessionId') ?? '';
     this.sessionId.set(id);
-
-    this.sub = this.sessionService.getSession$(id).subscribe(session => {
-      if (!session) return;
-      this.session.set(session);
-
-      const playerMap = session.players ?? {};
-      const playerList = Object.values(playerMap).filter(Boolean) as PlayerState[];
-      this.players.set(playerList);
-
-      const localToken = this.identity.getToken();
-      const hostPresent = playerList.some(p => p.uid === session.hostUid);
-
-      // Auto-promote: if host left the player list, claim host
-      if (!hostPresent && playerList.some(p => p.uid === localToken)) {
-        this.sessionService.updateSession(id, { hostUid: localToken }).catch(() => {});
-      }
-
-      // Ghost detection: if host exists in list but hasn't heartbeated, they're gone
-      const isLocalHost = session.hostUid === localToken;
-      if (!isLocalHost && !this.ghostCleanupDone) {
-        const lastActivity = Date.now() - (session.updatedAt ?? session.createdAt ?? 0);
-        if (lastActivity > LobbyComponent.GHOST_THRESHOLD_MS) {
-          this.ghostCleanupDone = true;
-          this.cleanGhostsAndPromote(id, playerList, localToken);
-        }
-      }
-
-      this.isHost.set(session.hostUid === localToken);
-
-      // Host heartbeat: keep updatedAt fresh so others know we're alive
-      if (this.isHost() && !this.heartbeatTimer) {
-        this.startHeartbeat(id);
-      } else if (!this.isHost()) {
-        this.stopHeartbeat();
-      }
-    });
+    this.sub = this.sessionService.getSession$(id).subscribe(session => this.handleSessionUpdate(id, session));
   }
 
   ngOnDestroy(): void {
@@ -85,9 +50,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   async leaveSession(): Promise<void> {
     const uid = this.identity.getToken();
     const player = this.players().find(p => p.uid === uid);
-    if (player) {
-      await this.sessionService.removePlayer(this.sessionId(), uid, player.role);
-    }
+    await this.removeLocalPlayer(player, uid);
     await this.router.navigate(['/']);
   }
 
@@ -99,10 +62,9 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   private stopHeartbeat(): void {
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = undefined;
-    }
+    if (!this.heartbeatTimer) return;
+    clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = undefined;
   }
 
   private async cleanGhostsAndPromote(
@@ -111,10 +73,73 @@ export class LobbyComponent implements OnInit, OnDestroy {
     localToken: string,
   ): Promise<void> {
     for (const p of players) {
-      if (p.uid !== localToken) {
-        await this.sessionService.removePlayer(sessionId, p.uid, p.role).catch(() => {});
-      }
+      if (p.uid === localToken) continue;
+      await this.sessionService.removePlayer(sessionId, p.uid, p.role).catch(() => {});
     }
     await this.sessionService.updateSession(sessionId, { hostUid: localToken }).catch(() => {});
+  }
+
+  private handleSessionUpdate(sessionId: string, session: GameSession | undefined): void {
+    if (!session) return;
+    const playerList = this.syncSessionSignals(session);
+    const localToken = this.identity.getToken();
+    this.promoteMissingHost(sessionId, session, playerList, localToken);
+    this.cleanupGhostHost(sessionId, session, playerList, localToken);
+    this.syncHostState(session, localToken);
+    this.syncHeartbeat(sessionId);
+  }
+
+  private syncSessionSignals(session: GameSession): PlayerState[] {
+    this.session.set(session);
+    const playerList = Object.values(session.players ?? {}).filter(Boolean) as PlayerState[];
+    this.players.set(playerList);
+    return playerList;
+  }
+
+  private promoteMissingHost(
+    sessionId: string,
+    session: GameSession,
+    players: PlayerState[],
+    localToken: string,
+  ): void {
+    if (players.some(p => p.uid === session.hostUid)) return;
+    if (!players.some(p => p.uid === localToken)) return;
+    this.sessionService.updateSession(sessionId, { hostUid: localToken }).catch(() => {});
+  }
+
+  private cleanupGhostHost(
+    sessionId: string,
+    session: GameSession,
+    players: PlayerState[],
+    localToken: string,
+  ): void {
+    if (this.isLocalHost(session, localToken)) return;
+    if (this.ghostCleanupDone) return;
+    if (!this.isGhostSession(session)) return;
+    this.ghostCleanupDone = true;
+    this.cleanGhostsAndPromote(sessionId, players, localToken);
+  }
+
+  private syncHostState(session: GameSession, localToken: string): void {
+    this.isHost.set(this.isLocalHost(session, localToken));
+  }
+
+  private syncHeartbeat(sessionId: string): void {
+    if (this.isHost()) return this.startHeartbeat(sessionId);
+    this.stopHeartbeat();
+  }
+
+  private isLocalHost(session: GameSession, localToken: string): boolean {
+    return session.hostUid === localToken;
+  }
+
+  private isGhostSession(session: GameSession): boolean {
+    const lastActivity = Date.now() - (session.updatedAt ?? session.createdAt ?? 0);
+    return lastActivity > LobbyComponent.GHOST_THRESHOLD_MS;
+  }
+
+  private async removeLocalPlayer(player: PlayerState | undefined, uid: string): Promise<void> {
+    if (!player) return;
+    await this.sessionService.removePlayer(this.sessionId(), uid, player.role);
   }
 }

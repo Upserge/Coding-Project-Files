@@ -99,33 +99,30 @@ function getHunterProportions(animal: string): {
   earScale: number;
   armScale: { x: number; y: number; z: number };
 } {
-  switch (animal) {
-    case 'wolf':
-      // Leaner, taller build — narrow shoulders, upright
-      return {
-        torsoScale: { x: 0.9, y: 1.25, z: 0.85 },
-        headScale:  { x: 0.95, y: 1.0, z: 1.05 },
-        earScale: 1.15,
-        armScale: { x: 0.7, y: 1.3, z: 0.7 },
-      };
-    case 'lion':
-      // Stockier, broader build — wide chest, rounder
-      return {
-        torsoScale: { x: 1.15, y: 1.05, z: 0.95 },
-        headScale:  { x: 1.1, y: 1.0, z: 0.95 },
-        earScale: 0.85,
-        armScale: { x: 0.95, y: 1.1, z: 0.95 },
-      };
-    case 'panther':
-    default:
-      // Sleeker, elongated build — longer body, slim
-      return {
-        torsoScale: { x: 0.92, y: 1.12, z: 1.05 },
-        headScale:  { x: 0.95, y: 0.95, z: 1.08 },
-        earScale: 1.0,
-        armScale: { x: 0.75, y: 1.2, z: 0.8 },
-      };
-  }
+  const defaultProportions = {
+    torsoScale: { x: 0.92, y: 1.12, z: 1.05 },
+    headScale: { x: 0.95, y: 0.95, z: 1.08 },
+    earScale: 1.0,
+    armScale: { x: 0.75, y: 1.2, z: 0.8 },
+  };
+
+  const proportionsByAnimal: Record<string, typeof defaultProportions> = {
+    wolf: {
+      torsoScale: { x: 0.9, y: 1.25, z: 0.85 },
+      headScale: { x: 0.95, y: 1.0, z: 1.05 },
+      earScale: 1.15,
+      armScale: { x: 0.7, y: 1.3, z: 0.7 },
+    },
+    lion: {
+      torsoScale: { x: 1.15, y: 1.05, z: 0.95 },
+      headScale: { x: 1.1, y: 1.0, z: 0.95 },
+      earScale: 0.85,
+      armScale: { x: 0.95, y: 1.1, z: 0.95 },
+    },
+    panther: defaultProportions,
+  };
+
+  return proportionsByAnimal[animal] ?? defaultProportions;
 }
 
 function attachHunterTail(
@@ -133,48 +130,8 @@ function attachHunterTail(
   mat: THREE.Material,
   animal: string,
 ): void {
-  switch (animal) {
-    case 'wolf': {
-      const tailPivot = createTailPivot(bodyPivot, -0.1, -0.45, -0.7);
-      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 0.5, 12), mat);
-      tailPivot.add(tail);
-      break;
-    }
-    case 'lion': {
-      const tailPivot = createTailPivot(bodyPivot, -0.05, -0.48, -0.5);
-      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.55, 12), mat);
-      tailPivot.add(tail);
-      const poof = new THREE.Mesh(
-        new THREE.SphereGeometry(0.1, 12, 12),
-        createSurfaceMatcap(0xb08020),
-      );
-      poof.name = PART_NAMES.tailTip;
-      poof.position.set(0, -0.22, -0.22);
-      tailPivot.add(poof);
-      const mane = new THREE.Mesh(
-        new THREE.TorusGeometry(0.42, 0.12, 12, 16),
-        createSurfaceMatcap(0xb08020),
-      );
-      mane.position.set(0, 0.8, 0);
-      mane.rotation.x = Math.PI / 2;
-      bodyPivot.add(mane);
-      break;
-    }
-    case 'panther':
-    default: {
-      const tailPivot = createTailPivot(bodyPivot, -0.1, -0.5, -0.45);
-      const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.6, 12), mat);
-      tailPivot.add(tail);
-      const curl = new THREE.Mesh(
-        new THREE.TorusGeometry(0.06, 0.03, 8, 12, Math.PI),
-        mat,
-      );
-      curl.name = PART_NAMES.tailTip;
-      curl.position.set(0, -0.2, -0.25);
-      tailPivot.add(curl);
-      break;
-    }
-  }
+  const attachTail = HUNTER_TAIL_ATTACHERS[animal] ?? attachPantherTail;
+  attachTail(bodyPivot, mat);
 }
 
 // ── Accent detail helpers ──────────────────────────────────
@@ -194,11 +151,59 @@ function attachFangs(head: THREE.Group): void {
 function attachAnimalAccent(
   bodyPivot: THREE.Group, animal: string,
 ): void {
-  switch (animal) {
-    case 'lion':    attachLionChestTuft(bodyPivot); break;
-    case 'panther': attachPantherSpots(bodyPivot);  break;
-    default: break;
-  }
+  const attachAccent = HUNTER_ACCENT_ATTACHERS[animal];
+  if (!attachAccent) return;
+  attachAccent(bodyPivot);
+}
+
+const HUNTER_TAIL_ATTACHERS: Record<string, (body: THREE.Group, mat: THREE.Material) => void> = {
+  wolf: attachWolfTail,
+  lion: attachLionTail,
+  panther: attachPantherTail,
+};
+
+const HUNTER_ACCENT_ATTACHERS: Partial<Record<string, (body: THREE.Group) => void>> = {
+  lion: attachLionChestTuft,
+  panther: attachPantherSpots,
+};
+
+function attachWolfTail(bodyPivot: THREE.Group, mat: THREE.Material): void {
+  const tailPivot = createTailPivot(bodyPivot, -0.1, -0.45, -0.7);
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 0.5, 12), mat);
+  tailPivot.add(tail);
+}
+
+function attachLionTail(bodyPivot: THREE.Group, mat: THREE.Material): void {
+  const tailPivot = createTailPivot(bodyPivot, -0.05, -0.48, -0.5);
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.55, 12), mat);
+  tailPivot.add(tail);
+  const poof = new THREE.Mesh(
+    new THREE.SphereGeometry(0.1, 12, 12),
+    createSurfaceMatcap(0xb08020),
+  );
+  poof.name = PART_NAMES.tailTip;
+  poof.position.set(0, -0.22, -0.22);
+  tailPivot.add(poof);
+  const mane = new THREE.Mesh(
+    new THREE.TorusGeometry(0.42, 0.12, 12, 16),
+    createSurfaceMatcap(0xb08020),
+  );
+  mane.position.set(0, 0.8, 0);
+  mane.rotation.x = Math.PI / 2;
+  bodyPivot.add(mane);
+}
+
+function attachPantherTail(bodyPivot: THREE.Group, mat: THREE.Material): void {
+  const tailPivot = createTailPivot(bodyPivot, -0.1, -0.5, -0.45);
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 0.6, 12), mat);
+  tailPivot.add(tail);
+  const curl = new THREE.Mesh(
+    new THREE.TorusGeometry(0.06, 0.03, 8, 12, Math.PI),
+    mat,
+  );
+  curl.name = PART_NAMES.tailTip;
+  curl.position.set(0, -0.2, -0.25);
+  tailPivot.add(curl);
 }
 
 function attachLionChestTuft(body: THREE.Group): void {

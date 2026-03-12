@@ -7,6 +7,7 @@ import {
   inject,
   signal,
   computed,
+  HostListener,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UpperCasePipe } from '@angular/common';
@@ -19,6 +20,7 @@ import { IdentityService } from '../services/identity.service';
 import { InputService } from '../services/input.service';
 import { PlayerService } from '../services/player.service';
 import { LeaderboardService } from '../services/leaderboard.service';
+import { FullscreenService } from '../services/fullscreen.service';
 import { HudComponent } from '../hud/hud';
 import { GameSession, RoundMvp, RoundWinner } from '../models/session.model';
 import { PlayerState, PlayerRole } from '../models/player.model';
@@ -42,10 +44,12 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private readonly inputService = inject(InputService);
   private readonly playerService = inject(PlayerService);
   private readonly leaderboardService = inject(LeaderboardService);
+  private readonly fullscreen = inject(FullscreenService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
   readonly canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('gameCanvas');
+  readonly viewportRef = viewChild.required<ElementRef<HTMLDivElement>>('gameViewport');
   private resizeObserver!: ResizeObserver;
   private sessionSub?: Subscription;
   private paramSub?: Subscription;
@@ -64,6 +68,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   protected readonly showResults = computed(() => this.gameLoop.phase() === 'results');
   protected readonly roundWinner = this.gameLoop.roundWinner;
   protected readonly roundMvp = this.gameLoop.roundMvp;
+  protected readonly isFullscreen = this.fullscreen.isActive;
   protected readonly roundPlayers = computed(() => {
     const all: PlayerState[] = [...this.gameLoop.hiders(), ...this.gameLoop.hunters()];
     return [...all].sort((a, b) => b.score - a.score);
@@ -78,112 +83,48 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   });
 
   async ngAfterViewInit(): Promise<void> {
+    this.fullscreen.registerTarget(this.viewportRef().nativeElement);
     const canvas = this.canvasRef().nativeElement;
-    try {
-      await this.engine.init(canvas);
-      this.engine.resize(canvas.clientWidth, canvas.clientHeight);
-      this.engineReady = true;
-    } catch (err) {
-      console.error('[Game] Engine init failed:', err);
-    }
+    await this.initEngine(canvas);
+    this.observeViewportResize(canvas);
+    this.subscribeToRouteParams();
+  }
 
-    this.resizeObserver = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      this.engine.resize(width, height);
-    });
-    this.resizeObserver.observe(canvas.parentElement!);
-
-    // React to route param changes — handles initial load AND Play Again re-entry
-    this.paramSub = this.route.paramMap.subscribe(params => {
-      const sessionId = params.get('sessionId') ?? '';
-      this.initSession(sessionId);
-    });
+  @HostListener('window:keydown', ['$event'])
+  protected onWindowKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'F11') return;
+    event.preventDefault();
+    this.toggleFullscreen();
   }
 
   /** Initialize (or reinitialize) the session subscription and game state. */
   private initSession(sessionId: string): void {
-    // Tear down previous session if any
-    this.sessionSub?.unsubscribe();
-    this.lobbyStarted = false;
-    this.gameStarted = false;
-    this.resultRecorded = false;
-    this.currentSessionId = sessionId;
-    this.inLobby.set(true);
-
+    this.resetSessionState(sessionId);
     this.sessionSub = this.sessionService.getSession$(sessionId).subscribe({
-      next: session => {
-        if (!session) return;
-
-        // Start lobby mode immediately so the player can roam
-        if (!this.lobbyStarted) {
-          this.lobbyStarted = true;
-          const uid = this.identity.getToken();
-          this.inputService.attach();
-
-          // One-time scene render + tick wiring (persists across sessions)
-          if (this.engineReady && !this.engine.onTick) {
-            this.sceneRender.init(this.engine.getScene());
-            this.engine.onTick = (delta: number) => {
-              this.gameLoop.tick(delta);
-              this.syncScene(delta);
-            };
-          }
-
-          this.gameLoop.startLobby(uid, session.hiderCount, session.hunterCount);
-        }
-
-        this.onSessionUpdate(session);
-      },
+      next: session => this.handleSessionSnapshot(session),
       error: err => console.error('[Game] Session subscription error:', err),
     });
   }
 
   ngOnDestroy(): void {
-    this.paramSub?.unsubscribe();
-    this.sessionSub?.unsubscribe();
-    this.resizeObserver?.disconnect();
-    this.inputService.detach();
-    this.sceneRender.dispose();
-    this.engine.dispose();
+    this.disposeViewResources();
     this.cleanupSession();
+  }
+
+  protected toggleFullscreen(): void {
+    this.fullscreen.toggle();
   }
 
   // ── Per-frame scene sync ───────────────────────────────────
 
   private syncScene(delta: number): void {
     const uid = this.identity.getToken();
-
-    // Detect round end → record result + update Firestore (once)
-    if (this.gameLoop.phase() === 'results' && !this.resultRecorded) {
-      this.resultRecorded = true;
-      this.recordRoundResult();
-    }
-
-    // Combine hiders + hunters for player mesh sync
-    const allPlayers: PlayerState[] = [
-      ...this.gameLoop.hiders(),
-      ...this.gameLoop.hunters(),
-    ];
-    const localRole = this.gameLoop.getLocalPlayer()?.role ?? 'hider';
-    this.sceneRender.syncPlayers(allPlayers, uid, delta, localRole);
-
-    // Pass nearby hiding spot position for world-space prompt
+    this.recordRoundResultIfNeeded();
+    this.syncPlayerMeshes(uid, delta);
     this.sceneRender.setHideSpot(this.gameLoop.nearHidingSpot());
-
-    // Spawn survival bonus floaters (signal is consumed once per award)
-    const bonusPositions = this.gameLoop.survivalBonusPositions();
-    if (bonusPositions.length > 0) {
-      this.sceneRender.showSurvivalBonus(bonusPositions);
-      this.gameLoop.survivalBonusPositions.set([]);
-    }
-
+    this.syncSurvivalBonusFloaters();
     this.sceneRender.tickParticles(delta);
-
-    // Camera follows local player
-    const localPlayer = this.gameLoop.getLocalPlayer();
-    if (localPlayer) {
-      this.engine.followTarget(localPlayer.position, delta);
-    }
+    this.followLocalPlayer(delta);
   }
 
   private onSessionUpdate(session: GameSession): void {
@@ -208,7 +149,6 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   /** Record game result to Firestore leaderboard and update session phase. */
   private async recordRoundResult(): Promise<void> {
     const sessionId = this.currentSessionId;
-    const uid = this.identity.getToken();
     const username = this.identity.getUsername();
     if (!username) return; // no leaderboard entry without a username
 
@@ -217,31 +157,16 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     if (!localPlayer || !winner) return;
 
     const won = winner === (localPlayer.role === 'hider' ? 'hiders' : 'hunters');
-
-    try {
-      await this.leaderboardService.recordGameResult(
-        username, localPlayer.score, won, localPlayer.role,
-      );
-    } catch (err) {
-      console.error('[Game] Failed to record leaderboard result:', err);
-    }
-
-    try {
-      await this.sessionService.updateSession(sessionId, { phase: 'results' as any });
-    } catch (err) {
-      console.error('[Game] Failed to update session phase:', err);
-    }
+    await this.recordLeaderboardResult(username, localPlayer, won);
+    await this.updateResultsPhase(sessionId);
   }
 
   /** Allow leaving the lobby before game starts. */
   protected async leaveLobby(): Promise<void> {
     const sessionId = this.route.snapshot.paramMap.get('sessionId') ?? '';
     const uid = this.identity.getToken();
-    try {
-      await this.sessionService.removePlayer(sessionId, uid, 'hider');
-    } catch {
-      try { await this.sessionService.removePlayer(sessionId, uid, 'hunter'); } catch {}
-    }
+    await this.removeLobbyPlayer(sessionId, uid, 'hider');
+    await this.removeLobbyPlayer(sessionId, uid, 'hunter');
     await this.router.navigate(['/']);
   }
 
@@ -249,28 +174,11 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   protected async playAgain(): Promise<void> {
     this.isJoining.set(true);
     try {
-      await this.cleanupSession();
-      const sessionId = await this.sessionService.findOrCreateSession();
-      const session = await firstValueFrom(this.sessionService.getSession$(sessionId));
-      const hiderCount = session?.hiderCount ?? 0;
-      const hunterCount = session?.hunterCount ?? 0;
-      const takenAnimals = Object.values(session?.players ?? {})
-        .filter(Boolean)
-        .map((p: any) => p.animal);
-
-      const role = this.playerService.assignRole(hiderCount, hunterCount);
-      const animal = this.playerService.assignAnimal(role, takenAnimals);
-      const player = this.playerService.createPlayerState(role, animal, { x: 0, y: 0, z: 0 });
-      await this.sessionService.joinSession(sessionId, player);
-
-      // Auto-start the game (equivalent to the lobby host pressing Start)
-      await this.sessionService.updateSession(sessionId, { phase: 'hunting' });
-
-      // Navigation updates route params → paramMap fires → initSession reinitializes
+      const sessionId = await this.joinReplaySession();
+      await this.startReplaySession(sessionId);
       await this.router.navigate(['/game', sessionId]);
     } catch (err) {
-      console.error('[PlayAgain] Failed:', err);
-      await this.router.navigate(['/']);
+      await this.handlePlayAgainFailure(err);
     } finally {
       this.isJoining.set(false);
     }
@@ -288,5 +196,160 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     try {
       await this.sessionService.deleteSession(this.currentSessionId);
     } catch { /* another player may have already deleted it */ }
+  }
+
+  private async initEngine(canvas: HTMLCanvasElement): Promise<void> {
+    try {
+      await this.engine.init(canvas);
+      this.engine.resize(canvas.clientWidth, canvas.clientHeight);
+      this.engineReady = true;
+    } catch (err) {
+      console.error('[Game] Engine init failed:', err);
+    }
+  }
+
+  private observeViewportResize(canvas: HTMLCanvasElement): void {
+    this.resizeObserver = new ResizeObserver(([entry]) => this.resizeFromEntry(entry));
+    this.resizeObserver.observe(canvas.parentElement!);
+  }
+
+  private resizeFromEntry(entry: ResizeObserverEntry): void {
+    const { width, height } = entry.contentRect;
+    this.engine.resize(width, height);
+  }
+
+  private subscribeToRouteParams(): void {
+    this.paramSub = this.route.paramMap.subscribe(params => this.initSession(this.readSessionId(params)));
+  }
+
+  private readSessionId(params: any): string {
+    return params.get('sessionId') ?? '';
+  }
+
+  private resetSessionState(sessionId: string): void {
+    this.sessionSub?.unsubscribe();
+    this.lobbyStarted = false;
+    this.gameStarted = false;
+    this.resultRecorded = false;
+    this.currentSessionId = sessionId;
+    this.inLobby.set(true);
+  }
+
+  private handleSessionSnapshot(session: GameSession | undefined): void {
+    if (!session) return;
+    this.startLobbyIfNeeded(session);
+    this.onSessionUpdate(session);
+  }
+
+  private startLobbyIfNeeded(session: GameSession): void {
+    if (this.lobbyStarted) return;
+    this.lobbyStarted = true;
+    this.inputService.attach();
+    this.initSceneTickIfNeeded();
+    this.gameLoop.startLobby(this.identity.getToken(), session.hiderCount, session.hunterCount);
+  }
+
+  private initSceneTickIfNeeded(): void {
+    if (!this.engineReady) return;
+    if (this.engine.onTick) return;
+    this.sceneRender.init(this.engine.getScene());
+    this.engine.onTick = (delta: number) => this.tickScene(delta);
+  }
+
+  private tickScene(delta: number): void {
+    this.gameLoop.tick(delta);
+    this.syncScene(delta);
+  }
+
+  private disposeViewResources(): void {
+    this.paramSub?.unsubscribe();
+    this.sessionSub?.unsubscribe();
+    this.resizeObserver?.disconnect();
+    this.inputService.detach();
+    this.sceneRender.dispose();
+    this.engine.dispose();
+  }
+
+  private recordRoundResultIfNeeded(): void {
+    if (this.gameLoop.phase() !== 'results') return;
+    if (this.resultRecorded) return;
+    this.resultRecorded = true;
+    this.recordRoundResult();
+  }
+
+  private syncPlayerMeshes(uid: string, delta: number): void {
+    const allPlayers = [...this.gameLoop.hiders(), ...this.gameLoop.hunters()];
+    const localRole = this.gameLoop.getLocalPlayer()?.role ?? 'hider';
+    this.sceneRender.syncPlayers(allPlayers, uid, delta, localRole);
+  }
+
+  private syncSurvivalBonusFloaters(): void {
+    const bonusPositions = this.gameLoop.survivalBonusPositions();
+    if (!bonusPositions.length) return;
+    this.sceneRender.showSurvivalBonus(bonusPositions);
+    this.gameLoop.survivalBonusPositions.set([]);
+  }
+
+  private followLocalPlayer(delta: number): void {
+    const localPlayer = this.gameLoop.getLocalPlayer();
+    if (!localPlayer) return;
+    this.engine.followTarget(localPlayer.position, delta);
+  }
+
+  private async recordLeaderboardResult(
+    username: string,
+    localPlayer: PlayerState,
+    won: boolean,
+  ): Promise<void> {
+    try {
+      await this.leaderboardService.recordGameResult(username, localPlayer.score, won, localPlayer.role);
+    } catch (err) {
+      console.error('[Game] Failed to record leaderboard result:', err);
+    }
+  }
+
+  private async updateResultsPhase(sessionId: string): Promise<void> {
+    try {
+      await this.sessionService.updateSession(sessionId, { phase: 'results' as any });
+    } catch (err) {
+      console.error('[Game] Failed to update session phase:', err);
+    }
+  }
+
+  private async removeLobbyPlayer(
+    sessionId: string,
+    uid: string,
+    role: 'hider' | 'hunter',
+  ): Promise<void> {
+    try {
+      await this.sessionService.removePlayer(sessionId, uid, role);
+    } catch {}
+  }
+
+  private async joinReplaySession(): Promise<string> {
+    await this.cleanupSession();
+    const sessionId = await this.sessionService.findOrCreateSession();
+    const session = await firstValueFrom(this.sessionService.getSession$(sessionId));
+    const player = this.buildReplayPlayer(session);
+      await this.sessionService.joinSession(sessionId, player);
+    return sessionId;
+  }
+
+  private buildReplayPlayer(session: GameSession | undefined): PlayerState {
+    const hiderCount = session?.hiderCount ?? 0;
+    const hunterCount = session?.hunterCount ?? 0;
+    const takenAnimals = Object.values(session?.players ?? {}).filter(Boolean).map((p: any) => p.animal);
+    const role = this.playerService.assignRole(hiderCount, hunterCount);
+    const animal = this.playerService.assignAnimal(role, takenAnimals);
+    return this.playerService.createPlayerState(role, animal, { x: 0, y: 0, z: 0 });
+  }
+
+  private async startReplaySession(sessionId: string): Promise<void> {
+    await this.sessionService.updateSession(sessionId, { phase: 'hunting' });
+  }
+
+  private async handlePlayAgainFailure(err: unknown): Promise<void> {
+    console.error('[PlayAgain] Failed:', err);
+    await this.router.navigate(['/']);
   }
 }

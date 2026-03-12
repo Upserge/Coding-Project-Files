@@ -1,4 +1,4 @@
-<div class="game-viewport">
+<div class="game-viewport" #gameViewport>
   <canvas #gameCanvas></canvas>
 
   @if (inLobby()) {
@@ -9,7 +9,10 @@
     </div>
   }
 
-  <app-hud />
+  <app-hud
+    [isFullscreen]="isFullscreen()"
+    (toggleFullscreenRequested)="toggleFullscreen()"
+  />
 
   <!-- Round-results overlay ─────────────────────────────── -->
   @if (showResults()) {

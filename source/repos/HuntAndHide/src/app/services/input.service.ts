@@ -1,6 +1,20 @@
 import { Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Vec3 } from '../models/player.model';
 
+type MovementAxis = 'x' | 'z';
+type MovementBinding = {
+  codes: readonly string[];
+  axis: MovementAxis;
+  delta: number;
+};
+
+const MOVE_BINDINGS: readonly MovementBinding[] = [
+  { codes: ['KeyW', 'ArrowUp'], axis: 'z', delta: -1 },
+  { codes: ['KeyS', 'ArrowDown'], axis: 'z', delta: 1 },
+  { codes: ['KeyA', 'ArrowLeft'], axis: 'x', delta: -1 },
+  { codes: ['KeyD', 'ArrowRight'], axis: 'x', delta: 1 },
+];
+
 /**
  * InputService captures keyboard state every frame and exposes
  * a normalized movement vector + sprint state. Runs outside Angular
@@ -46,22 +60,7 @@ export class InputService implements OnDestroy {
 
   /** Returns a unit-length (or zero) movement vector in the XZ plane. */
   getMovementVector(): Vec3 {
-    let x = 0;
-    let z = 0;
-
-    if (this.keysDown.has('KeyW') || this.keysDown.has('ArrowUp'))    z -= 1;
-    if (this.keysDown.has('KeyS') || this.keysDown.has('ArrowDown'))  z += 1;
-    if (this.keysDown.has('KeyA') || this.keysDown.has('ArrowLeft'))  x -= 1;
-    if (this.keysDown.has('KeyD') || this.keysDown.has('ArrowRight')) x += 1;
-
-    // Normalize so diagonals aren't faster
-    const length = Math.sqrt(x * x + z * z);
-    if (length > 0) {
-      x /= length;
-      z /= length;
-    }
-
-    return { x, y: 0, z };
+    return this.normalizeVector(this.readMovementVector());
   }
 
   isMoving(): boolean {
@@ -78,21 +77,44 @@ export class InputService implements OnDestroy {
 
   /** Consume a one-shot F-key press (returns true once per press). */
   consumeInteract(): boolean {
-    if (this._interactPressed) {
-      this._interactPressed = false;
-      return true;
-    }
-    return false;
+    if (!this._interactPressed) return false;
+    this._interactPressed = false;
+    return true;
   }
 
   // ── Event handlers ─────────────────────────────────────────
 
   private onKeyDown(e: KeyboardEvent): void {
     this.keysDown.add(e.code);
-    if (e.code === 'KeyF') this._interactPressed = true;
+    this._interactPressed ||= e.code === 'KeyF';
   }
 
   private onKeyUp(e: KeyboardEvent): void {
     this.keysDown.delete(e.code);
+  }
+
+  private readMovementVector(): Vec3 {
+    return MOVE_BINDINGS.reduce(
+      (vector: Vec3, binding: MovementBinding) => this.applyMovementBinding(vector, binding),
+      { x: 0, y: 0, z: 0 },
+    );
+  }
+
+  private applyMovementBinding(
+    vector: Vec3,
+    binding: MovementBinding,
+  ): Vec3 {
+    const active = binding.codes.some((code: string) => this.keysDown.has(code));
+    return active ? this.offsetVector(vector, binding.axis, binding.delta) : vector;
+  }
+
+  private offsetVector(vector: Vec3, axis: MovementAxis, delta: number): Vec3 {
+    return { ...vector, [axis]: vector[axis] + delta };
+  }
+
+  private normalizeVector(vector: Vec3): Vec3 {
+    const length = Math.sqrt(vector.x * vector.x + vector.z * vector.z);
+    if (!length) return vector;
+    return { x: vector.x / length, y: 0, z: vector.z / length };
   }
 }

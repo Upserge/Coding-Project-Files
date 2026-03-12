@@ -7,7 +7,17 @@
   <!-- Top bar: phase + timer -->
   <div class="hud-top">
     <span class="phase-badge">{{ phase() | uppercase }}</span>
-    <span class="timer">{{ timeRemaining() }}s</span>
+    <div class="hud-top-right">
+      <button
+        class="fullscreen-toggle"
+        type="button"
+        [attr.aria-label]="isFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'"
+        [attr.title]="isFullscreen() ? 'Exit fullscreen (F11)' : 'Enter fullscreen (F11)'"
+        (click)="toggleFullscreen()">
+        {{ isFullscreen() ? '⤢' : '⛶' }}
+      </button>
+      <span class="timer">{{ timeRemaining() }}s</span>
+    </div>
   </div>
 
   <!-- Role-specific middle section -->

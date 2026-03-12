@@ -21,6 +21,13 @@ import { Vec3 } from '../../models/player.model';
  */
 @Injectable({ providedIn: 'root' })
 export class ProceduralAnimationService {
+  private readonly animationAppliers: Record<AnimationState, AnimationApplier> = {
+    idle: (group, ctx, delta) => this.applyIdle(group, ctx, delta),
+    walk: (group, ctx, delta) => this.applyWalk(group, ctx, delta),
+    run: (group, ctx, delta) => this.applyRun(group, ctx, delta),
+    caught: (group, ctx, delta) => this.applyCaught(group, ctx, delta),
+    death: (group, ctx, delta) => this.applyDeath(group, ctx, delta),
+  };
 
   private contexts = new Map<string, AnimationContext>();
 
@@ -64,40 +71,11 @@ export class ProceduralAnimationService {
     isCaught = false,
   ): void {
     const ctx = this.getContext(uid);
-
-    // Reset per-frame flags
-    ctx.footstepTriggered = false;
-
-    // Derive speed from position delta
-    const dx = position.x - prevPos.x;
-    const dz = position.z - prevPos.z;
-    ctx.speed = Math.sqrt(dx * dx + dz * dz) / Math.max(delta, 0.001);
-
-    // State transitions
+    this.prepareFrame(ctx, position, prevPos, delta);
     const newState = this.resolveState(ctx, isAlive, isCaught);
-    if (newState !== ctx.state) {
-      // Reset group-level transforms that terminal states modified
-      if (ctx.state === 'caught') {
-        group.scale.set(1, 1, 1);
-      }
-      if (ctx.state === 'death') {
-        group.rotation.z = 0;
-      }
-      ctx.state = newState;
-      ctx.elapsed = 0;
-      ctx.phase = 0;
-    }
+    this.transitionState(group, ctx, newState);
     ctx.elapsed += delta;
-
-    // Apply the animation for current state
-    switch (ctx.state) {
-      case 'idle':   this.applyIdle(group, ctx, delta);   break;
-      case 'walk':   this.applyWalk(group, ctx, delta);   break;
-      case 'run':    this.applyRun(group, ctx, delta);    break;
-      case 'caught': this.applyCaught(group, ctx, delta); break;
-      case 'death':  this.applyDeath(group, ctx, delta);  break;
-      default:       this.applyIdle(group, ctx, delta);
-    }
+    this.applyState(group, ctx, delta);
   }
 
   // ── State resolution ─────────────────────────────────────
@@ -151,17 +129,7 @@ export class ProceduralAnimationService {
   // ── Walk: bouncy step cycle ──────────────────────────────
 
   private applyWalk(group: THREE.Group, ctx: AnimationContext, delta: number): void {
-    const cycleSpeed = 8;
-    ctx.prevPhase = ctx.phase;
-    ctx.phase += delta * cycleSpeed;
-
-    // Detect foot-strike: sin(phase) zero-crossing
-    if (Math.sin(ctx.prevPhase) * Math.sin(ctx.phase) < 0) {
-      ctx.footstepTriggered = true;
-    }
-
-    const sinPhase = Math.sin(ctx.phase);
-    const cosPhase = Math.cos(ctx.phase);
+    const { sinPhase, cosPhase } = this.advanceLocomotionPhase(ctx, delta, 8);
 
     const body = group.getObjectByName(PART_NAMES.body);
     if (body) {
@@ -199,17 +167,7 @@ export class ProceduralAnimationService {
   // ── Run: faster, exaggerated walk ────────────────────────
 
   private applyRun(group: THREE.Group, ctx: AnimationContext, delta: number): void {
-    const cycleSpeed = 14;
-    ctx.prevPhase = ctx.phase;
-    ctx.phase += delta * cycleSpeed;
-
-    // Detect foot-strike: sin(phase) zero-crossing
-    if (Math.sin(ctx.prevPhase) * Math.sin(ctx.phase) < 0) {
-      ctx.footstepTriggered = true;
-    }
-
-    const sinPhase = Math.sin(ctx.phase);
-    const cosPhase = Math.cos(ctx.phase);
+    const { sinPhase, cosPhase } = this.advanceLocomotionPhase(ctx, delta, 14);
 
     const body = group.getObjectByName(PART_NAMES.body);
     if (body) {
@@ -327,4 +285,64 @@ export class ProceduralAnimationService {
     if (lEar) lEar.rotation.x = flick;
     if (rEar) rEar.rotation.x = -flick;
   }
+
+  private prepareFrame(ctx: AnimationContext, position: Vec3, prevPos: Vec3, delta: number): void {
+    ctx.footstepTriggered = false;
+    ctx.speed = this.calculateSpeed(position, prevPos, delta);
+  }
+
+  private calculateSpeed(position: Vec3, prevPos: Vec3, delta: number): number {
+    const dx = position.x - prevPos.x;
+    const dz = position.z - prevPos.z;
+    return Math.sqrt(dx * dx + dz * dz) / Math.max(delta, 0.001);
+  }
+
+  private transitionState(group: THREE.Group, ctx: AnimationContext, newState: AnimationState): void {
+    if (newState === ctx.state) return;
+    this.resetTerminalTransforms(group, ctx.state);
+    ctx.state = newState;
+    ctx.elapsed = 0;
+    ctx.phase = 0;
+  }
+
+  private resetTerminalTransforms(group: THREE.Group, state: AnimationState): void {
+    this.resetCaughtTransform(group, state);
+    this.resetDeathTransform(group, state);
+  }
+
+  private resetCaughtTransform(group: THREE.Group, state: AnimationState): void {
+    if (state !== 'caught') return;
+    group.scale.set(1, 1, 1);
+  }
+
+  private resetDeathTransform(group: THREE.Group, state: AnimationState): void {
+    if (state !== 'death') return;
+    group.rotation.z = 0;
+  }
+
+  private applyState(group: THREE.Group, ctx: AnimationContext, delta: number): void {
+    this.animationAppliers[ctx.state](group, ctx, delta);
+  }
+
+  private advanceLocomotionPhase(
+    ctx: AnimationContext,
+    delta: number,
+    cycleSpeed: number,
+  ): { sinPhase: number; cosPhase: number } {
+    ctx.prevPhase = ctx.phase;
+    ctx.phase += delta * cycleSpeed;
+    this.triggerFootstepIfNeeded(ctx);
+    return { sinPhase: Math.sin(ctx.phase), cosPhase: Math.cos(ctx.phase) };
+  }
+
+  private triggerFootstepIfNeeded(ctx: AnimationContext): void {
+    if (Math.sin(ctx.prevPhase) * Math.sin(ctx.phase) >= 0) return;
+    ctx.footstepTriggered = true;
+  }
 }
+
+type AnimationApplier = (
+  group: THREE.Group,
+  ctx: AnimationContext,
+  delta: number,
+) => void;

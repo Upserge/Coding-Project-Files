@@ -17,10 +17,7 @@ export class IdentityService {
     if (this.identity) return this.identity;
 
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      this.identity = JSON.parse(stored) as LocalIdentity;
-      return this.identity;
-    }
+    if (stored) return this.useStoredIdentity(stored);
 
     // First visit — generate a new identity (username set later by player)
     this.identity = {
@@ -52,9 +49,13 @@ export class IdentityService {
   }
 
   private persist(): void {
-    if (this.identity) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.identity));
-    }
+    if (!this.identity) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.identity));
+  }
+
+  private useStoredIdentity(stored: string): LocalIdentity {
+    this.identity = JSON.parse(stored) as LocalIdentity;
+    return this.identity;
   }
 
   private generateToken(): string {

@@ -15,7 +15,7 @@ function maxChar(input) {
 
     // put our chars into a map in Char,Count format
     for (const char of input) {
-        charCountMap.set(char, input.split(char).length - 1);
+        charCountMap.set(char, input.split(char).length - 1); // input.split(char).length-1 will count the occurrances of a character in a string
     }
 
     // iterate through map to find out what our highest count char is

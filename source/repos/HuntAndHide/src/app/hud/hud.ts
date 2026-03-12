@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal, effect } from '@angular/core';
+import { Component, inject, computed, signal, effect, input, output } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
 import { GameLoopService } from '../services/game-loop.service';
 import { HiderService } from '../services/hider.service';
@@ -15,6 +15,9 @@ export class HudComponent {
   private readonly gameLoop = inject(GameLoopService);
   private readonly hiderService = inject(HiderService);
   private readonly hunterService = inject(HunterService);
+
+  readonly isFullscreen = input(false);
+  readonly toggleFullscreenRequested = output<void>();
 
   // ── Derived signals for the template ───────────────────────
 
@@ -74,16 +77,27 @@ export class HudComponent {
   constructor() {
     effect(() => {
       const feed = this.catchFeed();
-      if (feed.length > this.lastCatchCount && this.lastCatchCount > 0) {
-        this.triggerCatchFlash();
-      }
+      if (this.shouldTriggerCatchFlash(feed.length)) this.triggerCatchFlash();
       this.lastCatchCount = feed.length;
     });
   }
 
+  protected toggleFullscreen(): void {
+    this.toggleFullscreenRequested.emit();
+  }
+
   private triggerCatchFlash(): void {
     this.catchFlashActive.set(true);
-    if (this.catchFlashTimer) clearTimeout(this.catchFlashTimer);
+    this.clearCatchFlashTimer();
     this.catchFlashTimer = setTimeout(() => this.catchFlashActive.set(false), 400);
+  }
+
+  private shouldTriggerCatchFlash(feedLength: number): boolean {
+    return feedLength > this.lastCatchCount && this.lastCatchCount > 0;
+  }
+
+  private clearCatchFlashTimer(): void {
+    if (!this.catchFlashTimer) return;
+    clearTimeout(this.catchFlashTimer);
   }
 }
