@@ -93,64 +93,16 @@ export class GameLoopService {
   /** Called when entering the game view — lets players roam while waiting. */
   startLobby(localUid: string, hiderCount: number, hunterCount: number): void {
     this.localPlayerUid.set(localUid);
-
-    // Clear stale state from any previous round
-    this.hiders.set([]);
-    this.hunters.set([]);
-    this.pendingCatches.clear();
-    this.pendingDeaths.clear();
-    this.hunterDeathActive.set(false);
-    this.hunterDeathCountdown.set(0);
-    this.catchCounts.clear();
-    this.catchFeed.set([]);
-    this.roundMvp.set(null);
-    this.roundWinner.set(null);
-    this.timeScale = 1;
-    this.hitStopRemaining = 0;
-    this.survivalAccumulatorS = 0;
-    this.survivalTimes.clear();
-
-    const map = this.mapService.generateJungleMap();
-    const hiderSpawns = map.spawnPoints.filter(s => s.forRole === 'hider');
-    const hunterSpawns = map.spawnPoints.filter(s => s.forRole === 'hunter');
-
-    // Determine local player role and spawn
-    const role = this.playerService.assignRole(hiderCount, hunterCount);
-
-    if (role === 'hider') {
-      const spawn = hiderSpawns[hiderCount % hiderSpawns.length];
-      const animal = this.playerService.assignAnimal('hider', []);
-      const hider = this.playerService.createHiderState(
-        animal as any, spawn.position,
-      );
-      hider.uid = localUid;
-      this.hiders.set([hider]);
-    } else {
-      const spawn = hunterSpawns[hunterCount % hunterSpawns.length];
-      const animal = this.playerService.assignAnimal('hunter', []);
-      const hunter = this.playerService.createHunterState(
-        animal as any, spawn.position,
-      );
-      hunter.uid = localUid;
-      this.hunters.set([hunter]);
-    }
-
+    this.resetLobbyState();
+    this.spawnLocalLobbyPlayer(localUid, hiderCount, hunterCount);
     this.phase.set('lobby');
     this.running = true;
-
-    // Fill empty slots with CPU players
-    const reconciled = this.cpuSpawner.reconcile(this.hiders(), this.hunters());
-    this.hiders.set(reconciled.hiders);
-    this.hunters.set(reconciled.hunters);
+    this.reconcileCpuLobbyPlayers();
   }
 
   /** Transition from lobby to active gameplay once enough players join. */
   startGame(localUid: string, hiderCount: number, hunterCount: number): void {
-    // If lobby was never started, bootstrap everything first
-    if (!this.running) {
-      this.startLobby(localUid, hiderCount, hunterCount);
-    }
-
+    if (!this.running) this.startLobby(localUid, hiderCount, hunterCount);
     this.phase.set('hunting');
     this.roundTimeRemainingMs.set(this.roundDurationMs);
   }
@@ -171,34 +123,10 @@ export class GameLoopService {
 
   tick(delta: number): void {
     if (!this.running) return;
-
-    // Advance hit-stop timer with raw delta, then scale game delta
-    if (this.hitStopRemaining > 0) {
-      this.hitStopRemaining = Math.max(0, this.hitStopRemaining - delta);
-      this.timeScale = this.hitStopRemaining > 0 ? this.hitStopScale : 1;
-    }
-    delta *= this.timeScale;
-
-    const currentPhase = this.phase();
-    if (currentPhase === 'results') return;
-
-    // Lobby: movement + item pickup only (no catches, no win, no timers)
-    if (currentPhase === 'lobby') {
-      this.tickMovementOnly(delta);
-      return;
-    }
-
-    const movement = this.inputService.getMovementVector();
-    const wantsSprint = this.inputService.isSprinting();
-    const wantsInteract = this.inputService.consumeInteract();
-
-    this.tickRoundTimer(delta);
-    this.tickHiders(delta, movement, wantsInteract);
-    this.tickHunters(delta, movement, wantsSprint);
-    this.processPendingDeaths(delta);
-    this.checkCatches();
-    this.tickPendingCatches(delta);
-    this.checkWinConditions();
+    const scaledDelta = this.applyHitStop(delta);
+    if (this.phase() === 'results') return;
+    if (this.phase() === 'lobby') return void this.tickMovementOnly(scaledDelta);
+    this.tickActiveRound(scaledDelta);
   }
 
   // ── Lobby-mode tick (movement only, no consequences) ────
@@ -212,49 +140,24 @@ export class GameLoopService {
     // Move hiders (no idle timer, no conversion)
     this.hiders.update(hiders =>
       hiders.map(hider => {
-        const cpuDecision = hider.isCpu
-          ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000)
-          : undefined;
-
+        const cpuDecision = this.getCpuDecision(hider, delta);
         const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
         const isMoving = input.x !== 0 || input.z !== 0;
 
-        // Exit hiding on movement
-        if (hider.isHiding && isMoving) {
-          this.hidingService.vacate(hider.uid);
-          hider = { ...hider, isHiding: false, hidingSpotId: null };
-        }
+        hider = this.exitLobbyHidingIfMoving(hider, isMoving);
 
-        // Attempt to enter a hiding spot (F key / CPU)
-        const wantsHide = hider.uid === localUid ? wantsInteract : (cpuDecision?.wantsHide ?? false);
-        if (wantsHide && !hider.isHiding) {
-          const spot = this.hidingService.getNearbyHidingSpot(hider.position);
-          if (spot && this.hidingService.occupy(spot.id, hider.uid)) {
-            return {
-              ...hider,
-              isHiding: true,
-              hidingSpotId: spot.id,
-              position: { x: spot.position.x, y: hider.position.y, z: spot.position.z },
-              idleTimerMs: 0,
-            };
-          }
-        }
+        const wantsHide = this.resolveHideIntent(hider.uid, localUid, wantsInteract, cpuDecision?.wantsHide);
+        const hiddenHider = this.tryEnterHidingSpot(hider, wantsHide);
+        if (hiddenHider) return hiddenHider;
 
-        // World-space prompt for local player
-        if (hider.uid === localUid && !hider.isHiding) {
-          const nearby = this.hidingService.getNearbyHidingSpot(hider.position);
-          localNearSpot = nearby ? { ...nearby.position } : null;
-        }
+        localNearSpot = this.getLocalNearSpot(hider, localUid, localNearSpot);
 
         if (hider.isHiding) return hider; // stay put while hidden in lobby
 
         const { state } = this.hiderService.tick(hider, delta, input);
         let lobbyState = { ...state, idleTimerMs: 0 };
 
-        if ((hider.uid === localUid || hider.isCpu) && this.collision) {
-          const resolved = this.collision.resolvePosition(hider.position, lobbyState.position, undefined, true);
-          lobbyState = { ...lobbyState, position: resolved };
-        }
+        lobbyState = this.resolveHiderCollision(hider, lobbyState, localUid);
 
         return lobbyState;
       }),
@@ -288,29 +191,11 @@ export class GameLoopService {
   // ── Round timer ────────────────────────────────────────────
 
   private tickRoundTimer(delta: number): void {
-    const remaining = this.roundTimeRemainingMs() - delta * 1000;
-    this.roundTimeRemainingMs.set(Math.max(0, remaining));
-
-    // Track per-hider survival time
-    const aliveHiders = this.hiders().filter(h => h.isAlive && !h.isCaught);
-    for (const hider of aliveHiders) {
-      this.survivalTimes.set(
-        hider.uid,
-        (this.survivalTimes.get(hider.uid) ?? 0) + delta,
-      );
-    }
-
-    // Award survival bonus every interval
-    this.survivalAccumulatorS += delta;
-    if (this.survivalAccumulatorS >= this.survivalIntervalS) {
-      this.survivalAccumulatorS -= this.survivalIntervalS;
-      this.awardSurvivalBonus(aliveHiders);
-    }
-
-    if (remaining <= 0) {
-      // Time's up — hiders win this round
-      this.stopGame('hiders');
-    }
+    const remaining = this.updateRoundTime(delta);
+    const aliveHiders = this.getAliveActiveHiders();
+    this.trackSurvivalTimes(aliveHiders, delta);
+    this.awardSurvivalBonusIfDue(aliveHiders, delta);
+    if (remaining <= 0) this.stopGame('hiders');
   }
 
   /** Award survival score to all alive hiders and emit positions for floaters. */
@@ -329,6 +214,102 @@ export class GameLoopService {
     this.survivalBonusPositions.set(positions);
   }
 
+  private resetLobbyState(): void {
+    this.hiders.set([]);
+    this.hunters.set([]);
+    this.resetRoundState();
+  }
+
+  private resetRoundState(): void {
+    this.pendingCatches.clear();
+    this.pendingDeaths.clear();
+    this.hunterDeathActive.set(false);
+    this.hunterDeathCountdown.set(0);
+    this.catchCounts.clear();
+    this.catchFeed.set([]);
+    this.roundMvp.set(null);
+    this.roundWinner.set(null);
+    this.timeScale = 1;
+    this.hitStopRemaining = 0;
+    this.survivalAccumulatorS = 0;
+    this.survivalTimes.clear();
+  }
+
+  private spawnLocalLobbyPlayer(localUid: string, hiderCount: number, hunterCount: number): void {
+    const map = this.mapService.generateJungleMap();
+    const role = this.playerService.assignRole(hiderCount, hunterCount);
+    if (role === 'hider') return void this.spawnLocalHider(localUid, hiderCount, map.spawnPoints.filter(s => s.forRole === 'hider'));
+    this.spawnLocalHunter(localUid, hunterCount, map.spawnPoints.filter(s => s.forRole === 'hunter'));
+  }
+
+  private spawnLocalHider(localUid: string, hiderCount: number, spawns: { position: Vec3 }[]): void {
+    const spawn = spawns[hiderCount % spawns.length];
+    const animal = this.playerService.assignAnimal('hider', []);
+    const hider = this.playerService.createHiderState(animal as any, spawn.position);
+    hider.uid = localUid;
+    this.hiders.set([hider]);
+  }
+
+  private spawnLocalHunter(localUid: string, hunterCount: number, spawns: { position: Vec3 }[]): void {
+    const spawn = spawns[hunterCount % spawns.length];
+    const animal = this.playerService.assignAnimal('hunter', []);
+    const hunter = this.playerService.createHunterState(animal as any, spawn.position);
+    hunter.uid = localUid;
+    this.hunters.set([hunter]);
+  }
+
+  private reconcileCpuLobbyPlayers(): void {
+    const reconciled = this.cpuSpawner.reconcile(this.hiders(), this.hunters());
+    this.hiders.set(reconciled.hiders);
+    this.hunters.set(reconciled.hunters);
+  }
+
+  private applyHitStop(delta: number): number {
+    if (this.hitStopRemaining > 0) this.updateHitStopTimer(delta);
+    return delta * this.timeScale;
+  }
+
+  private updateHitStopTimer(delta: number): void {
+    this.hitStopRemaining = Math.max(0, this.hitStopRemaining - delta);
+    this.timeScale = this.hitStopRemaining > 0 ? this.hitStopScale : 1;
+  }
+
+  private tickActiveRound(delta: number): void {
+    const movement = this.inputService.getMovementVector();
+    const wantsSprint = this.inputService.isSprinting();
+    const wantsInteract = this.inputService.consumeInteract();
+    this.tickRoundTimer(delta);
+    this.tickHiders(delta, movement, wantsInteract);
+    this.tickHunters(delta, movement, wantsSprint);
+    this.processPendingDeaths(delta);
+    this.checkCatches();
+    this.tickPendingCatches(delta);
+    this.checkWinConditions();
+  }
+
+  private updateRoundTime(delta: number): number {
+    const remaining = this.roundTimeRemainingMs() - delta * 1000;
+    this.roundTimeRemainingMs.set(Math.max(0, remaining));
+    return remaining;
+  }
+
+  private getAliveActiveHiders(): HiderState[] {
+    return this.hiders().filter(h => h.isAlive && !h.isCaught);
+  }
+
+  private trackSurvivalTimes(aliveHiders: HiderState[], delta: number): void {
+    for (const hider of aliveHiders) {
+      this.survivalTimes.set(hider.uid, (this.survivalTimes.get(hider.uid) ?? 0) + delta);
+    }
+  }
+
+  private awardSurvivalBonusIfDue(aliveHiders: HiderState[], delta: number): void {
+    this.survivalAccumulatorS += delta;
+    if (this.survivalAccumulatorS < this.survivalIntervalS) return;
+    this.survivalAccumulatorS -= this.survivalIntervalS;
+    this.awardSurvivalBonus(aliveHiders);
+  }
+
   // ── Hider tick ─────────────────────────────────────────────
 
   private tickHiders(delta: number, movement: Vec3, localWantsInteract: boolean): void {
@@ -336,44 +317,22 @@ export class GameLoopService {
     let localNearSpot: Vec3 | null = null;
 
     const updatedHiders = this.hiders().map(hider => {
-      const cpuDecision = hider.isCpu
-        ? this.cpuBrain.decide(hider.uid, hider.position, delta * 1000)
-        : undefined;
+      const cpuDecision = this.getCpuDecision(hider, delta);
 
       const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
       const isMoving = input.x !== 0 || input.z !== 0;
 
-      // ── Resolve hide intent (needed before exit check for CPU hiders) ──
-      const wantsHide = hider.uid === localUid ? localWantsInteract : (cpuDecision?.wantsHide ?? false);
+      const wantsHide = this.resolveHideIntent(hider.uid, localUid, localWantsInteract, cpuDecision?.wantsHide);
 
       // ── Exit hiding (local: movement key, CPU: brain no longer wants to hide) ──
-      if (hider.isHiding) {
-        const shouldExit = hider.isCpu ? !wantsHide : isMoving;
-        if (shouldExit) {
-          this.hidingService.vacate(hider.uid);
-          hider = { ...hider, isHiding: false, hidingSpotId: null };
-        }
-      }
+      hider = this.exitRoundHidingIfNeeded(hider, wantsHide, isMoving);
 
       // ── Attempt to enter a hiding spot (F key / CPU) ───────
-      if (wantsHide && !hider.isHiding) {
-        const spot = this.hidingService.getNearbyHidingSpot(hider.position);
-        if (spot && this.hidingService.occupy(spot.id, hider.uid)) {
-          return {
-            ...hider,
-            isHiding: true,
-            hidingSpotId: spot.id,
-            position: { x: spot.position.x, y: hider.position.y, z: spot.position.z },
-            idleTimerMs: 0,
-          };
-        }
-      }
+      const hiddenHider = this.tryEnterHidingSpot(hider, wantsHide);
+      if (hiddenHider) return hiddenHider;
 
       // ── Check nearby spot for world-space prompt (local player only) ──
-      if (hider.uid === localUid && !hider.isHiding) {
-        const nearby = this.hidingService.getNearbyHidingSpot(hider.position);
-        localNearSpot = nearby ? { ...nearby.position } : null;
-      }
+      localNearSpot = this.getLocalNearSpot(hider, localUid, localNearSpot);
 
       // ── Normal movement tick ─────────────────────────────────
       if (hider.isHiding) {
@@ -397,10 +356,7 @@ export class GameLoopService {
       let updated = state;
 
       // Enforce collisions and bounds (hiders can walk through hiding obstacles)
-      if (this.collision) {
-        const resolved = this.collision.resolvePosition(hider.position, updated.position, undefined, true);
-        updated = { ...updated, position: resolved };
-      }
+      updated = this.resolveHiderCollision(hider, updated, localUid);
 
       return updated;
     }).filter((h): h is HiderState => h !== null);
@@ -415,22 +371,13 @@ export class GameLoopService {
     const localUid = this.localPlayerUid();
 
     const updatedHunters = this.hunters().map(hunter => {
-      const cpuDecision = hunter.isCpu
-        ? this.cpuBrain.decide(hunter.uid, hunter.position, delta * 1000)
-        : undefined;
-
-      const sprint = hunter.uid === localUid ? wantsSprint : (cpuDecision?.wantsSprint ?? false);
+      const cpuDecision = this.getCpuDecision(hunter, delta);
+      const sprint = this.resolveHunterSprint(hunter.uid, localUid, wantsSprint, cpuDecision?.wantsSprint);
       const input = this.resolveInput(hunter.uid, localUid, movement, cpuDecision?.movement);
       const { state, result } = this.hunterService.tick(hunter, delta, input, sprint);
 
-      if (result.starved && !this.pendingDeaths.has(hunter.uid)) {
-        this.pendingDeaths.set(hunter.uid, this.deathTimerS);
-        if (hunter.uid === localUid) {
-          this.hunterDeathActive.set(true);
-          this.hunterDeathCountdown.set(this.deathTimerS);
-        }
-        return { ...state, isAlive: false };
-      }
+      const starvedHunter = this.handleHunterStarvation(state, result.starved, localUid);
+      if (starvedHunter) return starvedHunter;
 
       let updated = state;
 
@@ -530,30 +477,10 @@ export class GameLoopService {
     const respawned = new Set<string>();
 
     for (const [uid, remaining] of this.pendingDeaths) {
-      const t = remaining - delta;
-      if (t <= 0) {
-        respawned.add(uid);
-        this.pendingDeaths.delete(uid);
-        if (uid === localUid) {
-          this.hunterDeathActive.set(false);
-          this.hunterDeathCountdown.set(0);
-        }
-      } else {
-        this.pendingDeaths.set(uid, t);
-        if (uid === localUid) {
-          this.hunterDeathCountdown.set(Math.ceil(t));
-        }
-      }
+      this.processPendingDeath(uid, remaining, delta, localUid, respawned);
     }
 
-    if (respawned.size > 0) {
-      this.hunters.update(hunters =>
-        hunters.map(hunter => {
-          if (!respawned.has(hunter.uid)) return hunter;
-          return this.respawnHunter(hunter);
-        }),
-      );
-    }
+    this.applyRespawnedHunters(respawned);
   }
 
   private respawnHunter(hunter: HunterState): HunterState {
@@ -626,6 +553,129 @@ export class GameLoopService {
     if (playerUid === localUid) return keyboardMovement;
     if (cpuMovement) return cpuMovement;
     return { x: 0, y: 0, z: 0 };
+  }
+
+  private getCpuDecision(player: PlayerState, delta: number) {
+    if (!player.isCpu) return undefined;
+    return this.cpuBrain.decide(player.uid, player.position, delta * 1000);
+  }
+
+  private resolveHunterSprint(
+    hunterUid: string,
+    localUid: string,
+    localWantsSprint: boolean,
+    cpuWantsSprint: boolean | undefined,
+  ): boolean {
+    if (hunterUid === localUid) return localWantsSprint;
+    return cpuWantsSprint ?? false;
+  }
+
+  private handleHunterStarvation(
+    state: HunterState,
+    starved: boolean,
+    localUid: string,
+  ): HunterState | null {
+    if (!starved) return null;
+    if (this.pendingDeaths.has(state.uid)) return null;
+    this.pendingDeaths.set(state.uid, this.deathTimerS);
+    this.activateHunterDeathOverlay(state.uid, localUid);
+    return { ...state, isAlive: false };
+  }
+
+  private activateHunterDeathOverlay(hunterUid: string, localUid: string): void {
+    if (hunterUid !== localUid) return;
+    this.hunterDeathActive.set(true);
+    this.hunterDeathCountdown.set(this.deathTimerS);
+  }
+
+  private processPendingDeath(
+    uid: string,
+    remaining: number,
+    delta: number,
+    localUid: string,
+    respawned: Set<string>,
+  ): void {
+    const next = remaining - delta;
+    if (next <= 0) return void this.finishPendingDeath(uid, localUid, respawned);
+    this.pendingDeaths.set(uid, next);
+    this.updateHunterDeathCountdown(uid, localUid, next);
+  }
+
+  private finishPendingDeath(uid: string, localUid: string, respawned: Set<string>): void {
+    respawned.add(uid);
+    this.pendingDeaths.delete(uid);
+    if (uid !== localUid) return;
+    this.hunterDeathActive.set(false);
+    this.hunterDeathCountdown.set(0);
+  }
+
+  private updateHunterDeathCountdown(uid: string, localUid: string, remaining: number): void {
+    if (uid !== localUid) return;
+    this.hunterDeathCountdown.set(Math.ceil(remaining));
+  }
+
+  private applyRespawnedHunters(respawned: Set<string>): void {
+    if (respawned.size === 0) return;
+    this.hunters.update(hunters =>
+      hunters.map(hunter => respawned.has(hunter.uid) ? this.respawnHunter(hunter) : hunter),
+    );
+  }
+
+  private resolveHideIntent(
+    playerUid: string,
+    localUid: string,
+    localWantsInteract: boolean,
+    cpuWantsHide: boolean | undefined,
+  ): boolean {
+    if (playerUid === localUid) return localWantsInteract;
+    return cpuWantsHide ?? false;
+  }
+
+  private exitLobbyHidingIfMoving(hider: HiderState, isMoving: boolean): HiderState {
+    if (!hider.isHiding || !isMoving) return hider;
+    return this.clearHidingState(hider);
+  }
+
+  private exitRoundHidingIfNeeded(hider: HiderState, wantsHide: boolean, isMoving: boolean): HiderState {
+    if (!hider.isHiding) return hider;
+    const shouldExit = hider.isCpu ? !wantsHide : isMoving;
+    if (!shouldExit) return hider;
+    return this.clearHidingState(hider);
+  }
+
+  private clearHidingState(hider: HiderState): HiderState {
+    this.hidingService.vacate(hider.uid);
+    return { ...hider, isHiding: false, hidingSpotId: null };
+  }
+
+  private tryEnterHidingSpot(hider: HiderState, wantsHide: boolean): HiderState | null {
+    if (!wantsHide || hider.isHiding) return null;
+    const spot = this.hidingService.getNearbyHidingSpot(hider.position);
+    if (!spot || !this.hidingService.occupy(spot.id, hider.uid)) return null;
+    return {
+      ...hider,
+      isHiding: true,
+      hidingSpotId: spot.id,
+      position: { x: spot.position.x, y: hider.position.y, z: spot.position.z },
+      idleTimerMs: 0,
+    };
+  }
+
+  private getLocalNearSpot(
+    hider: HiderState,
+    localUid: string,
+    currentNearSpot: Vec3 | null,
+  ): Vec3 | null {
+    if (hider.uid !== localUid || hider.isHiding) return currentNearSpot;
+    const nearby = this.hidingService.getNearbyHidingSpot(hider.position);
+    return nearby ? { ...nearby.position } : null;
+  }
+
+  private resolveHiderCollision(hider: HiderState, updated: HiderState, localUid: string): HiderState {
+    if (!this.collision) return updated;
+    if (hider.uid !== localUid && !hider.isCpu) return updated;
+    const resolved = this.collision.resolvePosition(hider.position, updated.position, undefined, true);
+    return { ...updated, position: resolved };
   }
 
   // ── MVP computation ────────────────────────────────────────

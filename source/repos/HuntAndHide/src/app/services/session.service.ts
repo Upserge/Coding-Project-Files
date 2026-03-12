@@ -1,4 +1,4 @@
-﻿import { inject, Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Firestore } from '@angular/fire/firestore';
 import {
   collection,
@@ -37,12 +37,14 @@ export class SessionService {
   private readonly firestore: any = inject(Firestore);
   private readonly identity = inject(IdentityService);
   private readonly sessionsCol = collection(this.firestore, 'sessions');
+  private static readonly STALE_AGE_MS = 10 * 60 * 1000;
+  private static readonly INACTIVE_MS = 30 * 1000;
 
   // \u2500\u2500 READ \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   /** Live-stream of sessions in the lobby phase that aren't full. */
   getOpenSessions$(): Observable<GameSession[]> {
-    const q = query(this.sessionsCol, where('phase', '==', 'lobby'));
+    const q = this.getLobbyQuery();
     return new Observable<GameSession[]>(subscriber => {
       const unsubscribe = onSnapshot(q,
         snapshot => {
@@ -57,7 +59,7 @@ export class SessionService {
 
   /** Live-stream of a single session. */
   getSession$(sessionId: string): Observable<GameSession | undefined> {
-    const ref = doc(this.firestore, 'sessions', sessionId);
+    const ref = this.getSessionRef(sessionId);
     return new Observable<GameSession | undefined>(subscriber => {
       const unsubscribe = onSnapshot(ref,
         snapshot => {
@@ -78,29 +80,16 @@ export class SessionService {
    * Returns the session ID the player should join.
    */
   async findOrCreateSession(): Promise<string> {
-    const q = query(this.sessionsCol, where('phase', '==', 'lobby'));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(this.getLobbyQuery());
     const now = Date.now();
-    const STALE_AGE_MS = 10 * 60 * 1000;
-    const INACTIVE_MS = 30 * 1000;
 
     for (const docSnap of snapshot.docs) {
       const session = docSnap.data() as GameSession;
-      const createdAge = now - (session.createdAt ?? 0);
-      const lastActivity = now - (session.updatedAt ?? session.createdAt ?? 0);
-
-      if (createdAge > STALE_AGE_MS || lastActivity > INACTIVE_MS) {
-        deleteDoc(docSnap.ref).catch(() => {});
+      if (this.isStaleSession(session, now)) {
+        this.deleteSessionSilently(docSnap.ref);
         continue;
       }
-
-      const playerCount = Object.keys(session.players ?? {}).length;
-      const hasRequiredFields =
-        typeof session.hiderCount === 'number' &&
-        typeof session.hunterCount === 'number';
-      if (hasRequiredFields && playerCount < MAX_PLAYERS_PER_SESSION) {
-        return docSnap.id;
-      }
+      if (this.isJoinableSession(session)) return docSnap.id;
     }
 
     return this.createSession();
@@ -109,8 +98,76 @@ export class SessionService {
   // \u2500\u2500 CREATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   async createSession(config: SessionConfig = DEFAULT_SESSION_CONFIG): Promise<string> {
+    const session = this.buildSessionDocument(config);
+    const ref = await addDoc(this.sessionsCol, session);
+    return ref.id;
+  }
+
+  // \u2500\u2500 PLAYER MANAGEMENT \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+  /** Add a player to a session, seeding role based on current counts. */
+  async joinSession(sessionId: string, player: PlayerState): Promise<void> {
+    const ref = this.getSessionRef(sessionId);
+    await updateDoc(ref, {
+      [`players.${player.uid}`]: player,
+      [`${player.role}Count`]: increment(1),
+      updatedAt: Date.now(),
+    });
+  }
+
+  async removePlayer(sessionId: string, uid: string, role: 'hider' | 'hunter'): Promise<void> {
+    await updateDoc(this.getSessionRef(sessionId), this.buildPlayerRemovalPatch(uid, role, true));
+  }
+
+  /** Remove the current player from every lobby session (pre-join cleanup).
+   *  Does NOT bump updatedAt so stale detection remains accurate. */
+  async removePlayerFromAllSessions(): Promise<void> {
+    const uid = this.identity.getToken();
+    const snapshot = await getDocs(this.getLobbyQuery());
+
+    for (const docSnap of snapshot.docs) {
+      const session = docSnap.data() as GameSession;
+      const role = this.getPlayerRole(session, uid);
+      if (!role) continue;
+      await updateDoc(this.getSessionRef(docSnap.id), this.buildPlayerRemovalPatch(uid, role, false)).catch(() => {});
+    }
+  }
+
+  // \u2500\u2500 UPDATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+  async updateSession(sessionId: string, patch: Partial<GameSession>): Promise<void> {
+    await updateDoc(this.getSessionRef(sessionId), { ...patch, updatedAt: Date.now() });
+  }
+
+  // \u2500\u2500 DELETE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+  async deleteSession(sessionId: string): Promise<void> {
+    await deleteDoc(this.getSessionRef(sessionId));
+  }
+
+  private getLobbyQuery() {
+    return query(this.sessionsCol, where('phase', '==', 'lobby'));
+  }
+
+  private getSessionRef(sessionId: string) {
+    return doc(this.firestore, 'sessions', sessionId);
+  }
+
+  private isStaleSession(session: GameSession, now: number): boolean {
+    const createdAge = now - (session.createdAt ?? 0);
+    const lastActivity = now - (session.updatedAt ?? session.createdAt ?? 0);
+    return createdAge > SessionService.STALE_AGE_MS || lastActivity > SessionService.INACTIVE_MS;
+  }
+
+  private isJoinableSession(session: GameSession): boolean {
+    const playerCount = Object.keys(session.players ?? {}).length;
+    const hasCounts = typeof session.hiderCount === 'number' && typeof session.hunterCount === 'number';
+    return hasCounts && playerCount < MAX_PLAYERS_PER_SESSION;
+  }
+
+  private buildSessionDocument(config: SessionConfig): Omit<GameSession, 'id'> {
     const now = Date.now();
-    const session: Omit<GameSession, 'id'> = {
+    return {
       hostUid: this.identity.getToken(),
       phase: 'lobby',
       players: {},
@@ -122,63 +179,27 @@ export class SessionService {
       createdAt: now,
       updatedAt: now,
     };
-    const ref = await addDoc(this.sessionsCol, session);
-    return ref.id;
   }
 
-  // \u2500\u2500 PLAYER MANAGEMENT \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-  /** Add a player to a session, seeding role based on current counts. */
-  async joinSession(sessionId: string, player: PlayerState): Promise<void> {
-    const ref = doc(this.firestore, 'sessions', sessionId);
-    await updateDoc(ref, {
-      [`players.${player.uid}`]: player,
-      [`${player.role}Count`]: increment(1),
-      updatedAt: Date.now(),
-    });
+  private deleteSessionSilently(ref: ReturnType<typeof doc>): void {
+    deleteDoc(ref).catch(() => {});
   }
 
-  async removePlayer(sessionId: string, uid: string, role: 'hider' | 'hunter'): Promise<void> {
-    const ref = doc(this.firestore, 'sessions', sessionId);
-    await updateDoc(ref, {
+  private getPlayerRole(session: GameSession, uid: string): 'hider' | 'hunter' | undefined {
+    return session.players?.[uid]?.role as 'hider' | 'hunter' | undefined;
+  }
+
+  private buildPlayerRemovalPatch(
+    uid: string,
+    role: 'hider' | 'hunter',
+    includeUpdatedAt: boolean,
+  ) {
+    const patch = {
       [`players.${uid}`]: deleteField(),
       [`${role}Count`]: increment(-1),
-      updatedAt: Date.now(),
-    });
-  }
-
-  /** Remove the current player from every lobby session (pre-join cleanup).
-   *  Does NOT bump updatedAt so stale detection remains accurate. */
-  async removePlayerFromAllSessions(): Promise<void> {
-    const uid = this.identity.getToken();
-    const q = query(this.sessionsCol, where('phase', '==', 'lobby'));
-    const snapshot = await getDocs(q);
-
-    for (const docSnap of snapshot.docs) {
-      const session = docSnap.data() as GameSession;
-      if (session.players?.[uid]) {
-        const role = session.players[uid].role as 'hider' | 'hunter';
-        const ref = doc(this.firestore, 'sessions', docSnap.id);
-        await updateDoc(ref, {
-          [`players.${uid}`]: deleteField(),
-          [`${role}Count`]: increment(-1),
-        }).catch(() => {});
-      }
-    }
-  }
-
-  // \u2500\u2500 UPDATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-  async updateSession(sessionId: string, patch: Partial<GameSession>): Promise<void> {
-    const ref = doc(this.firestore, 'sessions', sessionId);
-    await updateDoc(ref, { ...patch, updatedAt: Date.now() });
-  }
-
-  // \u2500\u2500 DELETE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-  async deleteSession(sessionId: string): Promise<void> {
-    const ref = doc(this.firestore, 'sessions', sessionId);
-    await deleteDoc(ref);
+    };
+    if (!includeUpdatedAt) return patch;
+    return { ...patch, updatedAt: Date.now() };
   }
 
   }
