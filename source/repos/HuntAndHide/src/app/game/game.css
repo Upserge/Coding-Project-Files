@@ -76,6 +76,79 @@ canvas {
   color: #ddd;
 }
 
+.rules-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(7, 10, 20, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 35;
+}
+
+.rules-modal {
+  position: relative;
+  width: min(100%, 560px);
+  padding: 2rem;
+  border: 1px solid rgba(233, 196, 106, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(30, 30, 46, 0.98), rgba(18, 18, 28, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+
+.rules-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.rules-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.rules-title {
+  margin: 0 0 1rem;
+  color: #f4d58d;
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.rules-section + .rules-section {
+  margin-top: 1rem;
+}
+
+.rules-section h3 {
+  margin: 0 0 0.35rem;
+  color: #e0e0e0;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.rules-section p {
+  margin: 0;
+  color: #b7bcc8;
+  line-height: 1.6;
+}
+
+.rules-dismiss {
+  margin: 1.25rem 0 0;
+  color: #8b90a0;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 /* ── Round-results overlay ──────────────────────────────── */
 
 .results-overlay {

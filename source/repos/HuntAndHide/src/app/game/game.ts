@@ -58,11 +58,15 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private engineReady = false;
   private resultRecorded = false;
   private currentSessionId = '';
+  private rulesTimer?: ReturnType<typeof setTimeout>;
+
+  private static readonly RULES_MODAL_MS = 30_000;
 
   // ── Lobby state (signals for template) ─────────────────────
   protected readonly inLobby = signal(true);
   protected readonly playerCount = signal(0);
   protected readonly minPlayers = TOTAL_PLAYER_SLOTS;
+  protected readonly showRulesModal = signal(false);
 
   // ── Round-results overlay (signals for template) ──────────
   protected readonly showResults = computed(() => this.gameLoop.phase() === 'results');
@@ -92,6 +96,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   protected onWindowKeydown(event: KeyboardEvent): void {
+    if (this.tryDismissRules(event)) return;
     if (event.key !== 'F11') return;
     event.preventDefault();
     this.toggleFullscreen();
@@ -107,6 +112,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearRulesTimer();
     this.disposeViewResources();
     this.cleanupSession();
   }
@@ -233,6 +239,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.resultRecorded = false;
     this.currentSessionId = sessionId;
     this.inLobby.set(true);
+    this.showRulesBriefly();
   }
 
   private handleSessionSnapshot(session: GameSession | undefined): void {
@@ -265,9 +272,35 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.paramSub?.unsubscribe();
     this.sessionSub?.unsubscribe();
     this.resizeObserver?.disconnect();
+    this.clearRulesTimer();
     this.inputService.detach();
     this.sceneRender.dispose();
     this.engine.dispose();
+  }
+
+  protected dismissRulesModal(): void {
+    this.showRulesModal.set(false);
+    this.clearRulesTimer();
+  }
+
+  private showRulesBriefly(): void {
+    this.showRulesModal.set(true);
+    this.clearRulesTimer();
+    this.rulesTimer = setTimeout(() => this.dismissRulesModal(), GameComponent.RULES_MODAL_MS);
+  }
+
+  private clearRulesTimer(): void {
+    if (!this.rulesTimer) return;
+    clearTimeout(this.rulesTimer);
+    this.rulesTimer = undefined;
+  }
+
+  private tryDismissRules(event: KeyboardEvent): boolean {
+    if (!this.showRulesModal()) return false;
+    if (event.key !== 'Escape' && event.code !== 'Space') return false;
+    event.preventDefault();
+    this.dismissRulesModal();
+    return true;
   }
 
   private recordRoundResultIfNeeded(): void {

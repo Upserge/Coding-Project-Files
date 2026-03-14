@@ -9,6 +9,30 @@
     </div>
   }
 
+  @if (showRulesModal() && !showResults()) {
+    <div class="rules-modal-backdrop">
+      <div class="rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+        <button class="rules-close" type="button" aria-label="Close rules" (click)="dismissRulesModal()">×</button>
+        <h2 id="rules-modal-title" class="rules-title">How to Play</h2>
+        <div class="rules-section">
+          <h3>Hiders</h3>
+          <p>
+            Hiders must not get caught by Hunters. They can hide in various objects around the map with
+            <strong>F</strong>. Hiders must move within the timer amount or they turn into Hunters.
+          </p>
+        </div>
+        <div class="rules-section">
+          <h3>Hunters</h3>
+          <p>
+            Hunters must catch Hiders before they starve. Hunters can't see Hiders when they're hiding.
+            Hunters can use <strong>Shift</strong> to sprint, but when their sprint gauge runs out they move slower.
+          </p>
+        </div>
+        <p class="rules-dismiss">Press Space, Escape, or click the X to close.</p>
+      </div>
+    </div>
+  }
+
   <app-hud
     [isFullscreen]="isFullscreen()"
     (toggleFullscreenRequested)="toggleFullscreen()"
