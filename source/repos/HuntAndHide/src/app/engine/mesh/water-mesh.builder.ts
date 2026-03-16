@@ -18,6 +18,7 @@ const POND_GRID_SEGMENTS = 28;
 const STREAM_WIDTH_SEGMENTS = 8;
 const STREAM_LENGTH_SEGMENTS = 40;
 const POND_MASK_SIZE = 128;
+const STREAM_BLEND = 0.35;
 
 /** Map-based dispatch for water feature builders. */
 const WATER_BUILDERS: Record<WaterFeatureType, (size: number) => THREE.Group> = {
@@ -229,6 +230,7 @@ function buildStreamSurface(length: number): THREE.Mesh {
   const mesh = new THREE.Mesh(geo, createWaterMaterial());
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = WATER_SURFACE_OFFSET;
+  softenStreamSurface(mesh, WATER_SURFACE_OFFSET);
   return markTerrainSurface(mesh, WATER_SURFACE_OFFSET);
 }
 
@@ -245,6 +247,7 @@ function buildStreamShallows(length: number): THREE.Mesh {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = WATER_SHORE_OFFSET;
+  softenStreamSurface(mesh, WATER_SHORE_OFFSET);
   return markTerrainSurface(mesh, WATER_SHORE_OFFSET);
 }
 
@@ -254,7 +257,13 @@ function buildStreamBed(length: number): THREE.Mesh {
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = -0.02;
+  softenStreamSurface(mesh, -0.02);
   return markTerrainSurface(mesh, -0.02);
+}
+
+function softenStreamSurface(mesh: THREE.Mesh, offset: number): void {
+  mesh.userData['terrainSurfaceBlend'] = STREAM_BLEND;
+  mesh.userData['terrainSurfaceOffset'] = offset;
 }
 
 function addStreamPebbles(group: THREE.Group, length: number): void {

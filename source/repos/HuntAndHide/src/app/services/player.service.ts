@@ -9,7 +9,9 @@ import {
   HunterAnimal,
   HIDER_ANIMALS,
   HUNTER_ANIMALS,
+  HUNTER_EXHAUSTED_FEEDBACK_S,
   HUNTER_HUNGER_MS,
+  HUNTER_EXHAUSTION_COOLDOWN_S,
   HUNTER_STAMINA_MAX,
   Vec3,
 } from '../models/player.model';
@@ -106,6 +108,8 @@ export class PlayerService {
       hungerRemainingMs: HUNTER_HUNGER_MS,
       stamina: HUNTER_STAMINA_MAX,
       isSprinting: false,
+      exhaustionCooldownS: 0,
+      exhaustedFeedbackS: 0,
     };
   }
 }

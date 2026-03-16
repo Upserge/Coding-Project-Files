@@ -8,7 +8,7 @@
  */
 
 /** Discrete animation states — each drives a different procedural motion. */
-export type AnimationState = 'idle' | 'walk' | 'run' | 'caught' | 'death';
+export type AnimationState = 'idle' | 'walk' | 'run' | 'caught' | 'death' | 'exhausted';
 
 /**
  * Per-entity animation context tracked by the animation system.

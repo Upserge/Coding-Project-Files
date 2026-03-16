@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import {
+  getCausticSurfaceSize,
   STREAM_SURFACE_WIDTH,
   WATER_CAUSTIC_OFFSET,
+  WATER_SURFACE_OFFSET,
 } from '../../models/water-feature.model';
 import { markTerrainSurface } from './terrain-placement';
 
@@ -18,10 +20,12 @@ import { markTerrainSurface } from './terrain-placement';
 
 const causticMaterials: THREE.MeshBasicMaterial[] = [];
 let causticResetDone = false;
-const POND_CAUSTIC_SEGMENTS = 28;
-const STREAM_CAUSTIC_WIDTH_SEGMENTS = 8;
-const STREAM_CAUSTIC_LENGTH_SEGMENTS = 40;
+const POND_CAUSTIC_SEGMENTS = 48;
+const STREAM_CAUSTIC_WIDTH_SEGMENTS = 4;
+const STREAM_CAUSTIC_LENGTH_SEGMENTS = 24;
 const POND_CAUSTIC_MASK_SIZE = 128;
+const POND_CAUSTIC_OPACITY = 0.32;
+const STREAM_CAUSTIC_OPACITY = 0.16;
 
 /** Clear stale material refs from previous scene build. */
 function resetCausticMaterials(): void {
@@ -43,29 +47,29 @@ function resetCausticMaterials(): void {
 /** Create a caustic overlay for a circular water feature (pond). */
 export function buildPondCaustics(radius: number): THREE.Mesh {
   resetCausticMaterials();
-  const size = radius * 1.8;
-  const geo = new THREE.PlaneGeometry(size, size, POND_CAUSTIC_SEGMENTS, POND_CAUSTIC_SEGMENTS);
-  const mat = createCausticMaterial(size, size);
+  const surface = getCausticSurfaceSize(createWaterSizeSample('pond', radius));
+  const geo = new THREE.PlaneGeometry(surface.width, surface.length, POND_CAUSTIC_SEGMENTS, POND_CAUSTIC_SEGMENTS);
+  const mat = createCausticMaterial(surface.width, surface.length, POND_CAUSTIC_OPACITY);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = WATER_CAUSTIC_OFFSET;
-  mesh.renderOrder = 1;
+  mesh.renderOrder = 6;
   mat.alphaMap = getPondCausticMask();
-  mat.alphaTest = 0.5;
+  mat.alphaTest = 0.02;
   return markTerrainSurface(mesh, WATER_CAUSTIC_OFFSET);
 }
 
 /** Create a caustic overlay for a rectangular water feature (stream). */
 export function buildStreamCaustics(length: number): THREE.Mesh {
   resetCausticMaterials();
-  const width = Math.max(0.6, STREAM_SURFACE_WIDTH - 0.16);
-  const causticLength = Math.max(0.8, length - 0.16);
-  const geo = new THREE.PlaneGeometry(width, causticLength, STREAM_CAUSTIC_WIDTH_SEGMENTS, STREAM_CAUSTIC_LENGTH_SEGMENTS);
-  const mat = createCausticMaterial(width, causticLength);
+  const surface = getCausticSurfaceSize(createWaterSizeSample('stream', length));
+  const geo = new THREE.PlaneGeometry(surface.width, surface.length, STREAM_CAUSTIC_WIDTH_SEGMENTS, STREAM_CAUSTIC_LENGTH_SEGMENTS);
+  const mat = createCausticMaterial(surface.width, surface.length, STREAM_CAUSTIC_OPACITY);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = WATER_CAUSTIC_OFFSET;
-  mesh.renderOrder = 1;
+  mesh.renderOrder = 6;
+  mesh.userData['terrainSurfaceBlend'] = getStreamCausticBlend();
   return markTerrainSurface(mesh, WATER_CAUSTIC_OFFSET);
 }
 
@@ -76,23 +80,39 @@ export function tickCaustics(elapsed: number): void {
       mat.map.offset.x = elapsed * 0.02;
       mat.map.offset.y = elapsed * 0.015;
     }
-    mat.opacity = 0.12 + Math.sin(elapsed * 1.2) * 0.04;
+    const baseOpacity = mat.userData['baseOpacity'] as number | undefined;
+    mat.opacity = (baseOpacity ?? 0.14) + Math.sin(elapsed * 1.2) * 0.035;
   }
 }
 
 // ── Material ────────────────────────────────────────────────
 
-function createCausticMaterial(width: number, length: number): THREE.MeshBasicMaterial {
+function createCausticMaterial(width: number, length: number, opacity: number): THREE.MeshBasicMaterial {
   const texture = createCausticTexture(width, length);
   const mat = new THREE.MeshBasicMaterial({
     map: texture,
     transparent: true,
-    opacity: 0.14,
+    opacity,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
+  mat.userData['baseOpacity'] = opacity;
   causticMaterials.push(mat);
   return mat;
+}
+
+function getStreamCausticBlend(): number {
+  return 0.35;
+}
+
+function createWaterSizeSample(type: 'pond' | 'stream', size: number) {
+  return {
+    id: `caustic-${type}`,
+    type,
+    size,
+    position: { x: 0, y: 0, z: 0 },
+    rotationY: 0,
+  };
 }
 
 // ── Caustic texture (canvas) ────────────────────────────────

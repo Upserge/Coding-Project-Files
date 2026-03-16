@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import {
   HunterState,
   HiderState,
+  HUNTER_EXHAUSTED_FEEDBACK_S,
+  HUNTER_EXHAUSTION_COOLDOWN_S,
   HUNTER_HUNGER_MS,
   HUNTER_SPEED_MULTIPLIER,
   HUNTER_STAMINA_MAX,
@@ -35,24 +37,11 @@ export class HunterService {
     movementInput: Vec3,
     wantsSprint: boolean,
   ): { state: HunterState; result: HunterTickResult } {
-
-    // ── Hunger ─────────────────────────────────────────────
     const hungerRemainingMs = Math.max(0, hunter.hungerRemainingMs - delta * 1000);
     const starved = hungerRemainingMs <= 0;
-
-    // ── Stamina ────────────────────────────────────────────
     const isMoving = movementInput.x !== 0 || movementInput.z !== 0;
-    let stamina = hunter.stamina;
-    const isSprinting = wantsSprint && isMoving && stamina > 0;
-
-    if (isSprinting) {
-      stamina = Math.max(0, stamina - HUNTER_STAMINA_DRAIN_PER_S * delta);
-    } else {
-      stamina = Math.min(HUNTER_STAMINA_MAX, stamina + HUNTER_STAMINA_REGEN_PER_S * delta);
-    }
-
-    // ── Movement ───────────────────────────────────────────
-    const speed = this.getSpeed(isSprinting);
+    const sprint = this.resolveSprintState(hunter, delta, wantsSprint, isMoving);
+    const speed = this.getSpeed(sprint.isSprinting);
     const newPosition: Vec3 = {
       x: hunter.position.x + movementInput.x * speed * delta,
       y: hunter.position.y,
@@ -67,8 +56,10 @@ export class HunterService {
     const updatedState: HunterState = {
       ...hunter,
       hungerRemainingMs,
-      stamina,
-      isSprinting,
+      stamina: sprint.stamina,
+      isSprinting: sprint.isSprinting,
+      exhaustionCooldownS: sprint.cooldownS,
+      exhaustedFeedbackS: sprint.feedbackS,
       position: newPosition,
       rotation,
       isAlive: !starved && hunter.isAlive,
@@ -77,6 +68,44 @@ export class HunterService {
     return {
       state: updatedState,
       result: { starved, newPosition },
+    };
+  }
+
+  private resolveSprintState(
+    hunter: HunterState,
+    delta: number,
+    wantsSprint: boolean,
+    isMoving: boolean,
+  ): HunterSprintState {
+    const cooldownS = Math.max(0, hunter.exhaustionCooldownS - delta);
+    const feedbackS = Math.max(0, hunter.exhaustedFeedbackS - delta);
+    if (cooldownS > 0) return this.recoverSprintState(hunter.stamina, cooldownS, feedbackS, delta);
+    if (!wantsSprint || !isMoving) return this.recoverSprintState(hunter.stamina, cooldownS, feedbackS, delta);
+    return this.drainSprintState(hunter.stamina, delta, feedbackS);
+  }
+
+  private recoverSprintState(
+    stamina: number,
+    cooldownS: number,
+    feedbackS: number,
+    delta: number,
+  ): HunterSprintState {
+    return {
+      stamina: Math.min(HUNTER_STAMINA_MAX, stamina + HUNTER_STAMINA_REGEN_PER_S * delta),
+      isSprinting: false,
+      cooldownS,
+      feedbackS,
+    };
+  }
+
+  private drainSprintState(stamina: number, delta: number, feedbackS: number): HunterSprintState {
+    const nextStamina = Math.max(0, stamina - HUNTER_STAMINA_DRAIN_PER_S * delta);
+    if (nextStamina > 0) return { stamina: nextStamina, isSprinting: true, cooldownS: 0, feedbackS };
+    return {
+      stamina: 0,
+      isSprinting: false,
+      cooldownS: HUNTER_EXHAUSTION_COOLDOWN_S,
+      feedbackS: HUNTER_EXHAUSTED_FEEDBACK_S,
     };
   }
 
@@ -121,4 +150,15 @@ export class HunterService {
   getStaminaPercent(hunter: HunterState): number {
     return hunter.stamina / HUNTER_STAMINA_MAX;
   }
+
+  isExhausted(hunter: HunterState): boolean {
+    return hunter.exhaustionCooldownS > 0;
+  }
+}
+
+interface HunterSprintState {
+  stamina: number;
+  isSprinting: boolean;
+  cooldownS: number;
+  feedbackS: number;
 }

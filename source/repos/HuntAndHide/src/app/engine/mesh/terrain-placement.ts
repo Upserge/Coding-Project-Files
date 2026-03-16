@@ -15,6 +15,7 @@ const FOOTING_SAMPLES: ReadonlyArray<readonly [number, number]> = [
 const UP_AXIS = new THREE.Vector3(0, 1, 0);
 const TERRAIN_SURFACE_OFFSET = 'terrainSurfaceOffset';
 const TERRAIN_SURFACE_SOURCE = 'terrainSurfaceSource';
+const TERRAIN_SURFACE_BLEND = 'terrainSurfaceBlend';
 const TERRAIN_ANCHOR_OFFSET = 'terrainAnchorOffset';
 const TERRAIN_ANCHOR_SOURCE = 'terrainAnchorSource';
 
@@ -128,12 +129,14 @@ function conformTerrainMesh(mesh: THREE.Mesh, offset: number): void {
   const positions = getTerrainSurfacePositions(mesh);
   if (!positions) return;
   const geometry = mesh.geometry;
+  const blend = getTerrainSurfaceBlend(mesh);
   const worldPoint = new THREE.Vector3();
   const inverse = new THREE.Matrix4().copy(mesh.matrixWorld).invert();
   for (let index = 0; index < positions.count; index++) {
     const baseIndex = index * 3;
     worldPoint.set(source[baseIndex], source[baseIndex + 1], source[baseIndex + 2]).applyMatrix4(mesh.matrixWorld);
-    worldPoint.y = getTerrainHeight(worldPoint.x, worldPoint.z) + offset;
+    const terrainY = getTerrainHeight(worldPoint.x, worldPoint.z) + offset;
+    worldPoint.y += (terrainY - worldPoint.y) * blend;
     worldPoint.applyMatrix4(inverse);
     positions.setXYZ(index, worldPoint.x, worldPoint.y, worldPoint.z);
   }
@@ -162,4 +165,10 @@ function getTerrainAnchorSource(child: THREE.Object3D): THREE.Vector3 {
   const source = child.position.clone();
   child.userData[TERRAIN_ANCHOR_SOURCE] = source;
   return source;
+}
+
+function getTerrainSurfaceBlend(mesh: THREE.Mesh): number {
+  const blend = mesh.userData[TERRAIN_SURFACE_BLEND];
+  if (typeof blend !== 'number') return 1;
+  return Math.max(0, Math.min(1, blend));
 }

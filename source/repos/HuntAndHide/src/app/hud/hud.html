@@ -48,12 +48,16 @@
         </div>
       </div>
       <div class="stamina-bar-wrapper">
-        <label class="bar-label">Stamina</label>
+        <label class="bar-label">{{ isHunterExhausted() ? 'Exhausted' : 'Stamina' }}</label>
         <div class="bar-track">
           <div class="bar-fill stamina-fill"
                [style.width.%]="staminaPercent() * 100"
-               [class.low]="staminaPercent() < 0.2"></div>
+               [class.low]="staminaPercent() < 0.2"
+               [class.exhausted]="isHunterExhausted()"></div>
         </div>
+        @if (isHunterExhausted()) {
+          <div class="stamina-status">Recovering {{ hunterExhaustionCountdown() }}s</div>
+        }
       </div>
     </div>
   }

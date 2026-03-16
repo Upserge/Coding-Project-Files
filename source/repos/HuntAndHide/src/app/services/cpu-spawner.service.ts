@@ -180,6 +180,8 @@ export class CpuSpawnerService {
       hungerRemainingMs: 300_000,
       stamina: 100,
       isSprinting: false,
+      exhaustedFeedbackS: 0,
+      exhaustionCooldownS: 0,
     };
   }
 

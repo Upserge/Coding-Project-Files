@@ -60,6 +60,10 @@ export interface HunterState extends PlayerState {
   stamina: number;
   /** True when the player is holding sprint and has stamina remaining. */
   isSprinting: boolean;
+  /** Seconds remaining before sprinting is allowed again after exhaustion. */
+  exhaustionCooldownS: number;
+  /** Seconds remaining for the local exhausted feedback animation. */
+  exhaustedFeedbackS: number;
 }
 
 // ── Gameplay constants (all tuneable) ────────────────────
@@ -82,3 +86,7 @@ export const HUNTER_STAMINA_DRAIN_PER_S = 25;
 export const HUNTER_STAMINA_REGEN_PER_S = 12;
 /** Speed multiplier while sprinting. */
 export const HUNTER_SPRINT_MULTIPLIER = 1.6;
+/** Sprint lockout after a hunter fully exhausts stamina. */
+export const HUNTER_EXHAUSTION_COOLDOWN_S = 3.0;
+/** Short feedback animation when a hunter becomes exhausted. */
+export const HUNTER_EXHAUSTED_FEEDBACK_S = 0.55;

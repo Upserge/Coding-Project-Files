@@ -60,9 +60,6 @@ export function buildTreeMesh(): THREE.Group {
   group.add(buildCanopyLayer(CANOPY_MID,  1.4 * canopyScale, baseY + 1.6, 1.6 * canopyScale));
   group.add(buildCanopyLayer(CANOPY_TOP,  0.9 * canopyScale, baseY + 2.8, 1.2 * canopyScale));
 
-  // Extra foliage spheres for fullness
-  addCanopyClusters(group, canopyScale, baseY + 1.5);
-
   // Root buttresses at base
   addRootButtresses(group);
 
@@ -105,25 +102,6 @@ function buildTrunkKnot(trunkH: number): THREE.Mesh {
   const angle = Math.random() * Math.PI * 2;
   mesh.position.set(Math.cos(angle) * 0.25, knotY, Math.sin(angle) * 0.25);
   return mesh;
-}
-
-/** Small sphere clusters around the canopy for a fuller look. */
-function addCanopyClusters(group: THREE.Group, scale: number, centerY: number): void {
-  const geo = new THREE.SphereGeometry(0.6 * scale, 6, 5);
-  const colors = [CANOPY_BASE, CANOPY_MID, CANOPY_TOP];
-  const count = 3 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < count; i++) {
-    const cluster = new THREE.Mesh(geo, getCanopyMat(colors[i % colors.length]));
-    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
-    const radius = 0.6 + Math.random() * 0.5;
-    cluster.position.set(
-      Math.cos(angle) * radius * scale,
-      centerY + (Math.random() - 0.3) * 0.8,
-      Math.sin(angle) * radius * scale,
-    );
-    cluster.castShadow = true;
-    group.add(cluster);
-  }
 }
 
 /** Flared root buttresses at the trunk base. */

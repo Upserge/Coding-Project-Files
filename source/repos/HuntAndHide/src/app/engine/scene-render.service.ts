@@ -302,7 +302,8 @@ export class SceneRenderService {
     delta: number,
     isCaughtHider: boolean,
   ): void {
-    this.animation.tick(player.uid, group, player.position, prevPos, delta, player.isAlive, isCaughtHider);
+    const exhausted = player.role === 'hunter' && (player as any).exhaustedFeedbackS > 0;
+    this.animation.tick(player.uid, group, player.position, prevPos, delta, player.isAlive, isCaughtHider, exhausted);
   }
 
   private syncBlink(uid: string, group: THREE.Group, delta: number, moveDelta: Vec3): void {

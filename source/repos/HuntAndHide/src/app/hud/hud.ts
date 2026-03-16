@@ -53,6 +53,15 @@ export class HudComponent {
     const hunter = this.gameLoop.getLocalHunter();
     return hunter ? this.hunterService.getStaminaPercent(hunter) : 1;
   });
+  protected readonly isHunterExhausted = computed(() => {
+    const hunter = this.gameLoop.getLocalHunter();
+    return hunter ? this.hunterService.isExhausted(hunter) : false;
+  });
+  protected readonly hunterExhaustionCountdown = computed(() => {
+    const hunter = this.gameLoop.getLocalHunter();
+    if (!hunter) return 0;
+    return Math.max(0, hunter.exhaustionCooldownS).toFixed(1);
+  });
 
   // Shared
   protected readonly score = computed(() =>

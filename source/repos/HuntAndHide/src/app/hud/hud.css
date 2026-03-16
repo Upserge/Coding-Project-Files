@@ -184,6 +184,20 @@
   background: #ef5350;
 }
 
+.stamina-fill.exhausted {
+  background: linear-gradient(90deg, #ff8a65, #ef5350);
+  box-shadow: 0 0 10px rgba(239, 83, 80, 0.35);
+}
+
+.stamina-status {
+  margin-top: 0.28rem;
+  color: #ffccbc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 /* ── Kill-feed ───────────────────────────────────────────── */
 
 .kill-feed {

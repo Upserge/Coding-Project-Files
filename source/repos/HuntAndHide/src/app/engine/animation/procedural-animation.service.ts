@@ -25,6 +25,7 @@ export class ProceduralAnimationService {
     idle: (group, ctx, delta) => this.applyIdle(group, ctx, delta),
     walk: (group, ctx, delta) => this.applyWalk(group, ctx, delta),
     run: (group, ctx, delta) => this.applyRun(group, ctx, delta),
+    exhausted: (group, ctx, delta) => this.applyExhausted(group, ctx, delta),
     caught: (group, ctx, delta) => this.applyCaught(group, ctx, delta),
     death: (group, ctx, delta) => this.applyDeath(group, ctx, delta),
   };
@@ -69,10 +70,11 @@ export class ProceduralAnimationService {
     delta: number,
     isAlive: boolean,
     isCaught = false,
+    isExhausted = false,
   ): void {
     const ctx = this.getContext(uid);
     this.prepareFrame(ctx, position, prevPos, delta);
-    const newState = this.resolveState(ctx, isAlive, isCaught);
+    const newState = this.resolveState(ctx, isAlive, isCaught, isExhausted);
     this.transitionState(group, ctx, newState);
     ctx.elapsed += delta;
     this.applyState(group, ctx, delta);
@@ -80,9 +82,10 @@ export class ProceduralAnimationService {
 
   // ── State resolution ─────────────────────────────────────
 
-  private resolveState(ctx: AnimationContext, isAlive: boolean, isCaught: boolean): AnimationState {
+  private resolveState(ctx: AnimationContext, isAlive: boolean, isCaught: boolean, isExhausted: boolean): AnimationState {
     if (isCaught) return 'caught'; // caught animation takes priority
     if (!isAlive) return 'death';
+    if (isExhausted) return 'exhausted';
     if (ctx.state === 'caught' && ctx.elapsed < 0.6) return 'caught';
     if (ctx.speed >= ANIM_RUN_THRESHOLD) return 'run';
     if (ctx.speed >= ANIM_WALK_THRESHOLD) return 'walk';
@@ -192,6 +195,25 @@ export class ProceduralAnimationService {
     }
 
     this.applyEarBounce(group, sinPhase, 0.1);
+  }
+
+  private applyExhausted(group: THREE.Group, ctx: AnimationContext, delta: number): void {
+    ctx.phase += delta * 12;
+    const body = group.getObjectByName(PART_NAMES.body);
+    const head = group.getObjectByName(PART_NAMES.head);
+    const tail = group.getObjectByName(PART_NAMES.tail);
+    const pulse = Math.sin(ctx.phase) * 0.05;
+    if (body) {
+      const baseY = (body.userData['baseY'] as number) ?? 0.65;
+      body.position.y = baseY - 0.03 + Math.abs(pulse) * 0.03;
+      body.rotation.x = 0.18;
+      body.rotation.z = pulse;
+      body.scale.set(1.04, 0.94, 1.04);
+    }
+    if (head) head.rotation.x = -0.16 + Math.abs(pulse) * 0.08;
+    if (tail) tail.rotation.z = pulse * 0.4;
+    this.applyLegCycle(group, Math.sin(ctx.phase), 0.12);
+    this.applyArmSwing(group, Math.cos(ctx.phase), 0.18);
   }
 
   // ── Caught: pop-up bounce → comedic spin + shrink ─────────

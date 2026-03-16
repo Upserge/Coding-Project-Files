@@ -151,7 +151,6 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private startGameplay(session: GameSession): void {
     this.gameStarted = true;
     this.inLobby.set(false);
-    this.dismissRulesModal();
 
     const uid = this.identity.getToken();
     this.gameLoop.startGame(uid, session.hiderCount, session.hunterCount);
