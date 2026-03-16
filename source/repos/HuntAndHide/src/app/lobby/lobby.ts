@@ -56,8 +56,9 @@ export class LobbyComponent implements OnInit, OnDestroy {
 
   private startHeartbeat(sessionId: string): void {
     if (this.heartbeatTimer) return;
+    this.sessionService.sendHeartbeat(sessionId).catch(() => {});
     this.heartbeatTimer = setInterval(() => {
-      this.sessionService.updateSession(sessionId, {}).catch(() => {});
+      this.sessionService.sendHeartbeat(sessionId).catch(() => {});
     }, LobbyComponent.HEARTBEAT_MS);
   }
 
@@ -134,7 +135,7 @@ export class LobbyComponent implements OnInit, OnDestroy {
   }
 
   private isGhostSession(session: GameSession): boolean {
-    const lastActivity = Date.now() - (session.updatedAt ?? session.createdAt ?? 0);
+    const lastActivity = Date.now() - (session.heartbeatAt ?? session.updatedAt ?? session.createdAt ?? 0);
     return lastActivity > LobbyComponent.GHOST_THRESHOLD_MS;
   }
 

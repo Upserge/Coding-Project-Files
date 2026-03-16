@@ -1,7 +1,28 @@
 import * as THREE from 'three';
+import { sampleSimplex2D } from './simplex-noise';
+
+const TERRAIN_WARP_SCALE = 0.012;
+const TERRAIN_WARP_STRENGTH = 11;
+const TERRAIN_BASE_HEIGHT = 3.8;
+const TERRAIN_RIDGE_HEIGHT = 1.55;
+const TERRAIN_DETAIL_HEIGHT = 0.18;
+const TERRAIN_BASE_FREQ = 0.016;
+const TERRAIN_RIDGE_FREQ = 0.026;
+const TERRAIN_DETAIL_FREQ = 0.05;
+
+const BASIN_SAMPLE_DISTANCE = 6.5;
+const BASIN_DEPTH_SCALE = 1.8;
+
+const BASE_GRASS_COLOR = new THREE.Color(0x6f8f57);
+const SUNNY_HILL_COLOR = new THREE.Color(0xc7bc7e);
+const VALLEY_SHADOW_COLOR = new THREE.Color(0x43533c);
+const ROCK_COLOR = new THREE.Color(0x6f695e);
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+
+export const TERRAIN_SEGMENTS = 160;
 
 /**
- * Terrain heightmap using layered sinusoidal noise.
+ * Terrain heightmap using layered simplex noise.
  *
  * Provides:
  *  - `getTerrainHeight(x, z)` — world-space height at any XZ coordinate
@@ -16,11 +37,64 @@ import * as THREE from 'three';
 
 /** Return the terrain height at a given world XZ coordinate. */
 export function getTerrainHeight(x: number, z: number): number {
-  return (
-    Math.sin(x * 0.04) * Math.cos(z * 0.03) * 0.7 +
-    Math.sin(x * 0.1 + z * 0.07) * 0.25 +
-    Math.cos(x * 0.02 - z * 0.05) * 0.5
-  );
+  const warped = getWarpedTerrainCoords(x, z);
+  return sampleBaseTerrain(warped.x, warped.z) + sampleRidgeTerrain(warped.x, warped.z) + sampleDetailTerrain(warped.x, warped.z);
+}
+
+export function getTerrainNormal(x: number, z: number, sampleDistance = 1.25): THREE.Vector3 {
+  const north = getTerrainHeight(x, z - sampleDistance);
+  const south = getTerrainHeight(x, z + sampleDistance);
+  const east = getTerrainHeight(x + sampleDistance, z);
+  const west = getTerrainHeight(x - sampleDistance, z);
+  return new THREE.Vector3(west - east, sampleDistance * 2, north - south).normalize();
+}
+
+export function getTerrainAlignedQuaternion(x: number, z: number, yaw: number, sampleDistance = 1.25): THREE.Quaternion {
+  const tilt = new THREE.Quaternion().setFromUnitVectors(WORLD_UP, getTerrainNormal(x, z, sampleDistance));
+  const spin = new THREE.Quaternion().setFromAxisAngle(WORLD_UP, yaw);
+  return tilt.multiply(spin);
+}
+
+function getWarpedTerrainCoords(x: number, z: number): { x: number; z: number } {
+  const warpX = sampleSimplex2D(x * TERRAIN_WARP_SCALE + 19.4, z * TERRAIN_WARP_SCALE - 8.7);
+  const warpZ = sampleSimplex2D(x * TERRAIN_WARP_SCALE - 14.2, z * TERRAIN_WARP_SCALE + 27.1);
+  return { x: x + warpX * TERRAIN_WARP_STRENGTH, z: z + warpZ * TERRAIN_WARP_STRENGTH };
+}
+
+function sampleBaseTerrain(x: number, z: number): number {
+  return sampleFractalNoise(x * TERRAIN_BASE_FREQ, z * TERRAIN_BASE_FREQ, 4, 2.05, 0.5) * TERRAIN_BASE_HEIGHT;
+}
+
+function sampleRidgeTerrain(x: number, z: number): number {
+  return (sampleRidgedNoise(x * TERRAIN_RIDGE_FREQ + 43, z * TERRAIN_RIDGE_FREQ - 31) - 0.5) * TERRAIN_RIDGE_HEIGHT;
+}
+
+function sampleDetailTerrain(x: number, z: number): number {
+  return sampleFractalNoise(x * TERRAIN_DETAIL_FREQ, z * TERRAIN_DETAIL_FREQ, 2, 2.1, 0.42) * TERRAIN_DETAIL_HEIGHT;
+}
+
+function sampleFractalNoise(
+  x: number,
+  z: number,
+  octaves: number,
+  lacunarity: number,
+  gain: number,
+): number {
+  let total = 0;
+  let amplitude = 1;
+  let frequency = 1;
+  let weight = 0;
+  for (let octave = 0; octave < octaves; octave++) {
+    total += sampleSimplex2D(x * frequency, z * frequency) * amplitude;
+    weight += amplitude;
+    amplitude *= gain;
+    frequency *= lacunarity;
+  }
+  return total / weight;
+}
+
+function sampleRidgedNoise(x: number, z: number): number {
+  return 1 - Math.abs(sampleFractalNoise(x, z, 3, 2.1, 0.55));
 }
 
 // ── Geometry displacement ───────────────────────────────────
@@ -36,11 +110,6 @@ export function getTerrainHeight(x: number, z: number): number {
  * So we read local X/Y to derive world XZ and write the height
  * into local Z.
  */
-// Valley (low) → dark, cool-tinted; Ridge (high) → bright, warm-tinted.
-// These are vertex-color multipliers applied to the ground texture.
-const VALLEY_R = 0.50, VALLEY_G = 0.60, VALLEY_B = 0.70;
-const RIDGE_R  = 1.00, RIDGE_G  = 0.97, RIDGE_B  = 0.82;
-
 export function applyHeightmap(geo: THREE.PlaneGeometry): void {
   const pos = geo.getAttribute('position') as THREE.BufferAttribute;
 
@@ -58,32 +127,69 @@ export function applyHeightmap(geo: THREE.PlaneGeometry): void {
   }
   pos.needsUpdate = true;
   geo.computeVertexNormals();
+  geo.setAttribute('color', buildTerrainColors(pos, minH, maxH, geo));
+}
 
-  // Pass 2 — height + slope based vertex colors
-  const range = maxH - minH || 1;
+function buildTerrainColors(
+  pos: THREE.BufferAttribute,
+  minHeight: number,
+  maxHeight: number,
+  geo: THREE.PlaneGeometry,
+): THREE.BufferAttribute {
   const normals = geo.getAttribute('normal') as THREE.BufferAttribute;
   const colors = new Float32Array(pos.count * 3);
+  const range = maxHeight - minHeight || 1;
+  for (let index = 0; index < pos.count; index++) writeTerrainColor(index, pos, normals, range, minHeight, colors);
+  return new THREE.BufferAttribute(colors, 3);
+}
 
-  for (let i = 0; i < pos.count; i++) {
-    const t = (pos.getZ(i) - minH) / range;
-    // Ease-out: only deep valleys darken noticeably; mid & high stay bright
-    const ht = 1 - (1 - t) * (1 - t);
+function writeTerrainColor(
+  index: number,
+  pos: THREE.BufferAttribute,
+  normals: THREE.BufferAttribute,
+  range: number,
+  minHeight: number,
+  colors: Float32Array,
+): void {
+  const heightT = (pos.getZ(index) - minHeight) / range;
+  const slopeT = clamp01(1 - Math.max(0, normals.getZ(index)));
+  const basinT = sampleBasinDepth(pos.getX(index), -pos.getY(index));
+  const color = blendTerrainColor(heightT, slopeT, basinT);
+  colors[index * 3] = color.r;
+  colors[index * 3 + 1] = color.g;
+  colors[index * 3 + 2] = color.b;
+}
 
-    let r = VALLEY_R + (RIDGE_R - VALLEY_R) * ht;
-    let g = VALLEY_G + (RIDGE_G - VALLEY_G) * ht;
-    let b = VALLEY_B + (RIDGE_B - VALLEY_B) * ht;
+function sampleBasinDepth(x: number, z: number): number {
+  const center = getTerrainHeight(x, z);
+  const ring = sampleTerrainRing(x, z);
+  return smooth01(clamp01((ring - center) / BASIN_DEPTH_SCALE));
+}
 
-    // Darken steep slopes slightly (exposed earth feel)
-    const nz = normals.getZ(i);
-    const slope = 0.88 + 0.12 * nz * nz;
-    r *= slope;
-    g *= slope;
-    b *= slope;
+function sampleTerrainRing(x: number, z: number): number {
+  const offset = BASIN_SAMPLE_DISTANCE;
+  const north = getTerrainHeight(x, z - offset);
+  const south = getTerrainHeight(x, z + offset);
+  const east = getTerrainHeight(x + offset, z);
+  const west = getTerrainHeight(x - offset, z);
+  return (north + south + east + west) * 0.25;
+}
 
-    colors[i * 3]     = r;
-    colors[i * 3 + 1] = g;
-    colors[i * 3 + 2] = b;
-  }
+function blendTerrainColor(heightT: number, slopeT: number, basinT: number): THREE.Color {
+  const valleyDepth = smooth01(clamp01((0.49 - heightT) * 1.1));
+  const valleyShade = smooth01(clamp01(valleyDepth * 0.54 + basinT * 0.32));
+  const hillSun = smooth01(clamp01((heightT - 0.51) * 1.18)) * (1 - slopeT * 0.82);
+  const rockBlend = smooth01(clamp01((slopeT - 0.42) * 0.72)) * (1 - hillSun * 0.55);
+  return BASE_GRASS_COLOR.clone()
+    .lerp(VALLEY_SHADOW_COLOR, valleyShade)
+    .lerp(SUNNY_HILL_COLOR, hillSun)
+    .lerp(ROCK_COLOR, rockBlend);
+}
 
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function smooth01(value: number): number {
+  return value * value * (3 - 2 * value);
 }

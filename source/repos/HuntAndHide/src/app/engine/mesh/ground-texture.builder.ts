@@ -14,11 +14,11 @@ import { buildGrassNormalMap, buildRoughnessMap } from './procedural-normal.buil
 const TEX_SIZE = 2048;
 const DETAIL_SIZE = 256;
 
-const BASE_COLOR = '#2d6a4f';
-const DARK_PATCH = '#1b4332';
-const LIGHT_PATCH = '#40916c';
-const DIRT_PATCH = '#6d4c3d';
-const MUD_PATCH = '#5d4037';
+const BASE_COLOR = '#6f855d';
+const DARK_PATCH = '#647856';
+const LIGHT_PATCH = '#7a9166';
+const DIRT_PATCH = '#786651';
+const MUD_PATCH = '#665847';
 
 // ── Public API ──────────────────────────────────────────────
 
@@ -38,11 +38,11 @@ export function buildGroundMaterial(): THREE.MeshStandardMaterial {
 function createColorMap(): THREE.CanvasTexture {
   const ctx = createCanvas(TEX_SIZE);
   fillBase(ctx);
-  paintWrappedPatches(ctx, DARK_PATCH, 140, 60, 120);
-  paintWrappedPatches(ctx, LIGHT_PATCH, 100, 40, 90);
-  paintWrappedPatches(ctx, DIRT_PATCH, 50, 30, 70);
-  paintWrappedPatches(ctx, MUD_PATCH, 30, 20, 50);
-  paintNoise(ctx, 10);
+  paintWrappedPatches(ctx, DARK_PATCH, 75, 36, 84, 0.08);
+  paintWrappedPatches(ctx, LIGHT_PATCH, 55, 28, 72, 0.07);
+  paintWrappedPatches(ctx, DIRT_PATCH, 30, 18, 42, 0.08);
+  paintWrappedPatches(ctx, MUD_PATCH, 16, 14, 28, 0.07);
+  paintNoise(ctx, 7);
   return configureTexture(ctx.canvas as HTMLCanvasElement, 4);
 }
 
@@ -114,7 +114,7 @@ function addDetailBlend(frag: string): string {
     '#include <map_fragment>',
     `#include <map_fragment>
      vec4 detail = texture2D(detailMap, vMapUv * 10.0);
-     diffuseColor.rgb *= 0.82 + detail.r * 0.36;`,
+     diffuseColor.rgb *= 0.9 + detail.r * 0.18;`,
   );
 }
 
@@ -154,9 +154,10 @@ function paintWrappedPatches(
   count: number,
   minR: number,
   maxR: number,
+  alpha: number,
 ): void {
   ctx.fillStyle = color;
-  ctx.globalAlpha = 0.35;
+  ctx.globalAlpha = alpha;
   const size = ctx.canvas.width;
   for (let i = 0; i < count; i++) {
     drawWrappedEllipse(ctx, size, minR, maxR);

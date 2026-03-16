@@ -12,6 +12,7 @@ import {
   increment,
   deleteField,
   onSnapshot,
+  runTransaction,
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import {
@@ -48,7 +49,7 @@ export class SessionService {
     return new Observable<GameSession[]>(subscriber => {
       const unsubscribe = onSnapshot(q,
         snapshot => {
-          const sessions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as GameSession));
+          const sessions = this.getJoinableSessions(snapshot.docs, Date.now());
           subscriber.next(sessions);
         },
         err => subscriber.error(err),
@@ -80,19 +81,15 @@ export class SessionService {
    * Returns the session ID the player should join.
    */
   async findOrCreateSession(): Promise<string> {
-    const snapshot = await getDocs(this.getLobbyQuery());
-    const now = Date.now();
-
-    for (const docSnap of snapshot.docs) {
-      const session = docSnap.data() as GameSession;
-      if (this.isStaleSession(session, now)) {
-        this.deleteSessionSilently(docSnap.ref);
-        continue;
-      }
-      if (this.isJoinableSession(session)) return docSnap.id;
-    }
+    const [sessionId] = await this.findJoinableSessionIds();
+    if (sessionId) return sessionId;
 
     return this.createSession();
+  }
+
+  async findJoinableSessionIds(): Promise<string[]> {
+    const snapshot = await getDocs(this.getLobbyQuery());
+    return this.getJoinableSessions(snapshot.docs, Date.now()).map(session => session.id ?? '');
   }
 
   // \u2500\u2500 CREATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -108,10 +105,32 @@ export class SessionService {
   /** Add a player to a session, seeding role based on current counts. */
   async joinSession(sessionId: string, player: PlayerState): Promise<void> {
     const ref = this.getSessionRef(sessionId);
-    await updateDoc(ref, {
-      [`players.${player.uid}`]: player,
-      [`${player.role}Count`]: increment(1),
-      updatedAt: Date.now(),
+    await updateDoc(ref, this.buildPlayerJoinPatch(player));
+  }
+
+  async tryJoinSession(
+    sessionId: string,
+    createPlayer: (session: GameSession) => PlayerState,
+  ): Promise<PlayerState | undefined> {
+    const ref = this.getSessionRef(sessionId);
+
+    return runTransaction(this.firestore, async transaction => {
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists()) return undefined;
+
+      const session = { id: snapshot.id, ...snapshot.data() } as GameSession;
+      if (this.isStaleSession(session, Date.now())) {
+        transaction.delete(ref);
+        return undefined;
+      }
+      if (!this.isJoinableSession(session)) return undefined;
+
+      const existingPlayer = session.players?.[this.identity.getToken()];
+      if (existingPlayer) return existingPlayer;
+
+      const player = createPlayer(session);
+      transaction.update(ref, this.buildPlayerJoinPatch(player));
+      return player;
     });
   }
 
@@ -124,13 +143,23 @@ export class SessionService {
   async removePlayerFromAllSessions(): Promise<void> {
     const uid = this.identity.getToken();
     const snapshot = await getDocs(this.getLobbyQuery());
+    const now = Date.now();
 
     for (const docSnap of snapshot.docs) {
       const session = docSnap.data() as GameSession;
+      if (this.isStaleSession(session, now)) {
+        this.deleteSessionSilently(docSnap.ref);
+        continue;
+      }
       const role = this.getPlayerRole(session, uid);
       if (!role) continue;
       await updateDoc(this.getSessionRef(docSnap.id), this.buildPlayerRemovalPatch(uid, role, false)).catch(() => {});
     }
+  }
+
+  async sendHeartbeat(sessionId: string): Promise<void> {
+    const now = Date.now();
+    await updateDoc(this.getSessionRef(sessionId), { heartbeatAt: now, updatedAt: now });
   }
 
   // \u2500\u2500 UPDATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -154,15 +183,15 @@ export class SessionService {
   }
 
   private isStaleSession(session: GameSession, now: number): boolean {
-    const createdAge = now - (session.createdAt ?? 0);
-    const lastActivity = now - (session.updatedAt ?? session.createdAt ?? 0);
-    return createdAge > SessionService.STALE_AGE_MS || lastActivity > SessionService.INACTIVE_MS;
+    const lastHeartbeat = now - this.getHeartbeatAt(session);
+    if (lastHeartbeat > SessionService.INACTIVE_MS) return true;
+    if (this.hasPlayers(session)) return false;
+    return now - (session.createdAt ?? 0) > SessionService.STALE_AGE_MS;
   }
 
   private isJoinableSession(session: GameSession): boolean {
-    const playerCount = Object.keys(session.players ?? {}).length;
     const hasCounts = typeof session.hiderCount === 'number' && typeof session.hunterCount === 'number';
-    return hasCounts && playerCount < MAX_PLAYERS_PER_SESSION;
+    return hasCounts && this.getPlayerCount(session) < MAX_PLAYERS_PER_SESSION;
   }
 
   private buildSessionDocument(config: SessionConfig): Omit<GameSession, 'id'> {
@@ -177,6 +206,7 @@ export class SessionService {
       currentRound: 0,
       maxRounds: config.maxRounds,
       createdAt: now,
+      heartbeatAt: now,
       updatedAt: now,
     };
   }
@@ -185,8 +215,48 @@ export class SessionService {
     deleteDoc(ref).catch(() => {});
   }
 
+  private getJoinableSessions(docSnaps: any[], now: number): GameSession[] {
+    return docSnaps
+      .filter(docSnap => this.shouldKeepJoinableSession(docSnap, now))
+      .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as GameSession))
+      .sort((left, right) => this.getSessionCreatedAt(left) - this.getSessionCreatedAt(right));
+  }
+
+  private shouldKeepJoinableSession(docSnap: any, now: number): boolean {
+    const session = docSnap.data() as GameSession;
+    if (this.isStaleSession(session, now)) {
+      this.deleteSessionSilently(docSnap.ref);
+      return false;
+    }
+    return this.isJoinableSession(session);
+  }
+
+  private getSessionCreatedAt(session: GameSession): number {
+    return session.createdAt ?? 0;
+  }
+
+  private getHeartbeatAt(session: GameSession): number {
+    return session.heartbeatAt ?? session.updatedAt ?? session.createdAt ?? 0;
+  }
+
+  private getPlayerCount(session: GameSession): number {
+    return Object.keys(session.players ?? {}).length;
+  }
+
+  private hasPlayers(session: GameSession): boolean {
+    return this.getPlayerCount(session) > 0;
+  }
+
   private getPlayerRole(session: GameSession, uid: string): 'hider' | 'hunter' | undefined {
     return session.players?.[uid]?.role as 'hider' | 'hunter' | undefined;
+  }
+
+  private buildPlayerJoinPatch(player: PlayerState) {
+    return {
+      [`players.${player.uid}`]: player,
+      [`${player.role}Count`]: increment(1),
+      updatedAt: Date.now(),
+    };
   }
 
   private buildPlayerRemovalPatch(
@@ -201,5 +271,4 @@ export class SessionService {
     if (!includeUpdatedAt) return patch;
     return { ...patch, updatedAt: Date.now() };
   }
-
-  }
+}

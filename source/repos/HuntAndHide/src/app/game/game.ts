@@ -11,19 +11,21 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UpperCasePipe } from '@angular/common';
-import { Subscription, firstValueFrom } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { EngineService } from '../engine/engine.service';
 import { SceneRenderService } from '../engine/scene-render.service';
 import { GameLoopService } from '../services/game-loop.service';
 import { SessionService } from '../services/session.service';
 import { IdentityService } from '../services/identity.service';
 import { InputService } from '../services/input.service';
-import { PlayerService } from '../services/player.service';
 import { LeaderboardService } from '../services/leaderboard.service';
 import { FullscreenService } from '../services/fullscreen.service';
+import { MatchmakingService } from '../services/matchmaking.service';
 import { HudComponent } from '../hud/hud';
+import { GameCeremonyComponent } from '../game-ceremony/game-ceremony';
 import { GameSession, RoundMvp, RoundWinner } from '../models/session.model';
-import { PlayerState, PlayerRole } from '../models/player.model';
+import { PlayerState } from '../models/player.model';
+import { GameCeremonyService } from '../services/game-ceremony.service';
 
 /** Total player slots (real + CPU). */
 const TOTAL_PLAYER_SLOTS = 10;
@@ -31,7 +33,7 @@ const TOTAL_PLAYER_SLOTS = 10;
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [HudComponent, UpperCasePipe],
+  imports: [HudComponent, GameCeremonyComponent, UpperCasePipe],
   templateUrl: './game.html',
   styleUrl: './game.css',
 })
@@ -42,9 +44,10 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
   private readonly identity = inject(IdentityService);
   private readonly inputService = inject(InputService);
-  private readonly playerService = inject(PlayerService);
   private readonly leaderboardService = inject(LeaderboardService);
   private readonly fullscreen = inject(FullscreenService);
+  private readonly matchmaking = inject(MatchmakingService);
+  private readonly ceremony = inject(GameCeremonyService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -113,6 +116,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearRulesTimer();
+    this.ceremony.clear();
     this.disposeViewResources();
     this.cleanupSession();
   }
@@ -147,9 +151,11 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private startGameplay(session: GameSession): void {
     this.gameStarted = true;
     this.inLobby.set(false);
+    this.dismissRulesModal();
 
     const uid = this.identity.getToken();
     this.gameLoop.startGame(uid, session.hiderCount, session.hunterCount);
+    this.startBeginningGameCeremony();
   }
 
   /** Record game result to Firestore leaderboard and update session phase. */
@@ -181,8 +187,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.isJoining.set(true);
     try {
       const sessionId = await this.joinReplaySession();
-      await this.startReplaySession(sessionId);
-      await this.router.navigate(['/game', sessionId]);
+      await this.router.navigate(['/lobby', sessionId]);
     } catch (err) {
       await this.handlePlayAgainFailure(err);
     } finally {
@@ -239,7 +244,14 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.resultRecorded = false;
     this.currentSessionId = sessionId;
     this.inLobby.set(true);
+    this.ceremony.clear();
     this.showRulesBriefly();
+  }
+
+  private startBeginningGameCeremony(): void {
+    const role = this.gameLoop.getLocalPlayer()?.role;
+    if (!role) return;
+    this.ceremony.playBeginningGame(role);
   }
 
   private handleSessionSnapshot(session: GameSession | undefined): void {
@@ -361,24 +373,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   private async joinReplaySession(): Promise<string> {
     await this.cleanupSession();
-    const sessionId = await this.sessionService.findOrCreateSession();
-    const session = await firstValueFrom(this.sessionService.getSession$(sessionId));
-    const player = this.buildReplayPlayer(session);
-      await this.sessionService.joinSession(sessionId, player);
-    return sessionId;
-  }
-
-  private buildReplayPlayer(session: GameSession | undefined): PlayerState {
-    const hiderCount = session?.hiderCount ?? 0;
-    const hunterCount = session?.hunterCount ?? 0;
-    const takenAnimals = Object.values(session?.players ?? {}).filter(Boolean).map((p: any) => p.animal);
-    const role = this.playerService.assignRole(hiderCount, hunterCount);
-    const animal = this.playerService.assignAnimal(role, takenAnimals);
-    return this.playerService.createPlayerState(role, animal, { x: 0, y: 0, z: 0 });
-  }
-
-  private async startReplaySession(sessionId: string): Promise<void> {
-    await this.sessionService.updateSession(sessionId, { phase: 'hunting' });
+    return this.matchmaking.joinLobby();
   }
 
   private async handlePlayAgainFailure(err: unknown): Promise<void> {

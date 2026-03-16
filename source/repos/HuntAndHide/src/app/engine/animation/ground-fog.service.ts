@@ -1,18 +1,19 @@
 import { Injectable } from '@angular/core';
 import * as THREE from 'three';
+import { getTerrainHeight } from '../mesh/terrain-heightmap.builder';
 
 /**
  * GroundFogService adds a low-lying animated fog layer to the scene.
  *
- * A single transparent plane at y ≈ 0.4 with a noise-based alpha
- * shader gives the illusion of wispy jungle mist drifting across the
- * ground. One draw call, very cheap.
+ * The fog plane is vertex-displaced to follow the terrain heightmap
+ * so mist settles into valleys and thins out on hills.
  *
  * Call `init(scene)` once, then `tick(delta)` every frame.
  */
 
 const FOG_SIZE = 500;
-const FOG_Y = 0.06;
+const FOG_OFFSET_Y = 0.35;
+const FOG_SEGMENTS = 128;
 
 @Injectable({ providedIn: 'root' })
 export class GroundFogService {
@@ -23,11 +24,11 @@ export class GroundFogService {
 
   init(scene: THREE.Scene): void {
     this.elapsed = 0;
-    const geo = new THREE.PlaneGeometry(FOG_SIZE, FOG_SIZE);
+    const geo = new THREE.PlaneGeometry(FOG_SIZE, FOG_SIZE, FOG_SEGMENTS, FOG_SEGMENTS);
+    this.displaceToTerrain(geo);
     this.material = this.createFogMaterial();
     this.mesh = new THREE.Mesh(geo, this.material);
     this.mesh.rotation.x = -Math.PI / 2;
-    this.mesh.position.y = FOG_Y;
     this.mesh.renderOrder = 4;
     this.mesh.castShadow = false;
     this.mesh.receiveShadow = false;
@@ -51,6 +52,34 @@ export class GroundFogService {
     this.material = null;
   }
 
+  private displaceToTerrain(geo: THREE.PlaneGeometry): void {
+    const pos = geo.getAttribute('position') as THREE.BufferAttribute;
+    const heights = new Float32Array(pos.count);
+    let minH = Infinity;
+    let maxH = -Infinity;
+
+    for (let i = 0; i < pos.count; i++) {
+      const localX = pos.getX(i);
+      const localY = pos.getY(i);
+      const worldZ = -localY;
+      const h = getTerrainHeight(localX, worldZ);
+      pos.setZ(i, h + FOG_OFFSET_Y);
+      heights[i] = h;
+      if (h < minH) minH = h;
+      if (h > maxH) maxH = h;
+    }
+
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+
+    const range = maxH - minH || 1;
+    const heightAttr = new Float32Array(pos.count);
+    for (let i = 0; i < pos.count; i++) {
+      heightAttr[i] = (heights[i] - minH) / range;
+    }
+    geo.setAttribute('aHeightT', new THREE.BufferAttribute(heightAttr, 1));
+  }
+
   private createFogMaterial(): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       transparent: true,
@@ -61,9 +90,12 @@ export class GroundFogService {
         uColor: { value: new THREE.Color(0xc8dfc8) },
       },
       vertexShader: /* glsl */ `
+        attribute float aHeightT;
         varying vec2 vUv;
+        varying float vHeightT;
         void main() {
           vUv = uv;
+          vHeightT = aHeightT;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
@@ -71,8 +103,8 @@ export class GroundFogService {
         uniform float uTime;
         uniform vec3 uColor;
         varying vec2 vUv;
+        varying float vHeightT;
 
-        // Simple value noise
         float hash(vec2 p) {
           return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
         }
@@ -104,9 +136,13 @@ export class GroundFogService {
           float drift = uTime * 0.06;
           float n = fbm(uv + vec2(drift, drift * 0.7));
           float n2 = fbm(uv * 1.3 + vec2(-drift * 0.5, drift * 0.4));
-          float alpha = (n * 0.6 + n2 * 0.4) * 0.28;
+          float alpha = (n * 0.6 + n2 * 0.4) * 0.32;
 
-          // Fade out at edges
+          // Thick in valleys (heightT~0), thin on hills (heightT~1)
+          float heightFade = 1.0 - smoothstep(0.15, 0.65, vHeightT);
+          alpha *= heightFade;
+
+          // Fade out at world edges
           vec2 edge = smoothstep(vec2(0.0), vec2(0.15), vUv)
                     * smoothstep(vec2(0.0), vec2(0.15), 1.0 - vUv);
           alpha *= edge.x * edge.y;

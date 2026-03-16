@@ -1,4 +1,9 @@
 import * as THREE from 'three';
+import {
+  STREAM_SURFACE_WIDTH,
+  WATER_CAUSTIC_OFFSET,
+} from '../../models/water-feature.model';
+import { markTerrainSurface } from './terrain-placement';
 
 /**
  * Animated water caustic planes placed above water features.
@@ -13,10 +18,18 @@ import * as THREE from 'three';
 
 const causticMaterials: THREE.MeshBasicMaterial[] = [];
 let causticResetDone = false;
+const POND_CAUSTIC_SEGMENTS = 28;
+const STREAM_CAUSTIC_WIDTH_SEGMENTS = 8;
+const STREAM_CAUSTIC_LENGTH_SEGMENTS = 40;
+const POND_CAUSTIC_MASK_SIZE = 128;
 
 /** Clear stale material refs from previous scene build. */
 function resetCausticMaterials(): void {
   if (!causticResetDone) {
+    for (const mat of causticMaterials) {
+      mat.map?.dispose();
+      mat.dispose();
+    }
     causticMaterials.length = 0;
     sharedCausticTexture = null;
     causticResetDone = true;
@@ -30,25 +43,30 @@ function resetCausticMaterials(): void {
 /** Create a caustic overlay for a circular water feature (pond). */
 export function buildPondCaustics(radius: number): THREE.Mesh {
   resetCausticMaterials();
-  const geo = new THREE.CircleGeometry(radius * 0.9, 24);
-  const mat = createCausticMaterial();
+  const size = radius * 1.8;
+  const geo = new THREE.PlaneGeometry(size, size, POND_CAUSTIC_SEGMENTS, POND_CAUSTIC_SEGMENTS);
+  const mat = createCausticMaterial(size, size);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.y = 0.06;
+  mesh.position.y = WATER_CAUSTIC_OFFSET;
   mesh.renderOrder = 1;
-  return mesh;
+  mat.alphaMap = getPondCausticMask();
+  mat.alphaTest = 0.5;
+  return markTerrainSurface(mesh, WATER_CAUSTIC_OFFSET);
 }
 
 /** Create a caustic overlay for a rectangular water feature (stream). */
 export function buildStreamCaustics(length: number): THREE.Mesh {
   resetCausticMaterials();
-  const geo = new THREE.PlaneGeometry(1.6, length * 0.9, 1, 1);
-  const mat = createCausticMaterial();
+  const width = Math.max(0.6, STREAM_SURFACE_WIDTH - 0.16);
+  const causticLength = Math.max(0.8, length - 0.16);
+  const geo = new THREE.PlaneGeometry(width, causticLength, STREAM_CAUSTIC_WIDTH_SEGMENTS, STREAM_CAUSTIC_LENGTH_SEGMENTS);
+  const mat = createCausticMaterial(width, causticLength);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.y = 0.06;
+  mesh.position.y = WATER_CAUSTIC_OFFSET;
   mesh.renderOrder = 1;
-  return mesh;
+  return markTerrainSurface(mesh, WATER_CAUSTIC_OFFSET);
 }
 
 /** Advance caustic animation — call once per frame. */
@@ -64,8 +82,8 @@ export function tickCaustics(elapsed: number): void {
 
 // ── Material ────────────────────────────────────────────────
 
-function createCausticMaterial(): THREE.MeshBasicMaterial {
-  const texture = getCausticTexture();
+function createCausticMaterial(width: number, length: number): THREE.MeshBasicMaterial {
+  const texture = createCausticTexture(width, length);
   const mat = new THREE.MeshBasicMaterial({
     map: texture,
     transparent: true,
@@ -80,15 +98,40 @@ function createCausticMaterial(): THREE.MeshBasicMaterial {
 // ── Caustic texture (canvas) ────────────────────────────────
 
 let sharedCausticTexture: THREE.CanvasTexture | null = null;
+let pondCausticMask: THREE.CanvasTexture | null = null;
 
 function getCausticTexture(): THREE.CanvasTexture {
   if (!sharedCausticTexture) {
     sharedCausticTexture = generateCausticTexture(256);
     sharedCausticTexture.wrapS = THREE.RepeatWrapping;
     sharedCausticTexture.wrapT = THREE.RepeatWrapping;
-    sharedCausticTexture.repeat.set(2, 2);
   }
   return sharedCausticTexture;
+}
+
+function getPondCausticMask(): THREE.CanvasTexture {
+  if (pondCausticMask) return pondCausticMask;
+  const canvas = document.createElement('canvas');
+  canvas.width = POND_CAUSTIC_MASK_SIZE;
+  canvas.height = POND_CAUSTIC_MASK_SIZE;
+  const ctx = canvas.getContext('2d')!;
+  const half = POND_CAUSTIC_MASK_SIZE * 0.5;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(half, half, half, 0, Math.PI * 2);
+  ctx.fill();
+  pondCausticMask = new THREE.CanvasTexture(canvas);
+  return pondCausticMask;
+}
+
+function createCausticTexture(width: number, length: number): THREE.CanvasTexture {
+  const texture = getCausticTexture().clone();
+  texture.needsUpdate = true;
+  texture.repeat.set(
+    Math.max(1, width / 1.5),
+    Math.max(1, length / 3),
+  );
+  return texture;
 }
 
 /**

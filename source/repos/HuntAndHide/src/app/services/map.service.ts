@@ -174,7 +174,7 @@ export class MapService {
       features.push({
         id: `water_${id++}`,
         type: 'pond',
-        position: { x, y: 0.02, z },
+        position: { x, y: 0, z },
         rotationY: 0,
         size,
       });
@@ -185,7 +185,7 @@ export class MapService {
       features.push({
         id: `water_${id++}`,
         type: 'stream',
-        position: { x, y: 0.02, z },
+        position: { x, y: 0, z },
         rotationY: Math.random() * Math.PI,
         size: 10 + Math.random() * 4,
       });

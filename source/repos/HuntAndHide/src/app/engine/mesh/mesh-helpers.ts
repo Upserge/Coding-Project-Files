@@ -17,7 +17,7 @@ import { createStandardPart, createSurfaceMatcap } from './character-material.fa
  *     leg_L  GROUP  (walk cycle - stays grounded)
  *       leg mesh + foot mesh
  *     leg_R  GROUP
- *     role ring, local ring, name label sprite
+ *     name label sprite
  */
 export const PART_NAMES = {
   body:      'body',
@@ -189,44 +189,133 @@ export function attachFeetOnly(
 
 // Rim lighting
 
+const OUTLINE_NAME = 'rimOutline';
+const OUTLINE_SCALE = 1.08;
+
+type OutlineUniforms = {
+  outlineColor: { value: THREE.Color };
+  rimPower: { value: number };
+  rimStrength: { value: number };
+};
+
 /**
- * Apply a Fresnel-based rim/edge glow to all MeshStandardMaterial
- * children of a group. Injected via `onBeforeCompile` — zero extra
- * draw calls, just a small shader snippet per material.
+ * Apply a Fresnel-style outline shell without mutating base materials.
  */
 export function applyRimLighting(group: THREE.Group, rimColor = new THREE.Color(0xfff8e1), rimPower = 2.5, rimStrength = 0.35): void {
   group.traverse((child) => {
     const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const mat = mesh.material;
-    if (!(mat instanceof THREE.MeshStandardMaterial)) return;
-
-    mat.onBeforeCompile = (shader) => {
-      shader.uniforms['rimColor'] = { value: rimColor };
-      shader.uniforms['rimPower'] = { value: rimPower };
-      shader.uniforms['rimStrength'] = { value: rimStrength };
-
-      shader.fragmentShader = shader.fragmentShader.replace(
-        'uniform float opacity;',
-        /* glsl */ `
-          uniform float opacity;
-          uniform vec3 rimColor;
-          uniform float rimPower;
-          uniform float rimStrength;
-        `,
-      );
-
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <dithering_fragment>',
-        /* glsl */ `
-          #include <dithering_fragment>
-          float rimFresnel = 1.0 - abs(dot(geometryNormal, geometryViewDir));
-          gl_FragColor.rgb += rimColor * pow(rimFresnel, rimPower) * rimStrength;
-        `,
-      );
-    };
-    mat.needsUpdate = true;
+    if (!shouldOutlineMesh(mesh)) return;
+    attachOutline(mesh, rimColor, rimPower, rimStrength);
   });
+}
+
+export function updateRimLighting(group: THREE.Group, rimColor: THREE.ColorRepresentation, rimPower = 2.5, rimStrength = 0.35): void {
+  group.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!shouldOutlineMesh(mesh)) return;
+    updateOutline(mesh, rimColor, rimPower, rimStrength);
+  });
+}
+
+function shouldOutlineMesh(mesh: THREE.Mesh): boolean {
+  if (!mesh?.isMesh) return false;
+  if (mesh.name === OUTLINE_NAME) return false;
+  return !Array.isArray(mesh.material);
+}
+
+function attachOutline(
+  mesh: THREE.Mesh,
+  rimColor: THREE.ColorRepresentation,
+  rimPower: number,
+  rimStrength: number,
+): void {
+  const existing = getOutline(mesh);
+  if (existing) return void syncOutline(existing, rimColor, rimPower, rimStrength);
+  mesh.add(buildOutline(mesh, rimColor, rimPower, rimStrength));
+}
+
+function updateOutline(
+  mesh: THREE.Mesh,
+  rimColor: THREE.ColorRepresentation,
+  rimPower: number,
+  rimStrength: number,
+): void {
+  const outline = getOutline(mesh);
+  if (!outline) return;
+  syncOutline(outline, rimColor, rimPower, rimStrength);
+}
+
+function getOutline(mesh: THREE.Mesh): THREE.Mesh | null {
+  return mesh.children.find(child => child.name === OUTLINE_NAME) as THREE.Mesh | null;
+}
+
+function buildOutline(
+  mesh: THREE.Mesh,
+  rimColor: THREE.ColorRepresentation,
+  rimPower: number,
+  rimStrength: number,
+): THREE.Mesh {
+  const outline = new THREE.Mesh(mesh.geometry, createOutlineMaterial(rimColor, rimPower, rimStrength));
+  outline.name = OUTLINE_NAME;
+  outline.renderOrder = -1;
+  outline.frustumCulled = false;
+  outline.scale.multiplyScalar(OUTLINE_SCALE);
+  return outline;
+}
+
+function createOutlineMaterial(
+  rimColor: THREE.ColorRepresentation,
+  rimPower: number,
+  rimStrength: number,
+): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      outlineColor: { value: new THREE.Color(rimColor) },
+      rimPower: { value: rimPower },
+      rimStrength: { value: rimStrength },
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vViewDir;
+
+      void main() {
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        vNormal = normalize(normalMatrix * normal);
+        vViewDir = normalize(-mvPosition.xyz);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 outlineColor;
+      uniform float rimPower;
+      uniform float rimStrength;
+
+      varying vec3 vNormal;
+      varying vec3 vViewDir;
+
+      void main() {
+        float fresnel = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewDir))), rimPower);
+        float alpha = clamp(fresnel * rimStrength, 0.0, 1.0);
+        if (alpha <= 0.01) discard;
+        gl_FragColor = vec4(outlineColor, alpha);
+      }
+    `,
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+  });
+}
+
+function syncOutline(
+  outline: THREE.Mesh,
+  rimColor: THREE.ColorRepresentation,
+  rimPower: number,
+  rimStrength: number,
+): void {
+  const uniforms = (outline.material as THREE.ShaderMaterial).uniforms as OutlineUniforms;
+  uniforms['outlineColor'].value.set(rimColor);
+  uniforms['rimPower'].value = rimPower;
+  uniforms['rimStrength'].value = rimStrength;
 }
 
 // Name label
@@ -261,7 +350,12 @@ export function buildNameSprite(name: string, isHunter: boolean, isCpu = false):
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
-  const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const spriteMat = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+  });
   const sprite = new THREE.Sprite(spriteMat);
   sprite.scale.set(2.5, 0.6, 1);
   // Layer 1 = UI overlay, rendered after post-processing to avoid god-ray scatter

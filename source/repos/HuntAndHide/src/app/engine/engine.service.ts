@@ -1,19 +1,24 @@
 import { inject, Injectable, NgZone, OnDestroy } from '@angular/core';
 import * as THREE from 'three';
 import { MapService } from '../services/map.service';
-import { MapConfig, ObstaclePlacement, DecorationPlacement, WaterPlacement } from '../models/map.model';
+import { MapConfig, ObstaclePlacement, DecorationPlacement, WaterPlacement, OBSTACLE_CONFIGS, ObstacleType, DecorationType } from '../models/map.model';
 import { buildObstacleMesh } from './mesh/obstacle/obstacle-registry';
 import { buildGroundMaterial } from './mesh/ground-texture.builder';
 import { buildDecorationMesh } from './mesh/decoration-mesh.builder';
 import { buildWaterMesh } from './mesh/water-mesh.builder';
 import { PostProcessingService } from './post-processing.service';
 import { buildEnvironmentMap } from './mesh/environment-light.builder';
-import { applyHeightmap, getTerrainHeight } from './mesh/terrain-heightmap.builder';
+import {
+  applyHeightmap,
+  TERRAIN_SEGMENTS,
+} from './mesh/terrain-heightmap.builder';
 import { buildInstancedGrass, tickInstancedGrass } from './mesh/instanced-grass.builder';
 import { buildGodRays, tickGodRays } from './mesh/god-ray.builder';
 import { buildDappledLight } from './mesh/dappled-light.builder';
-import { buildPondCaustics, buildStreamCaustics, tickCaustics } from './mesh/water-caustics.builder';
+import { buildPondCaustics, buildStreamCaustics } from './mesh/water-caustics.builder';
 import { buildContactShadows } from './mesh/contact-shadow.builder';
+import { placeOnTerrain } from './mesh/terrain-placement';
+import { getWaterSurfaceSize } from '../models/water-feature.model';
 import { GroundFogService } from './animation/ground-fog.service';
 import { TimeOfDayService } from './animation/time-of-day.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
@@ -43,7 +48,6 @@ export class EngineService implements OnDestroy {
   private grassMesh: THREE.InstancedMesh | null = null;
   private grassElapsed = 0;
   private godRayElapsed = 0;
-  private causticsElapsed = 0;
   private ppElapsed = 0;
   private sunLight: THREE.DirectionalLight | null = null;
   private ambientLight: THREE.AmbientLight | null = null;
@@ -62,7 +66,6 @@ export class EngineService implements OnDestroy {
     this.clock = new THREE.Clock();
     this.grassElapsed = 0;
     this.godRayElapsed = 0;
-    this.causticsElapsed = 0;
     this.ppElapsed = 0;
     this.onTick = null;
     this.usePostProcessing = false;
@@ -157,7 +160,6 @@ export class EngineService implements OnDestroy {
     this.scene = new THREE.Scene();
     // Sky-blue background with warm tone (sun poking through canopy)
     this.scene.background = new THREE.Color(0x87ceaa);
-    this.scene.fog = new THREE.FogExp2(0x87ceaa, 0.003);
     // Enable layer 1 so the overlay pass can traverse into player groups
     this.scene.layers.enable(1);
   }
@@ -205,13 +207,7 @@ export class EngineService implements OnDestroy {
 
   /** Initialise the EffectComposer post-processing pipeline. */
   private initPostProcessing(): void {
-    try {
-      this.postProcessing.init(this.renderer, this.scene, this.camera);
-      this.usePostProcessing = true;
-    } catch (e) {
-      console.warn('[Engine] Post-processing init failed, using direct rendering', e);
-      this.usePostProcessing = false;
-    }
+    this.usePostProcessing = false;
   }
 
   // ── Jungle scene ───────────────────────────────────────────
@@ -230,7 +226,6 @@ export class EngineService implements OnDestroy {
     safe('buildGodRays',         () => this.buildGodRays());
     safe('buildLighting',        () => this.buildLighting());
     safe('buildContactShadows',  () => this.buildContactShadows());
-    safe('groundFog.init',       () => this.groundFog.init(this.scene));
   }
 
   private buildDappledLight(): void {
@@ -238,7 +233,12 @@ export class EngineService implements OnDestroy {
   }
 
   private buildGround(map: MapConfig): void {
-    const geo = new THREE.PlaneGeometry(map.width, map.depth, 64, 64);
+    const geo = new THREE.PlaneGeometry(
+      map.width,
+      map.depth,
+      TERRAIN_SEGMENTS,
+      TERRAIN_SEGMENTS,
+    );
     applyHeightmap(geo);
     const ground = new THREE.Mesh(geo, buildGroundMaterial());
     ground.rotation.x = -Math.PI / 2;
@@ -256,9 +256,18 @@ export class EngineService implements OnDestroy {
   private placeObstacle(obs: ObstaclePlacement): void {
     const group = buildObstacleMesh(obs.type);
     if (!group) return;
-    const y = obs.position.y + getTerrainHeight(obs.position.x, obs.position.z);
-    group.position.set(obs.position.x, y, obs.position.z);
-    group.rotation.y = obs.rotationY;
+    placeOnTerrain(
+      group,
+      obs.position.x,
+      obs.position.z,
+      obs.rotationY,
+      this.getObstacleFootprint(obs.type),
+      {
+        alignToSlope: this.shouldAlignObstacleToSlope(obs.type),
+        clearance: this.getObstacleClearance(obs.type) + obs.position.y,
+        sampleRadius: this.getObstacleSampleRadius(obs.type),
+      },
+    );
     group.renderOrder = 2;
     this.enableShadows(group);
     this.scene.add(group);
@@ -281,17 +290,16 @@ export class EngineService implements OnDestroy {
   private placeDecoration(deco: DecorationPlacement): void {
     const group = buildDecorationMesh(deco.type);
     if (!group) return;
-    const y = deco.position.y + getTerrainHeight(deco.position.x, deco.position.z);
-    group.position.set(deco.position.x, y, deco.position.z);
-    group.rotation.y = deco.rotationY;
     group.scale.setScalar(deco.scale);
+    placeOnTerrain(
+      group,
+      deco.position.x,
+      deco.position.z,
+      deco.rotationY,
+      this.getDecorationFootprint(deco.type, deco.scale),
+      { alignToSlope: this.shouldAlignDecorationToSlope(deco.type), clearance: deco.position.y },
+    );
     group.renderOrder = 1;
-    group.traverse((child) => {
-      if ((child as THREE.Mesh).material) {
-        const mat = (child as THREE.Mesh).material as THREE.Material;
-        mat.depthWrite = false;
-      }
-    });
     this.scene.add(group);
   }
 
@@ -304,19 +312,55 @@ export class EngineService implements OnDestroy {
   private placeWaterFeature(water: WaterPlacement): void {
     const group = buildWaterMesh(water.type, water.size);
     if (!group) return;
-    group.position.set(water.position.x, water.position.y, water.position.z);
-    group.rotation.y = water.rotationY;
-    this.scene.add(group);
-
-    // Add caustic overlay as child so it inherits group transform
+    const surfaceSize = getWaterSurfaceSize(water);
     const caustic = water.type === 'pond'
       ? buildPondCaustics(water.size)
       : buildStreamCaustics(water.size);
     group.add(caustic);
+    placeOnTerrain(
+      group,
+      water.position.x,
+      water.position.z,
+      water.rotationY,
+      { width: surfaceSize.width, depth: surfaceSize.length },
+      { alignToSlope: false, clearance: water.position.y, useFooting: false },
+    );
+    this.scene.add(group);
   }
 
   private buildContactShadows(): void {
     buildContactShadows(this.scene);
+  }
+
+  private getObstacleFootprint(type: ObstacleType): { width: number; depth: number } {
+    const size = OBSTACLE_CONFIGS[type].size;
+    return { width: size.x, depth: size.z };
+  }
+
+  private getObstacleClearance(type: ObstacleType): number {
+    if (type === 'hole') return 0;
+    return this.isVehicle(type) ? 0.08 : 0.02;
+  }
+
+  private shouldAlignObstacleToSlope(type: ObstacleType): boolean {
+    return type !== 'tree' && type !== 'bush' && type !== 'hole';
+  }
+
+  private getObstacleSampleRadius(type: ObstacleType): number | undefined {
+    return this.isVehicle(type) ? 1.8 : undefined;
+  }
+
+  private isVehicle(type: ObstacleType): boolean {
+    return type === 'jeep' || type === 'truck';
+  }
+
+  private getDecorationFootprint(type: DecorationType, scale: number): { width: number; depth: number } {
+    const size = type === 'fallen_log' ? { width: 1.9, depth: 0.7 } : { width: 0.9, depth: 0.9 };
+    return { width: size.width * scale, depth: size.depth * scale };
+  }
+
+  private shouldAlignDecorationToSlope(type: DecorationType): boolean {
+    return type === 'fallen_log' || type === 'vine';
   }
 
   // ── Instanced grass + god rays ─────────────────────────────
@@ -345,11 +389,11 @@ export class EngineService implements OnDestroy {
   }
 
   private buildAmbient(): THREE.AmbientLight {
-    return new THREE.AmbientLight(0xffe0b2, 0.5);
+    return new THREE.AmbientLight(0xe8edd8, 0.4);
   }
 
   private buildSun(): THREE.DirectionalLight {
-    const sun = new THREE.DirectionalLight(0xfff8e1, 0.9);
+    const sun = new THREE.DirectionalLight(0xfff4d6, 0.72);
     sun.position.set(60, 100, 40);
     sun.castShadow = true;
     this.configureSunShadow(sun);
@@ -370,7 +414,7 @@ export class EngineService implements OnDestroy {
   }
 
   private buildFill(): THREE.DirectionalLight {
-    const fill = new THREE.DirectionalLight(0xb2dfdb, 0.3);
+    const fill = new THREE.DirectionalLight(0xc7ddd6, 0.34);
     fill.position.set(-15, 20, -10);
     return fill;
   }
@@ -378,7 +422,7 @@ export class EngineService implements OnDestroy {
   /** Apply procedural IBL for realistic ambient reflections on all PBR materials. */
   private applyEnvironmentMap(): void {
     this.scene.environment = buildEnvironmentMap();
-    this.scene.environmentIntensity = 0.4;
+    this.scene.environmentIntensity = 0.34;
   }
 
   // ── Render loop ────────────────────────────────────────────
@@ -402,13 +446,6 @@ export class EngineService implements OnDestroy {
       // Advance god ray breathing animation
       this.godRayElapsed += delta;
       tickGodRays(this.godRayElapsed);
-
-      // Advance water caustics animation
-      this.causticsElapsed += delta;
-      tickCaustics(this.causticsElapsed);
-
-      // Advance ground fog drift
-      this.groundFog.tick(delta);
 
       // Advance time-of-day lighting cycle
       this.timeOfDay.tick(delta);

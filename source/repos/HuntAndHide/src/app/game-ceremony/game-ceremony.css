@@ -1,0 +1,81 @@
+:host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ceremony-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4rem;
+  z-index: 42;
+}
+
+.ceremony-card {
+  width: min(90vw, 460px);
+  padding: 1.4rem 1.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(13, 18, 27, 0.9);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
+  text-align: center;
+  backdrop-filter: blur(12px);
+  animation: ceremony-drop-in 240ms ease-out;
+}
+
+.ceremony-tone-hunter {
+  border-color: rgba(255, 77, 77, 0.35);
+  box-shadow: 0 24px 60px rgba(255, 77, 77, 0.14);
+}
+
+.ceremony-tone-hider {
+  border-color: rgba(102, 187, 106, 0.35);
+  box-shadow: 0 24px 60px rgba(102, 187, 106, 0.14);
+}
+
+.ceremony-tone-local {
+  border-color: rgba(233, 196, 106, 0.35);
+}
+
+.ceremony-badge {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 2rem;
+}
+
+.ceremony-kicker {
+  margin: 0 0 0.45rem;
+  color: #8f9bb3;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ceremony-title {
+  margin: 0;
+  color: #f4f7fb;
+  font-size: 1.9rem;
+  font-weight: 800;
+}
+
+.ceremony-subtitle {
+  margin: 0.5rem 0 0;
+  color: #c7cfdb;
+  line-height: 1.55;
+}
+
+@keyframes ceremony-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

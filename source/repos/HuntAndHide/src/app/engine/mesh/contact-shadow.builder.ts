@@ -29,6 +29,7 @@ export function buildContactShadows(scene: THREE.Scene): THREE.InstancedMesh {
     transparent: true,
     opacity: 0.45,
     depthWrite: false,
+    blending: THREE.MultiplyBlending,
   });
 
   shadowMesh = new THREE.InstancedMesh(geo, mat, MAX_SHADOWS);

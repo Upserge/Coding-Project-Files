@@ -3,11 +3,12 @@ import * as THREE from 'three';
 import { PlayerState, HiderState, Vec3, PlayerRole } from '../models/player.model';
 
 import { ANIMAL_COLORS, BELLY_COLORS, HUNTER_BODY_COLOR, HIDER_BODY_COLOR } from './mesh/animal-palettes';
-import { buildNameSprite, applyRimLighting } from './mesh/mesh-helpers';
-import { createShadowBlob } from './mesh/character-enhancements';
+import { buildNameSprite, applyRimLighting, updateRimLighting } from './mesh/mesh-helpers';
+
 import { buildHunterMesh } from './mesh/hunter-mesh.builder';
 import { buildHiderMesh } from './mesh/hider-mesh.builder';
 import { tickWaterShaders } from './mesh/water-mesh.builder';
+import { tickCaustics } from './mesh/water-caustics.builder';
 import { getTerrainHeight } from './mesh/terrain-heightmap.builder';
 import { updateContactShadows } from './mesh/contact-shadow.builder';
 import { ProceduralAnimationService } from './animation/procedural-animation.service';
@@ -19,9 +20,7 @@ import { HidePromptService } from './animation/hide-prompt.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
 import { ScoreFloaterService } from './animation/score-floater.service';
 import { MapService } from '../services/map.service';
-
-/** Interval (in frames) between movement-dust spawns to avoid particle overload. */
-const DUST_FRAME_INTERVAL = 6;
+import { PlayerSurfaceEffectsService } from '../services/player-surface-effects.service';
 
 /**
  * SceneRenderService creates and syncs Three.js meshes for players
@@ -34,6 +33,11 @@ const DUST_FRAME_INTERVAL = 6;
  */
 @Injectable({ providedIn: 'root' })
 export class SceneRenderService {
+  private readonly localOutlineColor = new THREE.Color(0xe9c46a);
+  private readonly hunterOutlineColor = new THREE.Color(0xff4d4d);
+  private readonly hiderOutlineColor = new THREE.Color(0x66bb6a);
+  private readonly outlineStrength = 0.42;
+
 
   private readonly animation = inject(ProceduralAnimationService);
   private readonly particles = inject(ParticleVfxService);
@@ -44,6 +48,7 @@ export class SceneRenderService {
   private readonly screenShake = inject(ScreenShakeService);
   private readonly scoreFloater = inject(ScoreFloaterService);
   private readonly mapService = inject(MapService);
+  private readonly surfaceEffects = inject(PlayerSurfaceEffectsService);
 
   private scene!: THREE.Scene;
 
@@ -52,7 +57,6 @@ export class SceneRenderService {
   private playerMeshRoles = new Map<string, PlayerRole>();
   private previousPositions = new Map<string, Vec3>();
 
-  private dustFrameCounter = 0;
   private waterElapsed = 0;
   // Boundary visual
   private boundaryGroup?: THREE.Group;
@@ -175,23 +179,12 @@ export class SceneRenderService {
       const moveDelta = this.getMovementDelta(player.position, prevPos);
       this.syncPlayerTransform(group, player);
       this.syncFacing(group, moveDelta, delta);
+      this.syncOutline(group, player, localUid);
       const isCaughtHider = this.syncVisibility(group, player);
-      this.syncIndicatorRings(group, player.uid, localUid);
       this.syncAnimation(player, group, prevPos, delta, isCaughtHider);
       this.syncBlink(player.uid, group, delta, moveDelta);
       this.spawnCatchEffects(player, isCaughtHider);
       this.spawnFootstepEffects(player);
-
-      // Spawn dust puffs when moving
-      //this.dustFrameCounter++;
-      //if (this.dustFrameCounter >= DUST_FRAME_INTERVAL) {
-      //  const dx = player.position.x - prevPos.x;
-      //  const dz = player.position.z - prevPos.z;
-      //  if (dx * dx + dz * dz > 0.001) {
-      //    this.particles.spawnDustPuff(player.position);
-      //    this.dustFrameCounter = 0;
-      //  }
-      //}
 
       this.syncHidingVisuals(group, player, localRole);
 
@@ -212,6 +205,7 @@ export class SceneRenderService {
     this.scoreFloater.tick(delta);
     this.waterElapsed += delta;
     tickWaterShaders(this.waterElapsed);
+    tickCaustics(this.waterElapsed);
     // Update world-space hide prompt
     this.hidePrompt.update(this.pendingHideSpot, delta);
     this.pendingHideSpot = null;
@@ -236,9 +230,6 @@ export class SceneRenderService {
     const isHunter = player.role === 'hunter';
 
     this.buildCharacterMesh(group, player, color, belly, isHunter);
-    this.addRoleRing(group, isHunter);
-    this.addCpuRing(group, player.isCpu);
-    this.addLocalRing(group);
     this.addNameLabel(group, player, isHunter);
     this.finishPlayerMesh(group);
     return group;
@@ -291,21 +282,17 @@ export class SceneRenderService {
     return isCaughtHider;
   }
 
-  private syncIndicatorRings(group: THREE.Group, uid: string, localUid: string): void {
-    this.syncLocalRing(group, uid === localUid);
-    this.syncCpuRing(group);
+  private syncOutline(group: THREE.Group, player: PlayerState, localUid: string): void {
+    updateRimLighting(group, this.getOutlineColor(player, localUid), 2.3, this.getOutlineStrength());
   }
 
-  private syncLocalRing(group: THREE.Group, isLocalPlayer: boolean): void {
-    const ring = group.getObjectByName('localRing');
-    if (!ring) return;
-    ring.visible = isLocalPlayer;
+  private getOutlineColor(player: PlayerState, localUid: string): THREE.Color {
+    if (player.uid === localUid) return this.localOutlineColor;
+    return player.role === 'hunter' ? this.hunterOutlineColor : this.hiderOutlineColor;
   }
 
-  private syncCpuRing(group: THREE.Group): void {
-    const cpuRing = group.getObjectByName('cpuRing') as THREE.Mesh | null;
-    if (!cpuRing?.material) return;
-    (cpuRing.material as THREE.MeshBasicMaterial).opacity = 0.45 + Math.sin(Date.now() * 0.004) * 0.25;
+  private getOutlineStrength(): number {
+    return this.outlineStrength;
   }
 
   private syncAnimation(
@@ -342,7 +329,7 @@ export class SceneRenderService {
   private spawnFootstepEffects(player: PlayerState): void {
     const animCtx = this.animation.getContext(player.uid);
     if (!animCtx.footstepTriggered || !player.isAlive) return;
-    this.particles.spawnFootstep(player.position, animCtx.state === 'run');
+    this.surfaceEffects.spawnFootstep(player, animCtx.state === 'run');
   }
 
   private syncHidingVisuals(group: THREE.Group, player: PlayerState, localRole: PlayerRole): void {
@@ -407,48 +394,10 @@ export class SceneRenderService {
     buildHiderMesh(group, color, belly, player.animal);
   }
 
-  private addRoleRing(group: THREE.Group, isHunter: boolean): void {
-    const ringGeo = new THREE.RingGeometry(0.55, 0.68, 24);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: isHunter ? HUNTER_BODY_COLOR : HIDER_BODY_COLOR,
-      side: THREE.DoubleSide,
-    });
-    const rolering = new THREE.Mesh(ringGeo, ringMat);
-    rolering.rotation.x = -Math.PI / 2;
-    rolering.position.y = 0.02;
-    group.add(rolering);
-  }
-
-  private addCpuRing(group: THREE.Group, isCpu: boolean): void {
-    if (!isCpu) return;
-    const cpuGeo = new THREE.RingGeometry(0.90, 1.05, 24);
-    const cpuMat = new THREE.MeshBasicMaterial({
-      color: 0x7850c8,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.7,
-    });
-    const cpuRing = new THREE.Mesh(cpuGeo, cpuMat);
-    cpuRing.rotation.x = -Math.PI / 2;
-    cpuRing.position.y = 0.01;
-    cpuRing.name = 'cpuRing';
-    group.add(cpuRing);
-  }
-
-  private addLocalRing(group: THREE.Group): void {
-    const localGeo = new THREE.RingGeometry(0.72, 0.88, 24);
-    const localMat = new THREE.MeshBasicMaterial({ color: 0xe9c46a, side: THREE.DoubleSide });
-    const localRing = new THREE.Mesh(localGeo, localMat);
-    localRing.rotation.x = -Math.PI / 2;
-    localRing.position.y = 0.03;
-    localRing.name = 'localRing';
-    localRing.visible = false;
-    group.add(localRing);
-  }
-
   private addNameLabel(group: THREE.Group, player: PlayerState, isHunter: boolean): void {
     const label = buildNameSprite(player.displayName, isHunter, player.isCpu);
     label.position.set(0, 2.4, 0);
+    label.renderOrder = 102;
     group.add(label);
   }
 
@@ -457,6 +406,5 @@ export class SceneRenderService {
     group.renderOrder = 3;
     group.layers.enable(1);
     applyRimLighting(group);
-    group.add(createShadowBlob());
-  }
+    }
 }

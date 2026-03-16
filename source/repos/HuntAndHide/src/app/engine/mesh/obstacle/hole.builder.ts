@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { markTerrainSurface } from '../terrain-placement';
 
 /** Palette for ground holes. */
 const HOLE_COLOR = 0x3e2723;
@@ -9,9 +10,9 @@ const ROOT_COLOR = 0x4e342e;
 
 // ── Cached geometries & materials (shared across all hole instances) ──
 
-let _discGeo: THREE.CylinderGeometry | null = null;
+let _discGeo: THREE.CircleGeometry | null = null;
 let _discMat: THREE.MeshStandardMaterial | null = null;
-function getDiscGeo(): THREE.CylinderGeometry { return _discGeo ??= new THREE.CylinderGeometry(0.8, 0.8, 0.08, 12); }
+function getDiscGeo(): THREE.CircleGeometry { return _discGeo ??= new THREE.CircleGeometry(0.82, 24); }
 function getDiscMat(): THREE.MeshStandardMaterial { return _discMat ??= new THREE.MeshStandardMaterial({ color: HOLE_COLOR, roughness: 1 }); }
 
 let _rimGeo: THREE.TorusGeometry | null = null;
@@ -45,15 +46,16 @@ export function buildHoleMesh(): THREE.Group {
 
 function buildHoleDisc(): THREE.Mesh {
   const mesh = new THREE.Mesh(getDiscGeo(), getDiscMat());
+  mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = -0.02;
-  return mesh;
+  return markTerrainSurface(mesh, -0.02);
 }
 
 function buildRim(): THREE.Mesh {
   const mesh = new THREE.Mesh(getRimGeo(), getRimMat());
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = 0.02;
-  return mesh;
+  return markTerrainSurface(mesh, 0.02);
 }
 
 function addDirtMounds(group: THREE.Group): void {

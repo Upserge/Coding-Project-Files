@@ -87,6 +87,32 @@ export class ParticleVfxService {
     });
   }
 
+  /** Small splash burst when a player steps through water. */
+  spawnWaterFootstep(position: Vec3, isRunning: boolean): void {
+    this.spawnBurst({
+      position,
+      count: isRunning ? 10 : 6,
+      color: 0xb8f1ff,
+      size: isRunning ? 5 : 4,
+      speed: isRunning ? 1.1 : 0.7,
+      lifetime: isRunning ? 0.34 : 0.28,
+      gravity: -1.8,
+      spread: isRunning ? 0.26 : 0.18,
+      yOffset: 0.03,
+    });
+    this.spawnBurst({
+      position,
+      count: isRunning ? 7 : 4,
+      color: 0x5ec8ff,
+      size: isRunning ? 4 : 3,
+      speed: isRunning ? 0.65 : 0.45,
+      lifetime: isRunning ? 0.42 : 0.36,
+      gravity: -0.9,
+      spread: 0.2,
+      yOffset: 0.01,
+    });
+  }
+
   /** Dramatic burst when a hider is caught by a hunter. */
   spawnCatchBurst(position: Vec3): void {
     // Red-orange main burst

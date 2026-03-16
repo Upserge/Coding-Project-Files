@@ -19,6 +19,7 @@ export interface GameSession {
   currentRound: number;
   maxRounds: number;
   createdAt: number;
+  heartbeatAt: number;
   updatedAt: number;
 }
 
