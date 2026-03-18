@@ -6,20 +6,17 @@ import { buildObstacleMesh } from './mesh/obstacle/obstacle-registry';
 import { buildGroundMaterial } from './mesh/ground-texture.builder';
 import { buildDecorationMesh } from './mesh/decoration-mesh.builder';
 import { buildWaterMesh } from './mesh/water-mesh.builder';
-import { PostProcessingService } from './post-processing.service';
 import { buildEnvironmentMap } from './mesh/environment-light.builder';
 import {
   applyHeightmap,
   TERRAIN_SEGMENTS,
 } from './mesh/terrain-heightmap.builder';
 import { buildInstancedGrass, tickInstancedGrass } from './mesh/instanced-grass.builder';
-import { buildGodRays, tickGodRays } from './mesh/god-ray.builder';
 import { buildDappledLight } from './mesh/dappled-light.builder';
 import { buildPondCaustics, buildStreamCaustics } from './mesh/water-caustics.builder';
 import { buildContactShadows } from './mesh/contact-shadow.builder';
 import { placeOnTerrain } from './mesh/terrain-placement';
 import { getWaterSurfaceSize } from '../models/water-feature.model';
-import { GroundFogService } from './animation/ground-fog.service';
 import { TimeOfDayService } from './animation/time-of-day.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
 
@@ -32,8 +29,6 @@ import { ScreenShakeService } from './animation/screen-shake.service';
 @Injectable({ providedIn: 'root' })
 export class EngineService implements OnDestroy {
   private readonly mapService = inject(MapService);
-  private readonly postProcessing = inject(PostProcessingService);
-  private readonly groundFog = inject(GroundFogService);
   private readonly timeOfDay = inject(TimeOfDayService);
   private readonly screenShake = inject(ScreenShakeService);
 
@@ -44,11 +39,8 @@ export class EngineService implements OnDestroy {
   private clock = new THREE.Clock();
   private animationFrameId = 0;
   private disposed = false;
-  private usePostProcessing = false;
   private grassMesh: THREE.InstancedMesh | null = null;
   private grassElapsed = 0;
-  private godRayElapsed = 0;
-  private ppElapsed = 0;
   private sunLight: THREE.DirectionalLight | null = null;
   private ambientLight: THREE.AmbientLight | null = null;
 
@@ -65,10 +57,7 @@ export class EngineService implements OnDestroy {
     cancelAnimationFrame(this.animationFrameId);
     this.clock = new THREE.Clock();
     this.grassElapsed = 0;
-    this.godRayElapsed = 0;
-    this.ppElapsed = 0;
     this.onTick = null;
-    this.usePostProcessing = false;
     this.grassMesh = null;
     this.sunLight = null;
     this.ambientLight = null;
@@ -90,7 +79,6 @@ export class EngineService implements OnDestroy {
       this.scene.add(this.ambientLight);
     }
 
-    this.initPostProcessing();
     this.startLoop();
   }
 
@@ -106,9 +94,6 @@ export class EngineService implements OnDestroy {
     this.camera.bottom = -viewSize;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
-    if (this.usePostProcessing) {
-      this.postProcessing.resize(width, height);
-    }
   }
 
   /** Trigger a camera shake effect (called externally on catch events). */
@@ -146,10 +131,6 @@ export class EngineService implements OnDestroy {
     if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.animationFrameId);
-    if (this.usePostProcessing) {
-      this.postProcessing.dispose();
-    }
-    this.groundFog.dispose();
     this.timeOfDay.dispose();
     this.renderer?.dispose();
   }
@@ -205,11 +186,6 @@ export class EngineService implements OnDestroy {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   }
 
-  /** Initialise the EffectComposer post-processing pipeline. */
-  private initPostProcessing(): void {
-    this.usePostProcessing = false;
-  }
-
   // ── Jungle scene ───────────────────────────────────────────
 
   private buildJungleScene(): void {
@@ -223,7 +199,6 @@ export class EngineService implements OnDestroy {
     safe('buildDecorations',     () => this.buildDecorations(map));
     safe('buildWater',           () => this.buildWater(map));
     safe('buildInstancedGrass',  () => this.buildInstancedGrass(map));
-    safe('buildGodRays',         () => this.buildGodRays());
     safe('buildLighting',        () => this.buildLighting());
     safe('buildContactShadows',  () => this.buildContactShadows());
   }
@@ -363,16 +338,12 @@ export class EngineService implements OnDestroy {
     return type === 'fallen_log' || type === 'vine';
   }
 
-  // ── Instanced grass + god rays ─────────────────────────────
+  // ── Instanced grass ───────────────────────────────────────
 
   private buildInstancedGrass(map: MapConfig): void {
     this.grassMesh = buildInstancedGrass(map.width, map.depth);
     this.grassMesh.renderOrder = 1;
     this.scene.add(this.grassMesh);
-  }
-
-  private buildGodRays(): void {
-    this.scene.add(buildGodRays());
   }
 
   // ── Lighting ───────────────────────────────────────────────
@@ -443,38 +414,10 @@ export class EngineService implements OnDestroy {
       this.grassElapsed += delta;
       if (this.grassMesh) tickInstancedGrass(this.grassMesh, this.grassElapsed);
 
-      // Advance god ray breathing animation
-      this.godRayElapsed += delta;
-      tickGodRays(this.godRayElapsed);
-
       // Advance time-of-day lighting cycle
       this.timeOfDay.tick(delta);
 
-      // Advance post-processing per-frame uniforms
-      this.ppElapsed += delta;
-      if (this.usePostProcessing) {
-        this.postProcessing.tick(this.ppElapsed);
-        this.postProcessing.render();
-
-        // Overlay pass: render UI-layer sprites (name labels) directly on top,
-        // bypassing all post-processing so god rays / tilt-shift don't ghost them.
-        // Null out background & fog so they don't overwrite the post-processed image,
-        // and clear depth so sprites aren't rejected by the composer's fullscreen quad.
-        this.renderer.autoClear = false;
-        const savedBg = this.scene.background;
-        const savedFog = this.scene.fog;
-        this.scene.background = null;
-        this.scene.fog = null;
-        this.camera.layers.set(1);
-        this.renderer.clearDepth();
-        this.renderer.render(this.scene, this.camera);
-        this.scene.background = savedBg;
-        this.scene.fog = savedFog;
-        this.camera.layers.set(0);
-        this.renderer.autoClear = true;
-      } else {
-        this.renderer.render(this.scene, this.camera);
-      }
+      this.renderer.render(this.scene, this.camera);
     } catch (e) {
       // Fallback: attempt direct render so the screen is never blank
       try { this.renderer.render(this.scene, this.camera); } catch {}

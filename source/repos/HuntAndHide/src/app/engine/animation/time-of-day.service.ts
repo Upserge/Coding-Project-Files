@@ -2,12 +2,12 @@ import { Injectable } from '@angular/core';
 import * as THREE from 'three';
 
 /**
- * TimeOfDayService slowly shifts lighting colour, intensity, and fog
+ * TimeOfDayService slowly shifts lighting colour and intensity
  * over the duration of a match to create evolving atmosphere.
  *
  * A full cycle takes ~8 minutes (480 s):
- *   0 %  — warm midday (gold sun, bright ambient, light fog)
- *   50 % — cool dusk  (orange sun, dimmer ambient, denser fog)
+ *   0 %  — warm midday (gold sun, bright ambient)
+ *   50 % — cool dusk  (orange sun, dimmer ambient)
  *   100% — loops back to midday
  *
  * Zero extra draw calls — only uniform/property updates.
@@ -34,12 +34,6 @@ const AMBIENT_KEYS: ColorKey[] = [
   { t: 0.5,  color: new THREE.Color(0xb0a0d0), intensity: 0.35 },
   { t: 0.75, color: new THREE.Color(0xffd8a0), intensity: 0.45 },
   { t: 1.0,  color: new THREE.Color(0xffe0b2), intensity: 0.5 },
-];
-
-const FOG_KEYS: { t: number; color: THREE.Color; density: number }[] = [
-  { t: 0.0,  color: new THREE.Color(0x87ceaa), density: 0.003 },
-  { t: 0.5,  color: new THREE.Color(0x6a8e9a), density: 0.005 },
-  { t: 1.0,  color: new THREE.Color(0x87ceaa), density: 0.003 },
 ];
 
 /** Dedicated sky background gradient — richer palette than fog. */
@@ -76,7 +70,6 @@ export class TimeOfDayService {
 
     this.lerpLight(this.sun, SUN_KEYS, t);
     this.lerpLight(this.ambient, AMBIENT_KEYS, t);
-    this.lerpFog(t);
     this.lerpBackground(t);
   }
 
@@ -92,14 +85,6 @@ export class TimeOfDayService {
     const { a, b, f } = this.findSegment(keys, t);
     light.color.copy(a.color).lerp(b.color, f);
     light.intensity = a.intensity + (b.intensity - a.intensity) * f;
-  }
-
-  private lerpFog(t: number): void {
-    const fog = this.scene!.fog as THREE.FogExp2 | null;
-    if (!fog) return;
-    const { a, b, f } = this.findSegment(FOG_KEYS, t);
-    fog.color.copy(a.color).lerp(b.color, f);
-    fog.density = a.density + (b.density - a.density) * f;
   }
 
   private lerpBackground(t: number): void {
