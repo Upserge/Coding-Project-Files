@@ -15,7 +15,7 @@ interface ParticleEffect {
 
 /**
  * Lightweight particle VFX service — spawns short-lived point-cloud bursts
- * for movement dust, item pickups, smoke bombs, and speed trails.
+ * for movement dust, item pickups, and speed trails.
  *
  * Uses a single THREE.Points per effect (instanced particles via BufferGeometry).
  * Each effect auto-cleans after its lifetime expires.

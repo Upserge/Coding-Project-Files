@@ -22,13 +22,15 @@ interface PlacementSpec {
 }
 
 const OBSTACLE_DISTRIBUTION: Record<ObstacleType, PlacementSpec> = {
-  tree:        { count: 55, minSpacing: 8,  crossTypeSpacing: 5,  rotationRange: Math.PI * 2 },
-  bush:        { count: 55, minSpacing: 7,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
-  leaf_pile:   { count: 30, minSpacing: 8,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
-  hole:        { count: 20, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: 0 },
-  sedan:       { count: 6,  minSpacing: 25, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
-  safari_gear: { count: 10, minSpacing: 12, crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
-  rock:        { count: 14, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: Math.PI * 2 },
+  tree:          { count: 55, minSpacing: 8,  crossTypeSpacing: 5,  rotationRange: Math.PI * 2 },
+  bush:          { count: 55, minSpacing: 7,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
+  leaf_pile:     { count: 30, minSpacing: 8,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
+  hole:          { count: 20, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: 0 },
+  sedan:         { count: 6,  minSpacing: 25, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
+  safari_gear:   { count: 10, minSpacing: 12, crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
+  rock:          { count: 14, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: Math.PI * 2 },
+  tent:          { count: 5,  minSpacing: 20, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
+  picnic_scene:  { count: 4,  minSpacing: 25, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
 };
 
 const DECORATION_WEIGHTS: { type: DecorationType; weight: number }[] = [
@@ -167,26 +169,15 @@ export class MapService {
   private generateWaterFeatures(): WaterPlacement[] {
     const features: WaterPlacement[] = [];
     let id = 0;
+
     const pondPositions = poissonDiscScatter(4, 65, 65, 25, []);
     for (const [x, z] of pondPositions) {
-      const size = 3.5 + Math.random() * 3;
       features.push({
         id: `water_${id++}`,
         type: 'pond',
         position: { x, y: 0, z },
         rotationY: 0,
-        size,
-      });
-    }
-
-    const streamPositions = poissonDiscScatter(2, 50, 50, 30, pondPositions);
-    for (const [x, z] of streamPositions) {
-      features.push({
-        id: `water_${id++}`,
-        type: 'stream',
-        position: { x, y: 0, z },
-        rotationY: Math.random() * Math.PI,
-        size: 10 + Math.random() * 4,
+        size: 3.5 + Math.random() * 3,
       });
     }
 

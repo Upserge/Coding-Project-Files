@@ -6,6 +6,7 @@
     <button class="btn btn-primary" (click)="quickPlay()" [disabled]="isJoining()">
       {{ isJoining() ? 'Joining...' : 'Quick Play' }}
     </button>
+    <button class="btn btn-secondary" (click)="openCredits()">Credits</button>
   </div>
 
   @if (errorMsg(); as msg) {
@@ -18,4 +19,8 @@
     (confirmed)="onNameConfirmed($event)"
     (cancelled)="onModalCancelled()"
   />
+}
+
+@if (showCredits()) {
+  <app-credits-modal (closed)="closeCredits()" />
 }

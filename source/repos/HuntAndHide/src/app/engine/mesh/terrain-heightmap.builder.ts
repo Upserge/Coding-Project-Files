@@ -19,6 +19,11 @@ const VALLEY_SHADOW_COLOR = new THREE.Color(0x43533c);
 const ROCK_COLOR = new THREE.Color(0x6f695e);
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
+/** How far beyond the water feature edge the shore blends back to natural terrain. */
+const WATER_SHORE_BLEND = 2.5;
+/** How far below center height the water bowl dips. */
+const WATER_BOWL_DEPTH = 0.35;
+
 export const TERRAIN_SEGMENTS = 160;
 
 /**
@@ -33,12 +38,33 @@ export const TERRAIN_SEGMENTS = 160;
  * Z vertices become world Y.
  */
 
+// ── Water depression registry ───────────────────────────────
+
+interface WaterDepression {
+  x: number;
+  z: number;
+  radius: number;
+}
+
+let waterDepressions: WaterDepression[] = [];
+
+/** Register pond positions so the heightmap can carve depressions. Call before applyHeightmap. */
+export function registerWaterDepressions(ponds: { x: number; z: number; radius: number }[]): void {
+  waterDepressions = ponds.map(p => ({ ...p }));
+}
+
+/** Clear registered depressions (call on map reset). */
+export function clearWaterDepressions(): void {
+  waterDepressions = [];
+}
+
 // ── Height function ─────────────────────────────────────────
 
 /** Return the terrain height at a given world XZ coordinate. */
 export function getTerrainHeight(x: number, z: number): number {
   const warped = getWarpedTerrainCoords(x, z);
-  return sampleBaseTerrain(warped.x, warped.z) + sampleRidgeTerrain(warped.x, warped.z) + sampleDetailTerrain(warped.x, warped.z);
+  const raw = sampleBaseTerrain(warped.x, warped.z) + sampleRidgeTerrain(warped.x, warped.z) + sampleDetailTerrain(warped.x, warped.z);
+  return applyWaterDepressions(x, z, raw);
 }
 
 export function getTerrainNormal(x: number, z: number, sampleDistance = 1.25): THREE.Vector3 {
@@ -95,6 +121,38 @@ function sampleFractalNoise(
 
 function sampleRidgedNoise(x: number, z: number): number {
   return 1 - Math.abs(sampleFractalNoise(x, z, 3, 2.1, 0.55));
+}
+
+// ── Water depressions ───────────────────────────────────────
+
+/** Smoothly depress terrain inside pond boundaries. */
+function applyWaterDepressions(x: number, z: number, rawHeight: number): number {
+  let result = rawHeight;
+  for (const dep of waterDepressions) {
+    result = applyOneDepression(x, z, result, dep);
+  }
+  return result;
+}
+
+function applyOneDepression(x: number, z: number, height: number, dep: WaterDepression): number {
+  const dx = x - dep.x;
+  const dz = z - dep.z;
+  const edgeDist = Math.sqrt(dx * dx + dz * dz) - dep.radius;
+  if (edgeDist >= WATER_SHORE_BLEND) return height;
+  const centerHeight = getRawTerrainHeight(dep.x, dep.z) - WATER_BOWL_DEPTH;
+  if (edgeDist <= 0) return centerHeight;
+  return centerHeight + (height - centerHeight) * smoothstep(edgeDist / WATER_SHORE_BLEND);
+}
+
+/** Raw terrain height without depressions (avoids recursion). */
+function getRawTerrainHeight(x: number, z: number): number {
+  const warped = getWarpedTerrainCoords(x, z);
+  return sampleBaseTerrain(warped.x, warped.z) + sampleRidgeTerrain(warped.x, warped.z) + sampleDetailTerrain(warped.x, warped.z);
+}
+
+function smoothstep(t: number): number {
+  const clamped = Math.max(0, Math.min(1, t));
+  return clamped * clamped * (3 - 2 * clamped);
 }
 
 // ── Geometry displacement ───────────────────────────────────

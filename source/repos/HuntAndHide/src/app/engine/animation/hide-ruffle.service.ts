@@ -13,6 +13,7 @@ import { EngineService } from '../engine.service';
  *   hole      — upward dirt puffs
  *   bush      — leaf / debris shake cloud
  *   leaf_pile — leaves splatter outward
+ *   tent      — side-to-side shake + dirt puff around edges
  *
  * Call `trigger(obstacleId, type)` once per hide event.
  * Call `tick(delta)` every frame to advance active animations.
@@ -84,6 +85,7 @@ export class HideRuffleService {
       case 'hole':       return this.animateHole(ruffle, t, decay);
       case 'bush':       return this.animateBush(ruffle, t, decay);
       case 'leaf_pile':  return this.animateLeafPile(ruffle, t, decay);
+      case 'tent':       return this.animateTent(ruffle, t, decay);
     }
   }
 
@@ -113,6 +115,13 @@ export class HideRuffleService {
     r.group.scale.y = pulse;
   }
 
+  /** Tent: rapid side-to-side shake on Z axis. */
+  private animateTent(r: ActiveRuffle, t: number, decay: number): void {
+    const angle = Math.sin(t * Math.PI * 8) * 0.05 * decay;
+    r.group.quaternion.copy(r.baseQuaternion);
+    r.group.rotateZ(angle);
+  }
+
   // ── Per-type particle VFX ──────────────────────────────────
 
   private spawnParticles(type: ObstacleType, pos: THREE.Vector3): void {
@@ -123,6 +132,7 @@ export class HideRuffleService {
       case 'hole':       return this.spawnHoleDirt(p);
       case 'bush':       return this.spawnBushLeaves(p);
       case 'leaf_pile':  return this.spawnLeafSplatter(p);
+      case 'tent':       return this.spawnTentDirt(p);
     }
   }
 
@@ -177,6 +187,20 @@ export class HideRuffleService {
         gravity: -2.2, spread: 1.4, yOffset: 0.4,
       });
     }
+  }
+
+  /** Dirt puff around tent edges — dust kicked up on entry. */
+  private spawnTentDirt(pos: { x: number; y: number; z: number }): void {
+    this.particles.spawnBurst({
+      position: pos, count: 18, color: 0xa08060,
+      size: 8, speed: 2.0, lifetime: 0.5,
+      gravity: -2.5, spread: 2.2, yOffset: 0.15,
+    });
+    this.particles.spawnBurst({
+      position: pos, count: 10, color: 0xc8b090,
+      size: 6, speed: 1.2, lifetime: 0.4,
+      gravity: -1.5, spread: 1.8, yOffset: 0.1,
+    });
   }
 
   // ── Cleanup helpers ────────────────────────────────────────

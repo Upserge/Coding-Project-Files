@@ -38,15 +38,6 @@ export function buildRoughnessMap(size = DEFAULT_SIZE, amplitude = 40): THREE.Ca
   return configureTexture(ctx.canvas as HTMLCanvasElement);
 }
 
-/** Generate a tileable water normal map (ripple pattern). */
-export function buildWaterNormalMap(size = 256): THREE.CanvasTexture {
-  const ctx = createCanvas(size);
-  fillGray(ctx, 128);
-  paintWaterRipples(ctx, size);
-  addPixelNoise(ctx, size, 6);
-  return heightToNormalMap(ctx, size, 2.0);
-}
-
 // ── Heightmap generators ────────────────────────────────────
 
 function createNoiseCanvas(size: number, blobSize: number): CanvasRenderingContext2D {
@@ -124,21 +115,6 @@ function sampleHeight(data: Uint8ClampedArray, x: number, y: number, size: numbe
 }
 
 // ── Canvas utilities ────────────────────────────────────────
-
-function paintWaterRipples(ctx: CanvasRenderingContext2D, size: number): void {
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const u = x / size;
-      const v = y / size;
-      const wave1 = Math.sin(u * 18 + v * 6) * 0.3;
-      const wave2 = Math.sin(u * 10 - v * 14) * 0.2;
-      const wave3 = Math.cos(u * 24 + v * 8) * 0.15;
-      const h = 128 + (wave1 + wave2 + wave3) * 128;
-      ctx.fillStyle = `rgb(${h},${h},${h})`;
-      ctx.fillRect(x, y, 1, 1);
-    }
-  }
-}
 
 function createCanvas(size: number): CanvasRenderingContext2D {
   const canvas = document.createElement('canvas');

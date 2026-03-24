@@ -5,23 +5,26 @@ import { MapConfig, ObstaclePlacement, DecorationPlacement, WaterPlacement, OBST
 import { buildObstacleMesh } from './mesh/obstacle/obstacle-registry';
 import { buildGroundMaterial } from './mesh/ground-texture.builder';
 import { buildDecorationMesh } from './mesh/decoration-mesh.builder';
-import { buildWaterMesh } from './mesh/water-mesh.builder';
 import { buildEnvironmentMap } from './mesh/environment-light.builder';
 import {
   applyHeightmap,
   TERRAIN_SEGMENTS,
+  registerWaterDepressions,
+  clearWaterDepressions,
 } from './mesh/terrain-heightmap.builder';
 import { buildInstancedGrass, tickInstancedGrass } from './mesh/instanced-grass.builder';
 import { buildDappledLight } from './mesh/dappled-light.builder';
-import { buildPondCaustics, buildStreamCaustics } from './mesh/water-caustics.builder';
 import { buildContactShadows } from './mesh/contact-shadow.builder';
 import { placeOnTerrain } from './mesh/terrain-placement';
-import { getWaterSurfaceSize } from '../models/water-feature.model';
 import { TimeOfDayService } from './animation/time-of-day.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
 import { GlbLoaderService } from './mesh/glb-loader.service';
 import { initVehicleLoader } from './mesh/obstacle/vehicle.builder';
 import { VEHICLE_GLB_ENTRIES } from './mesh/vehicle-model.config';
+import { initFoliageLoader } from './mesh/obstacle/foliage.builder';
+import { ALL_FOLIAGE_GLB_ENTRIES } from './mesh/foliage-model.config';
+import { initWaterLoader, buildWaterFeatureMesh } from './mesh/obstacle/water-feature.builder';
+import { ALL_WATER_GLB_ENTRIES } from './mesh/water-model.config';
 
 /**
  * EngineService owns the Three.js render loop and scene graph.
@@ -145,6 +148,7 @@ export class EngineService implements OnDestroy {
     this.disposed = true;
     cancelAnimationFrame(this.animationFrameId);
     this.timeOfDay.dispose();
+    clearWaterDepressions();
     this.renderer?.dispose();
   }
 
@@ -206,9 +210,12 @@ export class EngineService implements OnDestroy {
     const safe = (label: string, fn: () => void) => {
       try { fn(); } catch (e) { console.error(`[Engine] ${label} failed:`, e); }
     };
+    this.registerDepressions(map);
     safe('buildGround',          () => this.buildGround(map));
     safe('buildDappledLight',    () => this.buildDappledLight());
     await this.preloadVehicleModels();
+    await this.preloadFoliageModels();
+    await this.preloadWaterModels();
     safe('buildObstacles',       () => this.buildObstacles(map));
     safe('buildDecorations',     () => this.buildDecorations(map));
     safe('buildWater',           () => this.buildWater(map));
@@ -223,6 +230,24 @@ export class EngineService implements OnDestroy {
       await this.glbLoader.preloadAll(VEHICLE_GLB_ENTRIES);
     } catch (e) {
       console.warn('[Engine] Vehicle GLB preload failed — fallback boxes will be used', e);
+    }
+  }
+
+  private async preloadFoliageModels(): Promise<void> {
+    initFoliageLoader(this.glbLoader);
+    try {
+      await this.glbLoader.preloadAll(ALL_FOLIAGE_GLB_ENTRIES);
+    } catch (e) {
+      console.warn('[Engine] Foliage GLB preload failed — fallback boxes will be used', e);
+    }
+  }
+
+  private async preloadWaterModels(): Promise<void> {
+    initWaterLoader(this.glbLoader);
+    try {
+      await this.glbLoader.preloadAll(ALL_WATER_GLB_ENTRIES);
+    } catch (e) {
+      console.warn('[Engine] Water GLB preload failed — fallback boxes will be used', e);
     }
   }
 
@@ -308,20 +333,20 @@ export class EngineService implements OnDestroy {
     }
   }
 
+  private registerDepressions(map: MapConfig): void {
+    const ponds = map.waterFeatures.filter(w => w.type === 'pond');
+    registerWaterDepressions(ponds.map(p => ({ x: p.position.x, z: p.position.z, radius: p.size })));
+  }
+
   private placeWaterFeature(water: WaterPlacement): void {
-    const group = buildWaterMesh(water.type, water.size);
+    const group = buildWaterFeatureMesh(water.size);
     if (!group) return;
-    const surfaceSize = getWaterSurfaceSize(water);
-    const caustic = water.type === 'pond'
-      ? buildPondCaustics(water.size)
-      : buildStreamCaustics(water.size);
-    group.add(caustic);
     placeOnTerrain(
       group,
       water.position.x,
       water.position.z,
       water.rotationY,
-      { width: surfaceSize.width, depth: surfaceSize.length },
+      { width: water.size * 2, depth: water.size * 2 },
       { alignToSlope: false, clearance: water.position.y, useFooting: false },
     );
     this.scene.add(group);

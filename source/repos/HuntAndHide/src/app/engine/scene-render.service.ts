@@ -7,8 +7,6 @@ import { buildNameSprite, applyRimLighting, updateRimLighting } from './mesh/mes
 
 import { buildHunterMesh } from './mesh/hunter-mesh.builder';
 import { buildHiderMesh } from './mesh/hider-mesh.builder';
-import { tickWaterShaders } from './mesh/water-mesh.builder';
-import { tickCaustics } from './mesh/water-caustics.builder';
 import { getTerrainHeight } from './mesh/terrain-heightmap.builder';
 import { updateContactShadows } from './mesh/contact-shadow.builder';
 import { ProceduralAnimationService } from './animation/procedural-animation.service';
@@ -61,7 +59,6 @@ export class SceneRenderService {
   private playerMeshRoles = new Map<string, PlayerRole>();
   private previousPositions = new Map<string, Vec3>();
 
-  private waterElapsed = 0;
   // Boundary visual
   private boundaryGroup?: THREE.Group;
   private boundaryMaterial?: THREE.MeshBasicMaterial;
@@ -218,9 +215,6 @@ export class SceneRenderService {
     this.fallingLeaves.tick(delta);
     this.scoreFloater.tick(delta);
     this.footprints.tick(delta);
-    this.waterElapsed += delta;
-    tickWaterShaders(this.waterElapsed);
-    tickCaustics(this.waterElapsed);
     // Update world-space hide prompt
     this.hidePrompt.update(this.pendingHideSpot, delta);
     this.pendingHideSpot = null;

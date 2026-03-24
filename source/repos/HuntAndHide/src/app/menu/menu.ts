@@ -3,11 +3,12 @@ import { Router } from '@angular/router';
 import { IdentityService } from '../services/identity.service';
 import { MatchmakingService } from '../services/matchmaking.service';
 import { UsernameModalComponent } from '../username-modal/username-modal';
+import { CreditsModalComponent } from '../credits-modal/credits-modal';
 
 @Component({
   selector: 'app-menu',
   standalone: true,
-  imports: [UsernameModalComponent],
+  imports: [UsernameModalComponent, CreditsModalComponent],
   templateUrl: './menu.html',
   styleUrl: './menu.css',
 })
@@ -17,6 +18,7 @@ export class MenuComponent {
   private readonly identity = inject(IdentityService);
 
   protected readonly showModal = signal(false);
+  protected readonly showCredits = signal(false);
   protected readonly isJoining = signal(false);
   protected readonly errorMsg = signal('');
 
@@ -37,6 +39,14 @@ export class MenuComponent {
 
   onModalCancelled(): void {
     this.showModal.set(false);
+  }
+
+  openCredits(): void {
+    this.showCredits.set(true);
+  }
+
+  closeCredits(): void {
+    this.showCredits.set(false);
   }
 
   private async joinAndNavigate(): Promise<void> {

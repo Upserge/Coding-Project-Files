@@ -1,0 +1,102 @@
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-card {
+  background: #1e1e2e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  max-width: 440px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  margin: 0 0 1.5rem;
+}
+
+.credit-section {
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.section-heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #e9c46a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.5rem;
+}
+
+.credit-line {
+  font-size: 1rem;
+  color: #e0e0e0;
+  margin: 0;
+}
+
+.attribution {
+  margin-bottom: 0.75rem;
+}
+
+.asset-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ccc;
+  margin: 0 0 0.15rem;
+}
+
+.asset-detail {
+  font-size: 0.8rem;
+  color: #999;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.asset-detail a {
+  color: #80cbc4;
+  text-decoration: none;
+}
+
+.asset-detail a:hover {
+  text-decoration: underline;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.btn {
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #aaa;
+  border: 1px solid #444;
+}
+
+.btn-ghost:hover {
+  border-color: #e9c46a;
+  color: #e9c46a;
+}
