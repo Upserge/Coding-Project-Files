@@ -19,6 +19,7 @@ import { BlinkService } from './animation/blink.service';
 import { HidePromptService } from './animation/hide-prompt.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
 import { ScoreFloaterService } from './animation/score-floater.service';
+import { FootprintVfxService } from './animation/footprint-vfx.service';
 import { MapService } from '../services/map.service';
 import { PlayerSurfaceEffectsService } from '../services/player-surface-effects.service';
 
@@ -47,6 +48,7 @@ export class SceneRenderService {
   private readonly hidePrompt = inject(HidePromptService);
   private readonly screenShake = inject(ScreenShakeService);
   private readonly scoreFloater = inject(ScoreFloaterService);
+  private readonly footprints = inject(FootprintVfxService);
   private readonly mapService = inject(MapService);
   private readonly surfaceEffects = inject(PlayerSurfaceEffectsService);
 
@@ -82,6 +84,7 @@ export class SceneRenderService {
     this.fallingLeaves.init(scene);
     this.hidePrompt.init(scene);
     this.scoreFloater.init(scene);
+    this.footprints.init(scene);
     this.createBoundary();
   }
 
@@ -147,12 +150,14 @@ export class SceneRenderService {
     this.playerMeshRoles.clear();
     this.previousPositions.clear();
     this.caughtVfxSpawned.clear();
+    this.surfaceEffects.reset();
     this.animation.dispose();
     this.particles.dispose();
     this.ambientVfx.dispose();
     this.fallingLeaves.dispose();
     this.scoreFloater.dispose();
     this.hidePrompt.dispose();
+    this.footprints.dispose();
   }
 
   /** Queue the world-space hide prompt position for this frame. */
@@ -184,7 +189,7 @@ export class SceneRenderService {
       this.syncAnimation(player, group, prevPos, delta, isCaughtHider);
       this.syncBlink(player.uid, group, delta, moveDelta);
       this.spawnCatchEffects(player, isCaughtHider);
-      this.spawnFootstepEffects(player);
+      this.spawnFootstepEffects(player, moveDelta);
 
       this.syncHidingVisuals(group, player, localRole);
 
@@ -200,9 +205,11 @@ export class SceneRenderService {
   /** Advance particle effects and ambient VFX. Call once per frame. */
   tickParticles(delta: number): void {
     this.particles.tick(delta);
+    this.surfaceEffects.tick(delta);
     this.ambientVfx.tick(delta);
     this.fallingLeaves.tick(delta);
     this.scoreFloater.tick(delta);
+    this.footprints.tick(delta);
     this.waterElapsed += delta;
     tickWaterShaders(this.waterElapsed);
     tickCaustics(this.waterElapsed);
@@ -247,6 +254,7 @@ export class SceneRenderService {
     this.playerMeshes.delete(uid);
     this.playerMeshRoles.delete(uid);
     this.animation.removeContext(uid);
+    this.surfaceEffects.removePlayer(uid);
     this.caughtVfxSpawned.delete(uid);
   }
 
@@ -327,10 +335,10 @@ export class SceneRenderService {
     );
   }
 
-  private spawnFootstepEffects(player: PlayerState): void {
+  private spawnFootstepEffects(player: PlayerState, moveDelta: Vec3): void {
     const animCtx = this.animation.getContext(player.uid);
     if (!animCtx.footstepTriggered || !player.isAlive) return;
-    this.surfaceEffects.spawnFootstep(player, animCtx.state === 'run');
+    this.surfaceEffects.spawnFootstep(player, animCtx.state === 'run', moveDelta);
   }
 
   private syncHidingVisuals(group: THREE.Group, player: PlayerState, localRole: PlayerRole): void {
@@ -380,6 +388,7 @@ export class SceneRenderService {
       this.playerMeshRoles.delete(uid);
       this.previousPositions.delete(uid);
       this.animation.removeContext(uid);
+      this.surfaceEffects.removePlayer(uid);
       this.caughtVfxSpawned.delete(uid);
     }
   }

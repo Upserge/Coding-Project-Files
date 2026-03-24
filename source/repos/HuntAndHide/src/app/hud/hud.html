@@ -50,7 +50,7 @@
       <div class="stamina-bar-wrapper">
         <label class="bar-label">{{ isHunterExhausted() ? 'Exhausted' : 'Stamina' }}</label>
         <div class="bar-track">
-          <div class="bar-fill stamina-fill"
+          <div class="bar-fill stamina-fill instant"
                [style.width.%]="staminaPercent() * 100"
                [class.low]="staminaPercent() < 0.2"
                [class.exhausted]="isHunterExhausted()"></div>

@@ -20,9 +20,9 @@ import { markTerrainSurface } from './terrain-placement';
 
 const causticMaterials: THREE.MeshBasicMaterial[] = [];
 let causticResetDone = false;
-const POND_CAUSTIC_SEGMENTS = 48;
-const STREAM_CAUSTIC_WIDTH_SEGMENTS = 4;
-const STREAM_CAUSTIC_LENGTH_SEGMENTS = 24;
+const POND_CAUSTIC_SEGMENTS = 64;
+const STREAM_CAUSTIC_WIDTH_SEGMENTS = 10;
+const STREAM_CAUSTIC_LENGTH_SEGMENTS = 64;
 const POND_CAUSTIC_MASK_SIZE = 128;
 const POND_CAUSTIC_OPACITY = 0.32;
 const STREAM_CAUSTIC_OPACITY = 0.16;
@@ -102,7 +102,7 @@ function createCausticMaterial(width: number, length: number, opacity: number): 
 }
 
 function getStreamCausticBlend(): number {
-  return 0.35;
+  return 1;
 }
 
 function createWaterSizeSample(type: 'pond' | 'stream', size: number) {

@@ -14,11 +14,11 @@ const SHORE_COLOR = 0x795548;
 const LILY_GREEN = 0x388e3c;
 const LILY_FLOWER = 0xf48fb1;
 const WATER_DEEP = 0x0288d1;
-const POND_GRID_SEGMENTS = 28;
-const STREAM_WIDTH_SEGMENTS = 8;
-const STREAM_LENGTH_SEGMENTS = 40;
+const POND_GRID_SEGMENTS = 44;
+const STREAM_WIDTH_SEGMENTS = 14;
+const STREAM_LENGTH_SEGMENTS = 88;
 const POND_MASK_SIZE = 128;
-const STREAM_BLEND = 0.35;
+const STREAM_BLEND = 1;
 
 /** Map-based dispatch for water feature builders. */
 const WATER_BUILDERS: Record<WaterFeatureType, (size: number) => THREE.Group> = {
@@ -175,7 +175,7 @@ function buildPondPlane(size: number): THREE.PlaneGeometry {
 
 function applyPondMask(material: THREE.MeshStandardMaterial, mask: THREE.CanvasTexture): void {
   material.alphaMap = mask;
-  material.alphaTest = 0.5;
+  material.alphaTest = 0.22;
 }
 
 function addLilyPads(group: THREE.Group, radius: number): void {

@@ -1,9 +1,9 @@
 import { WaterPlacement } from './map.model';
 import { Vec3 } from './player.model';
 
-export const WATER_SURFACE_OFFSET = 0.036;
-export const WATER_SHORE_OFFSET = 0.024;
-export const WATER_CAUSTIC_OFFSET = 0.044;
+export const WATER_SURFACE_OFFSET = 0.082;
+export const WATER_SHORE_OFFSET = 0.062;
+export const WATER_CAUSTIC_OFFSET = 0.096;
 export const STREAM_SURFACE_WIDTH = 1.8;
 export const STREAM_BED_WIDTH = 2.2;
 

@@ -141,6 +141,10 @@
   transition: width 0.15s linear;
 }
 
+.bar-fill.instant {
+  transition: none;
+}
+
 .idle-fill {
   background: #e9c46a;
 }
