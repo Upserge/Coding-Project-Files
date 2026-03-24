@@ -38,10 +38,14 @@ export function buildGroundMaterial(): THREE.MeshStandardMaterial {
 function createColorMap(): THREE.CanvasTexture {
   const ctx = createCanvas(TEX_SIZE);
   fillBase(ctx);
-  paintWrappedPatches(ctx, DARK_PATCH, 75, 36, 84, 0.08);
-  paintWrappedPatches(ctx, LIGHT_PATCH, 55, 28, 72, 0.07);
-  paintWrappedPatches(ctx, DIRT_PATCH, 30, 18, 42, 0.08);
-  paintWrappedPatches(ctx, MUD_PATCH, 16, 14, 28, 0.07);
+  paintWrappedPatches(ctx, DARK_PATCH, 75, 36, 84, 0.07);
+  paintWrappedPatches(ctx, DARK_PATCH, 48, 52, 108, 0.03);
+  paintWrappedPatches(ctx, LIGHT_PATCH, 55, 28, 72, 0.06);
+  paintWrappedPatches(ctx, LIGHT_PATCH, 40, 44, 96, 0.025);
+  paintWrappedPatches(ctx, DIRT_PATCH, 30, 18, 42, 0.07);
+  paintWrappedPatches(ctx, DIRT_PATCH, 20, 30, 64, 0.025);
+  paintWrappedPatches(ctx, MUD_PATCH, 16, 14, 28, 0.06);
+  paintWrappedPatches(ctx, MUD_PATCH, 14, 22, 44, 0.02);
   paintNoise(ctx, 7);
   return configureTexture(ctx.canvas as HTMLCanvasElement, 4);
 }
@@ -156,13 +160,11 @@ function paintWrappedPatches(
   maxR: number,
   alpha: number,
 ): void {
-  ctx.fillStyle = color;
-  ctx.globalAlpha = alpha;
   const size = ctx.canvas.width;
+  const rgb = parseHexColor(color);
   for (let i = 0; i < count; i++) {
-    drawWrappedEllipse(ctx, size, minR, maxR);
+    drawWrappedEllipse(ctx, size, minR, maxR, rgb, alpha);
   }
-  ctx.globalAlpha = 1;
 }
 
 function drawWrappedEllipse(
@@ -170,19 +172,37 @@ function drawWrappedEllipse(
   size: number,
   minR: number,
   maxR: number,
+  rgb: { r: number; g: number; b: number },
+  alpha: number,
 ): void {
   const x = Math.random() * size;
   const y = Math.random() * size;
   const r = minR + Math.random() * (maxR - minR);
+  const stretch = 0.6 + Math.random() * 0.28;
   const angle = Math.random() * Math.PI;
   const offsets = [0, -size, size];
   for (const ox of offsets) {
     for (const oy of offsets) {
+      const grad = ctx.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+      grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha * 0.7})`);
+      grad.addColorStop(0.45, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha * 0.34})`);
+      grad.addColorStop(0.78, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha * 0.1})`);
+      grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.ellipse(x + ox, y + oy, r, r * 0.7, angle, 0, Math.PI * 2);
+      ctx.ellipse(x + ox, y + oy, r, r * stretch, angle, 0, Math.PI * 2);
       ctx.fill();
     }
   }
+}
+
+function parseHexColor(color: string): { r: number; g: number; b: number } {
+  const hex = color.startsWith('#') ? color.slice(1) : color;
+  return {
+    r: parseInt(hex.slice(0, 2), 16),
+    g: parseInt(hex.slice(2, 4), 16),
+    b: parseInt(hex.slice(4, 6), 16),
+  };
 }
 
 // ── Pixel noise ─────────────────────────────────────────────

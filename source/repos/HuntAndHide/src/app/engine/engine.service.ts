@@ -19,6 +19,9 @@ import { placeOnTerrain } from './mesh/terrain-placement';
 import { getWaterSurfaceSize } from '../models/water-feature.model';
 import { TimeOfDayService } from './animation/time-of-day.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
+import { GlbLoaderService } from './mesh/glb-loader.service';
+import { initVehicleLoader } from './mesh/obstacle/vehicle.builder';
+import { VEHICLE_GLB_ENTRIES } from './mesh/vehicle-model.config';
 
 /**
  * EngineService owns the Three.js render loop and scene graph.
@@ -31,6 +34,7 @@ export class EngineService implements OnDestroy {
   private readonly mapService = inject(MapService);
   private readonly timeOfDay = inject(TimeOfDayService);
   private readonly screenShake = inject(ScreenShakeService);
+  private readonly glbLoader = inject(GlbLoaderService);
 
   // ── Core Three.js objects ──────────────────────────────────
   private renderer!: THREE.WebGLRenderer;
@@ -66,7 +70,7 @@ export class EngineService implements OnDestroy {
     this.createCamera(canvas.clientWidth, canvas.clientHeight);
     await this.createRenderer(canvas);
 
-    this.buildJungleScene();
+    await this.buildJungleScene();
 
     // Guarantee the scene always has lighting even if buildLighting() failed
     if (!this.sunLight) {
@@ -188,19 +192,29 @@ export class EngineService implements OnDestroy {
 
   // ── Jungle scene ───────────────────────────────────────────
 
-  private buildJungleScene(): void {
+  private async buildJungleScene(): Promise<void> {
     const map = this.mapService.generateJungleMap();
     const safe = (label: string, fn: () => void) => {
       try { fn(); } catch (e) { console.error(`[Engine] ${label} failed:`, e); }
     };
     safe('buildGround',          () => this.buildGround(map));
     safe('buildDappledLight',    () => this.buildDappledLight());
+    await this.preloadVehicleModels();
     safe('buildObstacles',       () => this.buildObstacles(map));
     safe('buildDecorations',     () => this.buildDecorations(map));
     safe('buildWater',           () => this.buildWater(map));
     safe('buildInstancedGrass',  () => this.buildInstancedGrass(map));
     safe('buildLighting',        () => this.buildLighting());
     safe('buildContactShadows',  () => this.buildContactShadows());
+  }
+
+  private async preloadVehicleModels(): Promise<void> {
+    initVehicleLoader(this.glbLoader);
+    try {
+      await this.glbLoader.preloadAll(VEHICLE_GLB_ENTRIES);
+    } catch (e) {
+      console.warn('[Engine] Vehicle GLB preload failed — fallback boxes will be used', e);
+    }
   }
 
   private buildDappledLight(): void {
@@ -326,7 +340,7 @@ export class EngineService implements OnDestroy {
   }
 
   private isVehicle(type: ObstacleType): boolean {
-    return type === 'jeep' || type === 'truck';
+    return type === 'sedan';
   }
 
   private getDecorationFootprint(type: DecorationType, scale: number): { width: number; depth: number } {

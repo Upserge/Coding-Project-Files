@@ -5,8 +5,7 @@ export type ObstacleType =
   | 'bush'
   | 'leaf_pile'
   | 'hole'
-  | 'jeep'
-  | 'truck'
+  | 'sedan'
   | 'safari_gear'
   | 'rock';
 
@@ -76,8 +75,7 @@ export const OBSTACLE_CONFIGS: Record<ObstacleType, ObstacleConfig> = {
   bush:        { type: 'bush',        size: { x: 2,   z: 2   }, canHideInside: true,  blocksProjectiles: false },
   leaf_pile:   { type: 'leaf_pile',   size: { x: 2,   z: 2   }, canHideInside: true,  blocksProjectiles: false },
   hole:        { type: 'hole',        size: { x: 1.5, z: 1.5 }, canHideInside: true,  blocksProjectiles: false },
-  jeep:        { type: 'jeep',        size: { x: 3,   z: 5   }, canHideInside: true,  blocksProjectiles: true },
-  truck:       { type: 'truck',       size: { x: 3,   z: 6   }, canHideInside: true,  blocksProjectiles: true },
+  sedan:       { type: 'sedan',       size: { x: 2.5, z: 5   }, canHideInside: true,  blocksProjectiles: true },
   safari_gear: { type: 'safari_gear', size: { x: 1,   z: 1   }, canHideInside: false, blocksProjectiles: false },
   rock:        { type: 'rock',        size: { x: 2,   z: 2   }, canHideInside: false, blocksProjectiles: true },
 };

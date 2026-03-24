@@ -61,29 +61,38 @@ export class HidingService {
 
   /**
    * Find the nearest unoccupied canHideInside obstacle within
-   * INTERACT_RADIUS of the given position.
-   * Returns the obstacle placement or null.
+   * interact range of the given position.
+   * Uses the obstacle's footprint so larger objects (sedans)
+   * remain reachable from any edge.
    */
   getNearbyHidingSpot(pos: Vec3): ObstaclePlacement | null {
     const map = this.mapService.getMap('jungle');
     let best: ObstaclePlacement | null = null;
-    let bestDist = INTERACT_RADIUS;
+    let bestEdgeDist = INTERACT_RADIUS;
 
     for (const obs of map.obstacles) {
       const cfg = OBSTACLE_CONFIGS[obs.type];
       if (!cfg.canHideInside) continue;
       if (this.occupied.has(obs.id)) continue;
 
-      const dx = pos.x - obs.position.x;
-      const dz = pos.z - obs.position.z;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-
-      if (dist < bestDist) {
-        bestDist = dist;
+      const edgeDist = this.edgeDistance(pos, obs, cfg.size);
+      if (edgeDist < bestEdgeDist) {
+        bestEdgeDist = edgeDist;
         best = obs;
       }
     }
 
     return best;
+  }
+
+  /** Distance from pos to the nearest edge of an axis-aligned obstacle footprint. */
+  private edgeDistance(
+    pos: Vec3,
+    obs: ObstaclePlacement,
+    size: { x: number; z: number },
+  ): number {
+    const dx = Math.max(0, Math.abs(pos.x - obs.position.x) - size.x / 2);
+    const dz = Math.max(0, Math.abs(pos.z - obs.position.z) - size.z / 2);
+    return Math.sqrt(dx * dx + dz * dz);
   }
 }

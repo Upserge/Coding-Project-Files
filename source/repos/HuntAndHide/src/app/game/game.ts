@@ -243,6 +243,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.resultRecorded = false;
     this.currentSessionId = sessionId;
     this.inLobby.set(true);
+    this.gameLoop.reset();
     this.ceremony.clear();
     this.showRulesBriefly();
   }

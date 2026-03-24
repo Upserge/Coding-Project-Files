@@ -119,6 +119,13 @@ export class GameLoopService {
     this.survivalAccumulatorS = 0;
   }
 
+  /** Clear all round/results state so a fresh session can start cleanly. */
+  reset(): void {
+    this.running = false;
+    this.phase.set('lobby');
+    this.resetLobbyState();
+  }
+
   // ── Tick (called every frame by EngineService) ─────────────
 
   tick(delta: number): void {

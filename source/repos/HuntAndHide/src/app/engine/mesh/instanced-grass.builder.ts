@@ -63,7 +63,6 @@ function createBladeGeometry(): THREE.ShapeGeometry {
 
 function createGrassMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
-    vertexColors: true,
     side: THREE.DoubleSide,
     roughness: 0.85,
     depthWrite: false,
@@ -81,8 +80,13 @@ function populateInstances(
   const halfD = mapDepth / 2 - SPREAD_MARGIN;
   const dummy = new THREE.Object3D();
   const color = new THREE.Color();
-  const darkGreen = new THREE.Color(0x2e7d32);
-  const lightGreen = new THREE.Color(0x66bb6a);
+  const palette = [
+    new THREE.Color(0xc8b560), // light yellow-brown
+    new THREE.Color(0xa4b74e), // olive-yellow
+    new THREE.Color(0x6fbf3b), // bright lime green
+    new THREE.Color(0x4caf50), // medium green
+    new THREE.Color(0x2e7d32), // deep green
+  ];
 
   for (let i = 0; i < BLADE_COUNT; i++) {
     const x = (Math.random() - 0.5) * halfW * 2;
@@ -95,7 +99,9 @@ function populateInstances(
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
 
-    color.lerpColors(darkGreen, lightGreen, Math.random());
+    const t = Math.random() * (palette.length - 1);
+    const idx = Math.floor(t);
+    color.lerpColors(palette[idx], palette[Math.min(idx + 1, palette.length - 1)], t - idx);
     mesh.setColorAt(i, color);
   }
 

@@ -26,8 +26,7 @@ const OBSTACLE_DISTRIBUTION: Record<ObstacleType, PlacementSpec> = {
   bush:        { count: 55, minSpacing: 7,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
   leaf_pile:   { count: 30, minSpacing: 8,  crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
   hole:        { count: 20, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: 0 },
-  jeep:        { count: 4,  minSpacing: 30, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
-  truck:       { count: 3,  minSpacing: 30, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
+  sedan:       { count: 6,  minSpacing: 25, crossTypeSpacing: 6,  rotationRange: Math.PI * 2 },
   safari_gear: { count: 10, minSpacing: 12, crossTypeSpacing: 4,  rotationRange: Math.PI * 2 },
   rock:        { count: 14, minSpacing: 10, crossTypeSpacing: 5,  rotationRange: Math.PI * 2 },
 };

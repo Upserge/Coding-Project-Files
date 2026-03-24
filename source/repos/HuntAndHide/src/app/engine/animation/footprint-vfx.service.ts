@@ -29,7 +29,8 @@ const FOOTPRINT_SIZE = 0.26;
 const FOOTPRINT_RENDER_ORDER = 2;
 const FOOTPRINT_HOLD_RATIO = 0.25;
 const FOOTPRINT_MIN_SCALE_RATIO = 0.45;
-const FOOTPRINT_DARKNESS = 1.00; //0.54
+const FOOTPRINT_DARKNESS = 0.64;
+const FOOTPRINT_BASE_COLOR = new THREE.Color(0x7a5232);
 
 @Injectable({ providedIn: 'root' })
 export class FootprintVfxService {
@@ -173,7 +174,7 @@ export class FootprintVfxService {
     const slot = this.slots[index];
     slot.active = false;
     this.setHiddenMatrix(index);
-    this.mesh?.setColorAt(index, this.color.setRGB(1, 1, 1));
+    this.mesh?.setColorAt(index, FOOTPRINT_BASE_COLOR);
     return true;
   }
 
@@ -187,8 +188,9 @@ export class FootprintVfxService {
     this.scale.set(stampScale, stampScale, stampScale);
     this.matrix.compose(this.position, this.rotation, this.scale);
     this.mesh?.setMatrixAt(index, this.matrix);
-    const brightness = 1 - FOOTPRINT_DARKNESS * slot.opacity * fade;
-    this.mesh?.setColorAt(index, this.color.setRGB(brightness, brightness, brightness));
+    const fadeStrength = Math.max(0, Math.min(1, slot.opacity * fade));
+    const brightness = 1 - FOOTPRINT_DARKNESS * fadeStrength;
+    this.mesh?.setColorAt(index, this.color.copy(FOOTPRINT_BASE_COLOR).multiplyScalar(brightness));
   }
 
   private getFade(age: number, life: number): number {
@@ -214,7 +216,7 @@ export class FootprintVfxService {
     if (!this.mesh) return;
     for (let i = 0; i < this.slots.length; i++) {
       this.setHiddenMatrix(i);
-      this.mesh.setColorAt(i, this.color.setRGB(1, 1, 1));
+      this.mesh.setColorAt(i, FOOTPRINT_BASE_COLOR);
     }
     this.mesh.instanceMatrix.needsUpdate = true;
     this.mesh.instanceColor!.needsUpdate = true;

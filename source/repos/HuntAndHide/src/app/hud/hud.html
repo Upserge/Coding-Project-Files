@@ -26,8 +26,8 @@
       <div class="idle-bar-wrapper">
         <label class="bar-label">Move!</label>
         <div class="bar-track">
-          <div class="bar-fill idle-fill"
-               [style.width.%]="idlePercent() * 100"
+          <div class="bar-fill idle-fill instant"
+               [style.width.%]="(1 - idlePercent()) * 100"
                [class.critical]="idlePercent() > 0.7"></div>
         </div>
       </div>
