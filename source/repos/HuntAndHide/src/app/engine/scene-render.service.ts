@@ -20,6 +20,7 @@ import { HidePromptService } from './animation/hide-prompt.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
 import { ScoreFloaterService } from './animation/score-floater.service';
 import { FootprintVfxService } from './animation/footprint-vfx.service';
+import { HideRuffleService } from './animation/hide-ruffle.service';
 import { MapService } from '../services/map.service';
 import { PlayerSurfaceEffectsService } from '../services/player-surface-effects.service';
 
@@ -49,6 +50,7 @@ export class SceneRenderService {
   private readonly screenShake = inject(ScreenShakeService);
   private readonly scoreFloater = inject(ScoreFloaterService);
   private readonly footprints = inject(FootprintVfxService);
+  private readonly hideRuffle = inject(HideRuffleService);
   private readonly mapService = inject(MapService);
   private readonly surfaceEffects = inject(PlayerSurfaceEffectsService);
 
@@ -74,6 +76,8 @@ export class SceneRenderService {
   private pendingHideSpot: Vec3 | null = null;
   // Track UIDs that already had their catch VFX spawned
   private caughtVfxSpawned = new Set<string>();
+  // Track UIDs currently hiding (to detect enter-hide transitions)
+  private hidingUids = new Set<string>();
 
   // ── Lifecycle ──────────────────────────────────────────────
 
@@ -150,9 +154,11 @@ export class SceneRenderService {
     this.playerMeshRoles.clear();
     this.previousPositions.clear();
     this.caughtVfxSpawned.clear();
+    this.hidingUids.clear();
     this.surfaceEffects.reset();
     this.animation.dispose();
     this.particles.dispose();
+    this.hideRuffle.dispose();
     this.ambientVfx.dispose();
     this.fallingLeaves.dispose();
     this.scoreFloater.dispose();
@@ -192,6 +198,7 @@ export class SceneRenderService {
       this.spawnFootstepEffects(player, moveDelta);
 
       this.syncHidingVisuals(group, player, localRole);
+      this.detectHideTransition(player);
 
       // Save position for next frame
       this.previousPositions.set(player.uid, { ...player.position });
@@ -205,6 +212,7 @@ export class SceneRenderService {
   /** Advance particle effects and ambient VFX. Call once per frame. */
   tickParticles(delta: number): void {
     this.particles.tick(delta);
+    this.hideRuffle.tick(delta);
     this.surfaceEffects.tick(delta);
     this.ambientVfx.tick(delta);
     this.fallingLeaves.tick(delta);
@@ -347,6 +355,27 @@ export class SceneRenderService {
     if (!hider.isHiding) return this.setGroupOpacity(group, 1.0);
     if (localRole === 'hunter') return void (group.visible = false);
     this.setGroupOpacity(group, 0.35);
+  }
+
+  private detectHideTransition(player: PlayerState): void {
+    if (player.role !== 'hider') return;
+    const hider = player as HiderState;
+    const wasHiding = this.hidingUids.has(hider.uid);
+
+    if (hider.isHiding && !wasHiding && hider.hidingSpotId) {
+      this.hidingUids.add(hider.uid);
+      this.triggerHideRuffle(hider.hidingSpotId);
+      return;
+    }
+    if (!hider.isHiding && wasHiding) {
+      this.hidingUids.delete(hider.uid);
+    }
+  }
+
+  private triggerHideRuffle(spotId: string): void {
+    const obs = this.mapService.getMap('jungle').obstacles.find(o => o.id === spotId);
+    if (!obs) return;
+    this.hideRuffle.trigger(spotId, obs.type);
   }
 
   private setGroupOpacity(group: THREE.Group, opacity: number): void {

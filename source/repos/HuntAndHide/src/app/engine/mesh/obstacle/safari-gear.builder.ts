@@ -42,10 +42,12 @@ const GEAR_VARIANTS: (() => THREE.Group)[] = [
   buildCanteenSet,
 ];
 
-/** Build a randomized safari gear piece. */
+/** Build a randomized safari gear piece, scaled to match collision footprint. */
 export function buildSafariGearMesh(): THREE.Group {
   const variant = GEAR_VARIANTS[Math.floor(Math.random() * GEAR_VARIANTS.length)];
-  return variant();
+  const group = variant();
+  group.scale.setScalar(3);
+  return group;
 }
 
 // ── Variant 1: Crate with strap and buckle ───────────────────

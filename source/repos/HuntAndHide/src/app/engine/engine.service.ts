@@ -48,6 +48,9 @@ export class EngineService implements OnDestroy {
   private sunLight: THREE.DirectionalLight | null = null;
   private ambientLight: THREE.AmbientLight | null = null;
 
+  /** Obstacle scene meshes keyed by ObstaclePlacement.id. */
+  private obstacleMeshes = new Map<string, THREE.Group>();
+
   /** External tick callback — GameLoopService registers here. */
   onTick: ((delta: number) => void) | null = null;
 
@@ -65,6 +68,7 @@ export class EngineService implements OnDestroy {
     this.grassMesh = null;
     this.sunLight = null;
     this.ambientLight = null;
+    this.obstacleMeshes.clear();
 
     this.createScene();
     this.createCamera(canvas.clientWidth, canvas.clientHeight);
@@ -88,6 +92,11 @@ export class EngineService implements OnDestroy {
 
   getScene(): THREE.Scene { return this.scene; }
   getCamera(): THREE.OrthographicCamera { return this.camera; }
+
+  /** Look up an obstacle mesh by its placement ID. */
+  getObstacleMesh(obstacleId: string): THREE.Group | undefined {
+    return this.obstacleMeshes.get(obstacleId);
+  }
 
   resize(width: number, height: number): void {
     const aspect = width / height;
@@ -260,6 +269,7 @@ export class EngineService implements OnDestroy {
     group.renderOrder = 2;
     this.enableShadows(group);
     this.scene.add(group);
+    this.obstacleMeshes.set(obs.id, group);
   }
 
   private enableShadows(obj: THREE.Object3D): void {

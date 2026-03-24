@@ -159,9 +159,9 @@ export class ParticleVfxService {
     }
   }
 
-  // ── Internal ─────────────────────────────────────────────
+  // ── Burst spawner ────────────────────────────────────────
 
-  private spawnBurst(opts: {
+  spawnBurst(opts: {
     position: Vec3;
     count: number;
     color: number;
