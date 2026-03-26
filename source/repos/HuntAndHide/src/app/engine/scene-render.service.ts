@@ -178,6 +178,20 @@ export class SceneRenderService {
     }
   }
 
+  /** Spawn score floaters for hunter catch rewards. */
+  showCatchScore(positions: Vec3[]): void {
+    for (const pos of positions) {
+      this.scoreFloater.spawn(pos, '+100', '#e9c46a');
+    }
+  }
+
+  /** Spawn score floaters for hider hiding cost. */
+  showHidingCost(positions: Vec3[]): void {
+    for (const pos of positions) {
+      this.scoreFloater.spawn(pos, '-10', '#ef5350');
+    }
+  }
+
   // ── Per-frame sync ─────────────────────────────────────────
 
   syncPlayers(

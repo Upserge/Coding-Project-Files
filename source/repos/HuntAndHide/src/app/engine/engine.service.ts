@@ -182,6 +182,7 @@ export class EngineService implements OnDestroy {
       isoDistance * Math.cos(angle) * Math.cos(yaw),
     );
     this.camera.lookAt(0, 0, 0);
+    this.camera.layers.enable(1);
   }
 
   private async createRenderer(canvas: HTMLCanvasElement): Promise<void> {

@@ -53,6 +53,10 @@ export class GameLoopService {
   readonly roundWinner = signal<RoundWinner>(null);
   /** Positions where survival bonus was just awarded (consumed by scene-render for floaters). */
   readonly survivalBonusPositions = signal<Vec3[]>([]);
+  /** Positions where a hunter just scored a catch (+100). */
+  readonly catchScorePositions = signal<Vec3[]>([]);
+  /** Positions where a hider just paid the hiding cost (−10). */
+  readonly hidingCostPositions = signal<Vec3[]>([]);
   /** UID of the hunter with the most kills this round (for devil-horns visual). */
   readonly mvpHunterUid = computed(() => {
     const hunters = this.hunters();
@@ -433,6 +437,12 @@ export class GameLoopService {
     if (catchPairs.length > 0) {
       this.hunters.set(updatedHunters);
 
+      // Emit hunter score floater positions
+      const catchPositions = catchPairs
+        .map(p => updatedHunters.find(h => h.displayName === p.hunterName)?.position)
+        .filter((pos): pos is Vec3 => !!pos);
+      this.catchScorePositions.set(catchPositions.map(p => ({ ...p })));
+
       // Track per-hunter catch counts
       for (const pair of catchPairs) {
         const hunter = updatedHunters.find(h => h.displayName === pair.hunterName);
@@ -672,6 +682,7 @@ export class GameLoopService {
     if (!wantsHide || hider.isHiding) return null;
     const spot = this.hidingService.getNearbyHidingSpot(hider.position);
     if (!spot || !this.hidingService.occupy(spot.id, hider.uid)) return null;
+    this.hidingCostPositions.update(p => [...p, { ...hider.position }]);
     return {
       ...hider,
       isHiding: true,

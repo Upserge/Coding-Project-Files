@@ -60,15 +60,19 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private engineReady = false;
   private resultRecorded = false;
   private currentSessionId = '';
-  private rulesTimer?: ReturnType<typeof setTimeout>;
+  private loadingTimer?: ReturnType<typeof setTimeout>;
 
-  private static readonly RULES_MODAL_MS = 30_000;
+  private static readonly LOADING_SCREEN_MS = 8_000;
 
   // ── Lobby state (signals for template) ─────────────────────
   protected readonly inLobby = signal(true);
   protected readonly playerCount = signal(0);
   protected readonly minPlayers = TOTAL_PLAYER_SLOTS;
-  protected readonly showRulesModal = signal(false);
+
+  // ── Loading screen (role reveal + rules between lobby → game)
+  protected readonly showLoadingScreen = signal(false);
+  protected readonly loadingRole = signal<'hider' | 'hunter'>('hider');
+  protected readonly loadingAnimal = signal('');
 
   // ── Round-results overlay (signals for template) ──────────
   protected readonly showResults = computed(() => this.gameLoop.phase() === 'results');
@@ -98,7 +102,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   @HostListener('window:keydown', ['$event'])
   protected onWindowKeydown(event: KeyboardEvent): void {
-    if (this.tryDismissRules(event)) return;
+    if (this.tryDismissLoading(event)) return;
     if (event.key !== 'F11') return;
     event.preventDefault();
     this.toggleFullscreen();
@@ -114,7 +118,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.clearRulesTimer();
+    this.clearLoadingTimer();
     this.ceremony.clear();
     this.disposeViewResources();
     this.cleanupSession();
@@ -132,6 +136,8 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.syncPlayerMeshes(uid, delta);
     this.sceneRender.setHideSpot(this.gameLoop.nearHidingSpot());
     this.syncSurvivalBonusFloaters();
+    this.syncCatchScoreFloaters();
+    this.syncHidingCostFloaters();
     this.sceneRender.tickParticles(delta);
     this.followLocalPlayer(delta);
   }
@@ -149,12 +155,30 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   private startGameplay(session: GameSession): void {
     this.gameStarted = true;
+    this.showRoleReveal(session);
     this.inLobby.set(false);
+    this.startGameWorld(session);
+  }
 
+  private showRoleReveal(session: GameSession): void {
+    const uid = this.identity.getToken();
+    const player = session.players?.[uid];
+    this.loadingRole.set(player?.role ?? 'hider');
+    this.loadingAnimal.set(player?.animal ?? '');
+    this.showLoadingScreen.set(true);
+    this.loadingTimer = setTimeout(() => this.dismissLoading(), GameComponent.LOADING_SCREEN_MS);
+  }
+
+  private startGameWorld(session: GameSession): void {
     const uid = this.identity.getToken();
     const sessionPlayer = session.players?.[uid];
     this.gameLoop.startGame(uid, session.hiderCount, session.hunterCount, sessionPlayer);
-    this.startBeginningGameCeremony();
+  }
+
+  protected dismissLoading(): void {
+    if (!this.showLoadingScreen()) return;
+    this.showLoadingScreen.set(false);
+    this.clearLoadingTimer();
   }
 
   /** Record game result to Firestore leaderboard and update session phase. */
@@ -245,13 +269,6 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.inLobby.set(true);
     this.gameLoop.reset();
     this.ceremony.clear();
-    this.showRulesBriefly();
-  }
-
-  private startBeginningGameCeremony(): void {
-    const role = this.gameLoop.getLocalPlayer()?.role;
-    if (!role) return;
-    this.ceremony.playBeginningGame(role);
   }
 
   private handleSessionSnapshot(session: GameSession | undefined): void {
@@ -286,34 +303,23 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.paramSub?.unsubscribe();
     this.sessionSub?.unsubscribe();
     this.resizeObserver?.disconnect();
-    this.clearRulesTimer();
+    this.clearLoadingTimer();
     this.inputService.detach();
     this.sceneRender.dispose();
     this.engine.dispose();
   }
 
-  protected dismissRulesModal(): void {
-    this.showRulesModal.set(false);
-    this.clearRulesTimer();
+  private clearLoadingTimer(): void {
+    if (!this.loadingTimer) return;
+    clearTimeout(this.loadingTimer);
+    this.loadingTimer = undefined;
   }
 
-  private showRulesBriefly(): void {
-    this.showRulesModal.set(true);
-    this.clearRulesTimer();
-    this.rulesTimer = setTimeout(() => this.dismissRulesModal(), GameComponent.RULES_MODAL_MS);
-  }
-
-  private clearRulesTimer(): void {
-    if (!this.rulesTimer) return;
-    clearTimeout(this.rulesTimer);
-    this.rulesTimer = undefined;
-  }
-
-  private tryDismissRules(event: KeyboardEvent): boolean {
-    if (!this.showRulesModal()) return false;
+  private tryDismissLoading(event: KeyboardEvent): boolean {
+    if (!this.showLoadingScreen()) return false;
     if (event.key !== 'Escape' && event.code !== 'Space') return false;
     event.preventDefault();
-    this.dismissRulesModal();
+    this.dismissLoading();
     return true;
   }
 
@@ -339,6 +345,20 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     if (!bonusPositions.length) return;
     this.sceneRender.showSurvivalBonus(bonusPositions);
     this.gameLoop.survivalBonusPositions.set([]);
+  }
+
+  private syncCatchScoreFloaters(): void {
+    const positions = this.gameLoop.catchScorePositions();
+    if (!positions.length) return;
+    this.sceneRender.showCatchScore(positions);
+    this.gameLoop.catchScorePositions.set([]);
+  }
+
+  private syncHidingCostFloaters(): void {
+    const positions = this.gameLoop.hidingCostPositions();
+    if (!positions.length) return;
+    this.sceneRender.showHidingCost(positions);
+    this.gameLoop.hidingCostPositions.set([]);
   }
 
   private followLocalPlayer(delta: number): void {

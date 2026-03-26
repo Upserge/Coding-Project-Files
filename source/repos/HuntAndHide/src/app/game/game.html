@@ -9,26 +9,34 @@
     </div>
   }
 
-  @if (showRulesModal() && !showResults()) {
-    <div class="rules-modal-backdrop">
-      <div class="rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
-        <button class="rules-close" type="button" aria-label="Close rules" (click)="dismissRulesModal()">×</button>
-        <h2 id="rules-modal-title" class="rules-title">How to Play</h2>
-        <div class="rules-section">
-          <h3>Hiders</h3>
-          <p>
-            Hiders must not get caught by Hunters. They can hide in various objects around the map with
-            <strong>F</strong>. Hiders must move within the timer amount or they turn into Hunters.
+  @if (showLoadingScreen() && !showResults()) {
+    <div class="loading-backdrop">
+      <div class="loading-card" [class.tone-hunter]="loadingRole() === 'hunter'" [class.tone-hider]="loadingRole() === 'hider'">
+        <span class="loading-badge">{{ loadingRole() === 'hunter' ? '🐺' : '🌿' }}</span>
+        <h2 class="loading-role">{{ loadingRole() === 'hunter' ? 'You Are a Hunter' : 'You Are a Hider' }}</h2>
+        @if (loadingAnimal(); as animal) {
+          <p class="loading-animal">Playing as <strong>{{ animal }}</strong></p>
+        }
+
+        <div class="loading-rules">
+          @if (loadingRole() === 'hider') {
+            <p>
+              Survive the round! Press <strong>F</strong> to hide inside objects — hunters can't see you.
+              Hiding costs <strong>10 pts</strong> and pauses your survival timer.
+              Stay moving to earn <strong>+50 pts</strong> every 30s.
+            </p>
+          } @else {
+            <p>
+              Catch hiders before you starve! Each catch earns <strong>+100 pts</strong> and restores 40% hunger.
+              Use <strong>Shift</strong> to sprint. If hunger hits zero, you die and respawn after 3s.
+            </p>
+          }
+          <p class="loading-controls">
+            <strong>WASD</strong> Move · <strong>Shift</strong> Sprint · <strong>F</strong> Hide · <strong>F11</strong> Fullscreen
           </p>
         </div>
-        <div class="rules-section">
-          <h3>Hunters</h3>
-          <p>
-            Hunters must catch Hiders before they starve. Hunters can't see Hiders when they're hiding.
-            Hunters can use <strong>Shift</strong> to sprint, but when their sprint gauge runs out they move slower.
-          </p>
-        </div>
-        <p class="rules-dismiss">Press Space, Escape, or click the X to close.</p>
+
+        <p class="loading-dismiss">Press Space or Escape to jump in</p>
       </div>
     </div>
   }
