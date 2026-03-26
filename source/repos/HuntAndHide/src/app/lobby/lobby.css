@@ -111,6 +111,92 @@
   align-items: center;
 }
 
+.lobby-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.countdown-ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid rgba(233, 196, 106, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #e9c46a;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-label {
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.countdown-ring.urgent {
+  border-color: #ef5350;
+  animation: urgency-pulse 1s ease-in-out infinite;
+}
+
+.countdown-ring.urgent .countdown-value {
+  color: #ef5350;
+}
+
+@keyframes urgency-pulse {
+  0%, 100% { transform: scale(1); border-color: #ef5350; }
+  50% { transform: scale(1.1); border-color: #ff8a65; }
+}
+
+.ready-info {
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.btn-ready {
+  min-width: 200px;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #66bb6a;
+  color: #1a1a2e;
+  transition: background 0.15s;
+}
+
+.btn-ready:hover {
+  background: #81c784;
+}
+
+.btn-unready {
+  min-width: 200px;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #ef5350;
+  color: #fff;
+  transition: background 0.15s;
+}
+
+.btn-unready:hover {
+  background: #e57373;
+}
+
 .waiting-text {
   color: #888;
   font-size: 0.9rem;

@@ -152,7 +152,8 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.inLobby.set(false);
 
     const uid = this.identity.getToken();
-    this.gameLoop.startGame(uid, session.hiderCount, session.hunterCount);
+    const sessionPlayer = session.players?.[uid];
+    this.gameLoop.startGame(uid, session.hiderCount, session.hunterCount, sessionPlayer);
     this.startBeginningGameCeremony();
   }
 
@@ -264,7 +265,9 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.lobbyStarted = true;
     this.inputService.attach();
     this.initSceneTickIfNeeded();
-    this.gameLoop.startLobby(this.identity.getToken(), session.hiderCount, session.hunterCount);
+    const uid = this.identity.getToken();
+    const sessionPlayer = session.players?.[uid];
+    this.gameLoop.startLobby(uid, session.hiderCount, session.hunterCount, sessionPlayer);
   }
 
   private initSceneTickIfNeeded(): void {

@@ -102,27 +102,21 @@ export class GameLoopService {
   /** Countdown seconds remaining for the local hunter's death overlay. */
   readonly hunterDeathCountdown = signal(0);
 
-  // ── Hit-stop (brief slow-motion on catch) ──────────────────
-  private timeScale = 1;
-  private hitStopRemaining = 0;
-  private readonly hitStopDuration = 0.15;
-  private readonly hitStopScale = 0.2;
-
   // ── Lifecycle ──────────────────────────────────────────────
 
   /** Called when entering the game view — lets players roam while waiting. */
-  startLobby(localUid: string, hiderCount: number, hunterCount: number): void {
+  startLobby(localUid: string, hiderCount: number, hunterCount: number, sessionPlayer?: PlayerState): void {
     this.localPlayerUid.set(localUid);
     this.resetLobbyState();
-    this.spawnLocalLobbyPlayer(localUid, hiderCount, hunterCount);
+    this.spawnLocalLobbyPlayer(localUid, hiderCount, hunterCount, sessionPlayer);
     this.phase.set('lobby');
     this.running = true;
     this.reconcileCpuLobbyPlayers();
   }
 
   /** Transition from lobby to active gameplay once enough players join. */
-  startGame(localUid: string, hiderCount: number, hunterCount: number): void {
-    if (!this.running) this.startLobby(localUid, hiderCount, hunterCount);
+  startGame(localUid: string, hiderCount: number, hunterCount: number, sessionPlayer?: PlayerState): void {
+    if (!this.running) this.startLobby(localUid, hiderCount, hunterCount, sessionPlayer);
     this.phase.set('hunting');
     this.roundTimeRemainingMs.set(this.roundDurationMs);
     this.updateRoundSnapshots();
@@ -152,10 +146,9 @@ export class GameLoopService {
 
   tick(delta: number): void {
     if (!this.running) return;
-    const scaledDelta = this.applyHitStop(delta);
     if (this.phase() === 'results') return;
-    if (this.phase() === 'lobby') return void this.tickMovementOnly(scaledDelta);
-    this.tickActiveRound(scaledDelta);
+    if (this.phase() === 'lobby') return void this.tickMovementOnly(delta);
+    this.tickActiveRound(delta);
   }
 
   // ── Lobby-mode tick (movement only, no consequences) ────
@@ -258,33 +251,32 @@ export class GameLoopService {
     this.catchFeed.set([]);
     this.roundMvp.set(null);
     this.roundWinner.set(null);
-    this.timeScale = 1;
-    this.hitStopRemaining = 0;
     this.survivalAccumulatorS = 0;
     this.survivalTimes.clear();
     this.roundHunterSnapshots.clear();
     this.roundHiderSnapshots.clear();
   }
 
-  private spawnLocalLobbyPlayer(localUid: string, hiderCount: number, hunterCount: number): void {
+  private spawnLocalLobbyPlayer(localUid: string, hiderCount: number, hunterCount: number, sessionPlayer?: PlayerState): void {
     const map = this.mapService.generateJungleMap();
-    const role = this.playerService.assignRole(hiderCount, hunterCount);
-    if (role === 'hider') return void this.spawnLocalHider(localUid, hiderCount, map.spawnPoints.filter(s => s.forRole === 'hider'));
-    this.spawnLocalHunter(localUid, hunterCount, map.spawnPoints.filter(s => s.forRole === 'hunter'));
+    const role = sessionPlayer?.role ?? this.playerService.assignRole(hiderCount, hunterCount);
+    const spawns = map.spawnPoints.filter(s => s.forRole === role);
+    if (role === 'hider') return void this.spawnLocalHider(localUid, hiderCount, spawns, sessionPlayer?.animal);
+    this.spawnLocalHunter(localUid, hunterCount, spawns, sessionPlayer?.animal);
   }
 
-  private spawnLocalHider(localUid: string, hiderCount: number, spawns: { position: Vec3 }[]): void {
+  private spawnLocalHider(localUid: string, hiderCount: number, spawns: { position: Vec3 }[], animal?: string): void {
     const spawn = spawns[hiderCount % spawns.length];
-    const animal = this.playerService.assignAnimal('hider', []);
-    const hider = this.playerService.createHiderState(animal as any, spawn.position);
+    const picked = animal ?? this.playerService.assignAnimal('hider', []);
+    const hider = this.playerService.createHiderState(picked as any, spawn.position);
     hider.uid = localUid;
     this.hiders.set([hider]);
   }
 
-  private spawnLocalHunter(localUid: string, hunterCount: number, spawns: { position: Vec3 }[]): void {
+  private spawnLocalHunter(localUid: string, hunterCount: number, spawns: { position: Vec3 }[], animal?: string): void {
     const spawn = spawns[hunterCount % spawns.length];
-    const animal = this.playerService.assignAnimal('hunter', []);
-    const hunter = this.playerService.createHunterState(animal as any, spawn.position);
+    const picked = animal ?? this.playerService.assignAnimal('hunter', []);
+    const hunter = this.playerService.createHunterState(picked as any, spawn.position);
     hunter.uid = localUid;
     this.hunters.set([hunter]);
   }
@@ -293,16 +285,6 @@ export class GameLoopService {
     const reconciled = this.cpuSpawner.reconcile(this.hiders(), this.hunters());
     this.hiders.set(reconciled.hiders);
     this.hunters.set(reconciled.hunters);
-  }
-
-  private applyHitStop(delta: number): number {
-    if (this.hitStopRemaining > 0) this.updateHitStopTimer(delta);
-    return delta * this.timeScale;
-  }
-
-  private updateHitStopTimer(delta: number): void {
-    this.hitStopRemaining = Math.max(0, this.hitStopRemaining - delta);
-    this.timeScale = this.hitStopRemaining > 0 ? this.hitStopScale : 1;
   }
 
   private tickActiveRound(delta: number): void {
@@ -450,9 +432,8 @@ export class GameLoopService {
 
     if (catchPairs.length > 0) {
       this.hunters.set(updatedHunters);
-      this.hitStopRemaining = this.hitStopDuration;
 
-      // Track per-hunter catch counts for MVP (legacy map kept for computeRoundMvp)
+      // Track per-hunter catch counts
       for (const pair of catchPairs) {
         const hunter = updatedHunters.find(h => h.displayName === pair.hunterName);
         if (hunter) {

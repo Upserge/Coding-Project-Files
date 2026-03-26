@@ -162,6 +162,20 @@ export class SessionService {
     await updateDoc(this.getSessionRef(sessionId), { heartbeatAt: now, updatedAt: now });
   }
 
+  async setPlayerReady(sessionId: string, uid: string): Promise<void> {
+    await updateDoc(this.getSessionRef(sessionId), {
+      [`readyPlayers.${uid}`]: true,
+      updatedAt: Date.now(),
+    });
+  }
+
+  async setPlayerUnready(sessionId: string, uid: string): Promise<void> {
+    await updateDoc(this.getSessionRef(sessionId), {
+      [`readyPlayers.${uid}`]: deleteField(),
+      updatedAt: Date.now(),
+    });
+  }
+
   // \u2500\u2500 UPDATE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
   async updateSession(sessionId: string, patch: Partial<GameSession>): Promise<void> {
@@ -200,6 +214,7 @@ export class SessionService {
       hostUid: this.identity.getToken(),
       phase: 'lobby',
       players: {},
+      readyPlayers: {},
       hiderCount: 0,
       hunterCount: 0,
       roundTimeSeconds: config.roundTimeSeconds,

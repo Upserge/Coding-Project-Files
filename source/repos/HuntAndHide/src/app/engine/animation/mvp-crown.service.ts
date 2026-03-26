@@ -7,14 +7,48 @@ import * as THREE from 'three';
  * - Devil horns (glowing red) for the MVP Hunter
  * - Heavenly halo (soft gold glow) for the MVP Hider
  *
- * Both ornaments bob gently and emit a soft point-light.
+ * Performance notes:
+ * - Geometries and materials are pre-built once (avoids shader recompilation).
+ * - Ornament references tracked via Maps (avoids getObjectByName tree walks).
+ * - No PointLights — emissive materials + fresnel glow are sufficient and
+ *   avoid adding per-light render passes to every nearby mesh.
  */
 @Injectable({ providedIn: 'root' })
 export class MvpCrownService {
-  private readonly hornTag = '__mvp_horns__';
-  private readonly haloTag = '__mvp_halo__';
-
   private elapsed = 0;
+
+  // ── Tracked ornament references (O(1) lookup, no tree walks) ──
+  private readonly hornsMap = new Map<THREE.Group, THREE.Group>();
+  private readonly halosMap = new Map<THREE.Group, THREE.Group>();
+
+  // ── Cached geometries (built once) ────────────────────────
+  private readonly hornGeo = new THREE.ConeGeometry(0.1, 0.48, 10);
+  private readonly hornGlowGeo = new THREE.ConeGeometry(0.15, 0.62, 12);
+  private readonly haloRingGeo = new THREE.TorusGeometry(0.28, 0.04, 12, 32);
+  private readonly haloGlowGeo = new THREE.TorusGeometry(0.31, 0.065, 16, 40);
+
+  // ── Cached materials (built once) ─────────────────────────
+  private readonly hornMat = new THREE.MeshStandardMaterial({
+    color: 0xcc2222,
+    emissive: 0xff4444,
+    emissiveIntensity: 1.2,
+    roughness: 0.3,
+    metalness: 0.4,
+  });
+
+  private readonly hornGlowMat = this.buildFresnelMaterial(0xff2a2a, 3.2);
+
+  private readonly haloRingMat = new THREE.MeshStandardMaterial({
+    color: 0xffe9a0,
+    emissive: 0xffe066,
+    emissiveIntensity: 1.4,
+    roughness: 0.2,
+    metalness: 0.6,
+    transparent: true,
+    opacity: 0.85,
+  });
+
+  private readonly haloGlowMat = this.buildFresnelMaterial(0xffef9a, 2.6);
 
   /** Update ornaments for all visible player meshes. */
   sync(
@@ -36,106 +70,71 @@ export class MvpCrownService {
   // ── Devil Horns (MVP Hunter) ──────────────────────────────
 
   private syncHorns(group: THREE.Group, shouldHave: boolean): void {
-    const existing = group.getObjectByName(this.hornTag);
+    const existing = this.hornsMap.has(group);
     if (shouldHave && !existing) return void this.attachHorns(group);
-    if (!shouldHave && existing) return void this.detachByTag(group, this.hornTag);
+    if (!shouldHave && existing) return void this.detachHorns(group);
   }
 
   private attachHorns(group: THREE.Group): void {
     const horns = new THREE.Group();
-    horns.name = this.hornTag;
-
-    const hornMat = new THREE.MeshStandardMaterial({
-      color: 0xcc2222,
-      emissive: 0xff4444,
-      emissiveIntensity: 0.8,
-      roughness: 0.3,
-      metalness: 0.4,
-    });
 
     for (const side of [-1, 1]) {
-      const horn = this.buildHorn(hornMat);
+      const horn = new THREE.Mesh(this.hornGeo, this.hornMat);
+      horn.rotation.x = -0.2;
       horn.position.set(side * 0.3, 0, 0.02);
       horn.rotation.z = side * 0.35;
       horns.add(horn);
 
-      const hornGlow = this.buildHornGlow();
-      hornGlow.position.copy(horn.position);
-      hornGlow.rotation.copy(horn.rotation);
-      horns.add(hornGlow);
+      const glow = new THREE.Mesh(this.hornGlowGeo, this.hornGlowMat);
+      glow.rotation.x = -0.2;
+      glow.position.copy(horn.position);
+      glow.rotation.z = horn.rotation.z;
+      horns.add(glow);
     }
-
-    const glow = new THREE.PointLight(0xff3b3b, 1.6, 5.8);
-    glow.position.set(0, 0.25, 0.05);
-    horns.add(glow);
 
     horns.position.set(0, 2.28, 0);
     horns.renderOrder = 101;
     group.add(horns);
+    this.hornsMap.set(group, horns);
   }
 
-  private buildHorn(mat: THREE.Material): THREE.Mesh {
-    const geo = new THREE.ConeGeometry(0.1, 0.48, 10);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -0.2;
-    return mesh;
-  }
-
-  private buildHornGlow(): THREE.Mesh {
-    const glow = new THREE.Mesh(
-      new THREE.ConeGeometry(0.15, 0.62, 12),
-      this.buildFresnelMaterial(0xff2a2a, 3.2),
-    );
-    glow.rotation.x = -0.2;
-    return glow;
+  private detachHorns(group: THREE.Group): void {
+    const horns = this.hornsMap.get(group);
+    if (!horns) return;
+    group.remove(horns);
+    this.hornsMap.delete(group);
   }
 
   // ── Heavenly Halo (MVP Hider) ─────────────────────────────
 
   private syncHalo(group: THREE.Group, shouldHave: boolean): void {
-    const existing = group.getObjectByName(this.haloTag);
+    const existing = this.halosMap.has(group);
     if (shouldHave && !existing) return void this.attachHalo(group);
-    if (!shouldHave && existing) return void this.detachByTag(group, this.haloTag);
+    if (!shouldHave && existing) return void this.detachHalo(group);
   }
 
   private attachHalo(group: THREE.Group): void {
     const halo = new THREE.Group();
-    halo.name = this.haloTag;
 
-    const ringGeo = new THREE.TorusGeometry(0.28, 0.04, 12, 32);
-    const ringMat = new THREE.MeshStandardMaterial({
-      color: 0xffe9a0,
-      emissive: 0xffe066,
-      emissiveIntensity: 1.0,
-      roughness: 0.2,
-      metalness: 0.6,
-      transparent: true,
-      opacity: 0.85,
-    });
-
-    const ring = new THREE.Mesh(ringGeo, ringMat);
+    const ring = new THREE.Mesh(this.haloRingGeo, this.haloRingMat);
     ring.rotation.x = Math.PI / 2;
     halo.add(ring);
 
-    const ringGlow = this.buildHaloGlow();
-    halo.add(ringGlow);
-
-    const glow = new THREE.PointLight(0xffe066, 0.8, 3.5);
-    glow.position.set(0, 0.15, 0);
+    const glow = new THREE.Mesh(this.haloGlowGeo, this.haloGlowMat);
+    glow.rotation.x = Math.PI / 2;
     halo.add(glow);
 
     halo.position.set(0, 2.2, 0);
     halo.renderOrder = 101;
     group.add(halo);
+    this.halosMap.set(group, halo);
   }
 
-  private buildHaloGlow(): THREE.Mesh {
-    const glow = new THREE.Mesh(
-      new THREE.TorusGeometry(0.31, 0.065, 16, 40),
-      this.buildFresnelMaterial(0xffef9a, 2.6),
-    );
-    glow.rotation.x = Math.PI / 2;
-    return glow;
+  private detachHalo(group: THREE.Group): void {
+    const halo = this.halosMap.get(group);
+    if (!halo) return;
+    group.remove(halo);
+    this.halosMap.delete(group);
   }
 
   private buildFresnelMaterial(color: number, power: number): THREE.ShaderMaterial {
@@ -179,39 +178,44 @@ export class MvpCrownService {
     hunterUid: string | null,
     hiderUid: string | null,
   ): void {
-    if (hunterUid) this.animateIfPresent(meshes.get(hunterUid), this.hornTag, 3.0, 0.06);
-    if (hiderUid) this.animateIfPresent(meshes.get(hiderUid), this.haloTag, 2.0, 0.04);
+    if (hunterUid) this.animateHorns(meshes.get(hunterUid));
+    if (hiderUid) this.animateHalo(meshes.get(hiderUid));
   }
 
-  private animateIfPresent(
-    group: THREE.Group | undefined,
-    tag: string,
-    speed: number,
-    amplitude: number,
-  ): void {
-    const ornament = group?.getObjectByName(tag);
-    if (!ornament) return;
-    const baseY = tag === this.hornTag ? 2.28 : 2.2;
-    ornament.position.y = baseY + Math.sin(this.elapsed * speed) * amplitude;
+  private animateHorns(group: THREE.Group | undefined): void {
+    if (!group) return;
+    const horns = this.hornsMap.get(group);
+    if (!horns) return;
+    horns.position.y = 2.28 + Math.sin(this.elapsed * 3.0) * 0.06;
+  }
+
+  private animateHalo(group: THREE.Group | undefined): void {
+    if (!group) return;
+    const halo = this.halosMap.get(group);
+    if (!halo) return;
+    halo.position.y = 2.2 + Math.sin(this.elapsed * 2.0) * 0.04;
   }
 
   // ── Cleanup ───────────────────────────────────────────────
 
-  private detachByTag(group: THREE.Group, tag: string): void {
-    const obj = group.getObjectByName(tag);
-    if (!obj) return;
-    group.remove(obj);
-    obj.traverse((child: any) => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
-    });
-  }
-
   dispose(meshes: Map<string, THREE.Group>): void {
     for (const [, group] of meshes) {
-      this.detachByTag(group, this.hornTag);
-      this.detachByTag(group, this.haloTag);
+      this.detachHorns(group);
+      this.detachHalo(group);
     }
+    this.hornsMap.clear();
+    this.halosMap.clear();
     this.elapsed = 0;
+  }
+
+  disposeResources(): void {
+    this.hornGeo.dispose();
+    this.hornGlowGeo.dispose();
+    this.haloRingGeo.dispose();
+    this.haloGlowGeo.dispose();
+    this.hornMat.dispose();
+    this.hornGlowMat.dispose();
+    this.haloRingMat.dispose();
+    this.haloGlowMat.dispose();
   }
 }

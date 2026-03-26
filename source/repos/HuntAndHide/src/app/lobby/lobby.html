@@ -19,14 +19,23 @@
     }
   </div>
 
+  <div class="lobby-status">
+    <span class="countdown-label">Game starts in:</span>
+    <div class="countdown-ring" [class.urgent]="isUrgent()">
+      <span class="countdown-value">{{ countdown() }}</span>
+    </div>
+    <p class="ready-info">{{ readyCount() }} / {{ totalRealPlayers() }} players ready</p>
+  </div>
+
   <div class="lobby-actions">
-    @if (isHost()) {
-      <button class="btn btn-primary" (click)="startGame()" [disabled]="players().length < 1">
-        Start Game
-      </button>
-    } @else {
-      <p class="waiting-text">Waiting for host to start...</p>
-    }
+    <button
+      class="btn"
+      [class.btn-ready]="!isReady()"
+      [class.btn-unready]="isReady()"
+      (click)="toggleReady()"
+    >
+      {{ isReady() ? 'Unready' : 'Ready Up' }}
+    </button>
     <button class="btn btn-secondary" (click)="leaveSession()">Leave</button>
   </div>
 </div>

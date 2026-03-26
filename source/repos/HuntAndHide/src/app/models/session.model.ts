@@ -13,6 +13,8 @@ export interface GameSession {
   hostUid: string;
   phase: GamePhase;
   players: Record<string, PlayerState>;
+  /** UIDs of players who have readied up in the lobby. */
+  readyPlayers: Record<string, boolean>;
   hiderCount: number;
   hunterCount: number;
   roundTimeSeconds: number;
