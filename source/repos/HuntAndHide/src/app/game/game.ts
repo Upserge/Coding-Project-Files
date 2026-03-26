@@ -10,7 +10,6 @@ import {
   HostListener,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { UpperCasePipe } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { EngineService } from '../engine/engine.service';
 import { SceneRenderService } from '../engine/scene-render.service';
@@ -23,7 +22,7 @@ import { FullscreenService } from '../services/fullscreen.service';
 import { MatchmakingService } from '../services/matchmaking.service';
 import { HudComponent } from '../hud/hud';
 import { GameCeremonyComponent } from '../game-ceremony/game-ceremony';
-import { GameSession, RoundMvp, RoundWinner } from '../models/session.model';
+import { GameSession, RoundWinner } from '../models/session.model';
 import { PlayerState } from '../models/player.model';
 import { GameCeremonyService } from '../services/game-ceremony.service';
 
@@ -33,7 +32,7 @@ const TOTAL_PLAYER_SLOTS = 10;
 @Component({
   selector: 'app-game',
   standalone: true,
-  imports: [HudComponent, GameCeremonyComponent, UpperCasePipe],
+  imports: [HudComponent, GameCeremonyComponent],
   templateUrl: './game.html',
   styleUrl: './game.css',
 })
@@ -74,7 +73,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   // ── Round-results overlay (signals for template) ──────────
   protected readonly showResults = computed(() => this.gameLoop.phase() === 'results');
   protected readonly roundWinner = this.gameLoop.roundWinner;
-  protected readonly roundMvp = this.gameLoop.roundMvp;
+  protected readonly roundMvps = this.gameLoop.roundMvps;
   protected readonly isFullscreen = this.fullscreen.isActive;
   protected readonly roundPlayers = computed(() => {
     const all: PlayerState[] = [...this.gameLoop.hiders(), ...this.gameLoop.hunters()];

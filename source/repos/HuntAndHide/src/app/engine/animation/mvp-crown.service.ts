@@ -55,25 +55,39 @@ export class MvpCrownService {
 
     for (const side of [-1, 1]) {
       const horn = this.buildHorn(hornMat);
-      horn.position.set(side * 0.22, 0, 0);
+      horn.position.set(side * 0.3, 0, 0.02);
       horn.rotation.z = side * 0.35;
       horns.add(horn);
+
+      const hornGlow = this.buildHornGlow();
+      hornGlow.position.copy(horn.position);
+      hornGlow.rotation.copy(horn.rotation);
+      horns.add(hornGlow);
     }
 
-    const glow = new THREE.PointLight(0xff4444, 1.2, 4);
-    glow.position.set(0, 0.2, 0);
+    const glow = new THREE.PointLight(0xff3b3b, 1.6, 5.8);
+    glow.position.set(0, 0.25, 0.05);
     horns.add(glow);
 
-    horns.position.set(0, 2.1, 0);
+    horns.position.set(0, 2.28, 0);
     horns.renderOrder = 101;
     group.add(horns);
   }
 
   private buildHorn(mat: THREE.Material): THREE.Mesh {
-    const geo = new THREE.ConeGeometry(0.07, 0.35, 8);
+    const geo = new THREE.ConeGeometry(0.1, 0.48, 10);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -0.15;
+    mesh.rotation.x = -0.2;
     return mesh;
+  }
+
+  private buildHornGlow(): THREE.Mesh {
+    const glow = new THREE.Mesh(
+      new THREE.ConeGeometry(0.15, 0.62, 12),
+      this.buildFresnelMaterial(0xff2a2a, 3.2),
+    );
+    glow.rotation.x = -0.2;
+    return glow;
   }
 
   // ── Heavenly Halo (MVP Hider) ─────────────────────────────
@@ -103,6 +117,9 @@ export class MvpCrownService {
     ring.rotation.x = Math.PI / 2;
     halo.add(ring);
 
+    const ringGlow = this.buildHaloGlow();
+    halo.add(ringGlow);
+
     const glow = new THREE.PointLight(0xffe066, 0.8, 3.5);
     glow.position.set(0, 0.15, 0);
     halo.add(glow);
@@ -110,6 +127,49 @@ export class MvpCrownService {
     halo.position.set(0, 2.2, 0);
     halo.renderOrder = 101;
     group.add(halo);
+  }
+
+  private buildHaloGlow(): THREE.Mesh {
+    const glow = new THREE.Mesh(
+      new THREE.TorusGeometry(0.31, 0.065, 16, 40),
+      this.buildFresnelMaterial(0xffef9a, 2.6),
+    );
+    glow.rotation.x = Math.PI / 2;
+    return glow;
+  }
+
+  private buildFresnelMaterial(color: number, power: number): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        glowColor: { value: new THREE.Color(color) },
+        power: { value: power },
+      },
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        varying vec3 vWorldNormal;
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPos.xyz;
+          vWorldNormal = normalize(mat3(modelMatrix) * normal);
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 glowColor;
+        uniform float power;
+        varying vec3 vWorldPosition;
+        varying vec3 vWorldNormal;
+        void main() {
+          vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+          float fresnel = pow(1.0 - max(dot(normalize(vWorldNormal), viewDir), 0.0), power);
+          gl_FragColor = vec4(glowColor, fresnel * 0.95);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
   }
 
   // ── Animation ─────────────────────────────────────────────
@@ -131,7 +191,7 @@ export class MvpCrownService {
   ): void {
     const ornament = group?.getObjectByName(tag);
     if (!ornament) return;
-    const baseY = tag === this.hornTag ? 2.1 : 2.2;
+    const baseY = tag === this.hornTag ? 2.28 : 2.2;
     ornament.position.y = baseY + Math.sin(this.elapsed * speed) * amplitude;
   }
 

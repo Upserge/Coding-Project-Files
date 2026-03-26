@@ -43,49 +43,109 @@
   <!-- Round-results overlay ─────────────────────────────── -->
   @if (showResults()) {
     <div class="results-overlay">
-      <div class="results-card">
-
-        <!-- Winner banner -->
-        @if (roundWinner(); as winner) {
-        <div class="winner-banner" [class.hunters-win]="winner === 'hunters'" [class.hiders-win]="winner === 'hiders'">
-          <span class="winner-icon">{{ winner === 'hunters' ? '🐺' : '🌿' }}</span>
+      @if (roundWinner(); as winner) {
+      <div class="winner-banner" [class.hunters-win]="winner === 'hunters'" [class.hiders-win]="winner === 'hiders'">
+        <span class="winner-icon">{{ winner === 'hunters' ? '🐺' : '🌿' }}</span>
+        <div class="winner-copy">
           <h1 class="winner-title">{{ winner === 'hunters' ? 'Hunters Win!' : 'Hiders Win!' }}</h1>
           <p class="winner-flavor">
             {{ winner === 'hunters' ? 'Every last hider was caught!' : 'Time ran out — the hiders survived!' }}
           </p>
         </div>
-        }
+      </div>
+      }
 
-        <!-- MVP ceremony card -->
-        @if (roundMvp(); as mvp) {
-        <div class="mvp-section">
-          <div class="mvp-card">
-            <span class="mvp-crown">👑</span>
-            <h2 class="mvp-title">ROUND MVP</h2>
-            <span class="mvp-name">{{ mvp.displayName }}</span>
-            <span class="mvp-role" [class.hunter]="mvp.role === 'hunter'" [class.hider]="mvp.role === 'hider'">
-              {{ mvp.role | uppercase }}
-            </span>
-            <div class="mvp-stats">
-              <div class="mvp-stat">
-                <span class="mvp-stat-value">{{ mvp.score }}</span>
-                <span class="mvp-stat-label">Score</span>
+      <div class="results-card">
+
+        <!-- Dual MVP cards -->
+        @if (roundMvps(); as mvps) {
+          @if (roundWinner() === 'hunters' && mvps.hunter) {
+          <div class="mvp-section">
+            <div class="mvp-card winner-card">
+              <div class="mvp-rays" aria-hidden="true"></div>
+              <div class="mvp-confetti" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
               </div>
-              @if (mvp.role === 'hunter') {
-              <div class="mvp-stat">
-                <span class="mvp-stat-value">{{ mvp.catches }}</span>
-                <span class="mvp-stat-label">Catches</span>
+              <span class="mvp-crown">😈</span>
+              <h2 class="mvp-title">MVP HUNTER</h2>
+              <span class="mvp-name">{{ mvps.hunter.displayName }}</span>
+              <div class="mvp-stats">
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hunter.score }}</span>
+                  <span class="mvp-stat-label">Score</span>
+                </div>
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hunter.catches }}</span>
+                  <span class="mvp-stat-label">Catches</span>
+                </div>
               </div>
-              }
-              @if (mvp.role === 'hider') {
-              <div class="mvp-stat">
-                <span class="mvp-stat-value">{{ mvp.survived ? 'Yes' : 'No' }}</span>
-                <span class="mvp-stat-label">Survived</span>
-              </div>
-              }
             </div>
           </div>
-        </div>
+          }
+
+          @if (roundWinner() === 'hiders' && mvps.hider) {
+          <div class="mvp-section">
+            <div class="mvp-card winner-card">
+              <div class="mvp-rays" aria-hidden="true"></div>
+              <div class="mvp-confetti" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <span class="mvp-crown">😇</span>
+              <h2 class="mvp-title">MVP HIDER</h2>
+              <span class="mvp-name">{{ mvps.hider.displayName }}</span>
+              <div class="mvp-stats">
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hider.score }}</span>
+                  <span class="mvp-stat-label">Score</span>
+                </div>
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hider.survived ? 'Yes' : 'No' }}</span>
+                  <span class="mvp-stat-label">Survived</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          }
+
+          @if (roundWinner() === 'hunters' && mvps.hider) {
+          <div class="mvp-section secondary">
+            <div class="mvp-card other-card secondary-card">
+              <span class="mvp-crown">😇</span>
+              <h2 class="mvp-title">MVP HIDER</h2>
+              <span class="mvp-name">{{ mvps.hider.displayName }}</span>
+              <div class="mvp-stats">
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hider.score }}</span>
+                  <span class="mvp-stat-label">Score</span>
+                </div>
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hider.survived ? 'Yes' : 'No' }}</span>
+                  <span class="mvp-stat-label">Survived</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          }
+
+          @if (roundWinner() === 'hiders' && mvps.hunter) {
+          <div class="mvp-section secondary">
+            <div class="mvp-card other-card secondary-card">
+              <span class="mvp-crown">😈</span>
+              <h2 class="mvp-title">MVP HUNTER</h2>
+              <span class="mvp-name">{{ mvps.hunter.displayName }}</span>
+              <div class="mvp-stats">
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hunter.score }}</span>
+                  <span class="mvp-stat-label">Score</span>
+                </div>
+                <div class="mvp-stat">
+                  <span class="mvp-stat-value">{{ mvps.hunter.catches }}</span>
+                  <span class="mvp-stat-label">Catches</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          }
         }
 
         <!-- Round scoreboard -->

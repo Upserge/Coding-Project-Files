@@ -87,6 +87,10 @@ export class GameLoopService {
   private survivalAccumulatorS = 0;
   /** Per-hider survival time in seconds (uid → seconds alive during hunting). */
   private survivalTimes = new Map<string, number>();
+  /** Snapshot of hunter stats across the round (survives role conversions/removals). */
+  private roundHunterSnapshots = new Map<string, { displayName: string; score: number; catches: number }>();
+  /** Snapshot of hider stats across the round (survives role conversions/removals). */
+  private roundHiderSnapshots = new Map<string, { displayName: string; score: number; survived: boolean }>();
 
   // ── Hunter death / respawn ─────────────────────────────────
   /** Seconds the "YOU DIED" overlay stays before respawn. */
@@ -121,11 +125,13 @@ export class GameLoopService {
     if (!this.running) this.startLobby(localUid, hiderCount, hunterCount);
     this.phase.set('hunting');
     this.roundTimeRemainingMs.set(this.roundDurationMs);
+    this.updateRoundSnapshots();
   }
 
   stopGame(winner: RoundWinner = null): void {
     this.running = false;
     this.roundWinner.set(winner);
+    this.updateRoundSnapshots();
     this.computeRoundMvp();
     this.phase.set('results');
     this.cpuSpawner.dispose();
@@ -256,6 +262,8 @@ export class GameLoopService {
     this.hitStopRemaining = 0;
     this.survivalAccumulatorS = 0;
     this.survivalTimes.clear();
+    this.roundHunterSnapshots.clear();
+    this.roundHiderSnapshots.clear();
   }
 
   private spawnLocalLobbyPlayer(localUid: string, hiderCount: number, hunterCount: number): void {
@@ -307,6 +315,7 @@ export class GameLoopService {
     this.processPendingDeaths(delta);
     this.checkCatches();
     this.tickPendingCatches(delta);
+    this.updateRoundSnapshots();
     this.checkWinConditions();
   }
 
@@ -522,6 +531,11 @@ export class GameLoopService {
   // ── Conversion ─────────────────────────────────────────────
 
   private convertHiderToHunter(hider: HiderState): void {
+    this.roundHiderSnapshots.set(hider.uid, {
+      displayName: hider.displayName,
+      score: hider.score,
+      survived: false,
+    });
     this.hidingService.vacate(hider.uid);
     const animal = HUNTER_ANIMALS[Math.floor(Math.random() * HUNTER_ANIMALS.length)];
     // Eject from any obstacle the hider was hiding inside
@@ -704,6 +718,23 @@ export class GameLoopService {
     return { ...updated, position: resolved };
   }
 
+  private updateRoundSnapshots(): void {
+    for (const hider of this.hiders()) {
+      this.roundHiderSnapshots.set(hider.uid, {
+        displayName: hider.displayName,
+        score: hider.score,
+        survived: hider.isAlive && !hider.isCaught,
+      });
+    }
+    for (const hunter of this.hunters()) {
+      this.roundHunterSnapshots.set(hunter.uid, {
+        displayName: hunter.displayName,
+        score: hunter.score,
+        catches: this.catchCounts.get(hunter.uid) ?? hunter.kills,
+      });
+    }
+  }
+
   // ── MVP computation ────────────────────────────────────────
 
   private computeRoundMvp(): void {
@@ -741,28 +772,15 @@ export class GameLoopService {
   }
 
   private computeMvpHunter(): RoundMvps['hunter'] {
-    const hunters = this.hunters();
+    const hunters = [...this.roundHunterSnapshots.values()];
     if (hunters.length === 0) return null;
-    const top = hunters.reduce((best, h) =>
-      (this.catchCounts.get(h.uid) ?? 0) > (this.catchCounts.get(best.uid) ?? 0) ? h : best,
-      hunters[0],
-    );
-    return {
-      displayName: top.displayName,
-      score: top.score,
-      catches: this.catchCounts.get(top.uid) ?? 0,
-    };
+    return hunters.sort((a, b) => b.catches - a.catches || b.score - a.score)[0];
   }
 
   private computeMvpHider(): RoundMvps['hider'] {
-    const hiders = this.hiders();
+    const hiders = [...this.roundHiderSnapshots.values()];
     if (hiders.length === 0) return null;
-    const top = [...hiders].sort((a, b) => b.score - a.score)[0];
-    return {
-      displayName: top.displayName,
-      score: top.score,
-      survived: top.isAlive,
-    };
+    return hiders.sort((a, b) => b.score - a.score)[0];
   }
 
   /** Select the hider with the longest survival time; falls back to top scorer. */

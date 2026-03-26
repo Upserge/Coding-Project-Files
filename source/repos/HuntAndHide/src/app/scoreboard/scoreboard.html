@@ -15,7 +15,7 @@
     <!-- Primary MVP (winning team) -->
     @if (winner() === 'hunters' && m.hunter) {
       <section class="mvp-section primary">
-        <div class="mvp-card mvp-hunter-card">
+        <div class="mvp-card mvp-hunter-card winner-card">
           <span class="mvp-crown">😈</span>
           <h2 class="mvp-title">MVP HUNTER</h2>
           <span class="mvp-name">{{ m.hunter.displayName }}</span>
@@ -34,7 +34,7 @@
     }
     @if (winner() === 'hiders' && m.hider) {
       <section class="mvp-section primary">
-        <div class="mvp-card mvp-hider-card">
+        <div class="mvp-card mvp-hider-card winner-card">
           <span class="mvp-crown">😇</span>
           <h2 class="mvp-title">MVP HIDER</h2>
           <span class="mvp-name">{{ m.hider.displayName }}</span>
@@ -55,7 +55,7 @@
     <!-- Secondary MVP (other team) -->
     @if (winner() === 'hunters' && m.hider) {
       <section class="mvp-section secondary">
-        <div class="mvp-card mvp-hider-card secondary-card">
+        <div class="mvp-card mvp-hider-card secondary-card other-card">
           <span class="mvp-crown">😇</span>
           <h2 class="mvp-title">MVP HIDER</h2>
           <span class="mvp-name">{{ m.hider.displayName }}</span>
@@ -74,7 +74,7 @@
     }
     @if (winner() === 'hiders' && m.hunter) {
       <section class="mvp-section secondary">
-        <div class="mvp-card mvp-hunter-card secondary-card">
+        <div class="mvp-card mvp-hunter-card secondary-card other-card">
           <span class="mvp-crown">😈</span>
           <h2 class="mvp-title">MVP HUNTER</h2>
           <span class="mvp-name">{{ m.hunter.displayName }}</span>

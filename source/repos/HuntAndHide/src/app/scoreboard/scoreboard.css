@@ -144,6 +144,36 @@ h2 {
   pointer-events: none;
 }
 
+.winner-card {
+  background: linear-gradient(145deg, rgba(255, 215, 64, 0.22), rgba(255, 183, 77, 0.08));
+  border-color: rgba(255, 214, 102, 0.75);
+  box-shadow: 0 0 28px rgba(255, 214, 102, 0.28);
+}
+
+.winner-card::before {
+  background: radial-gradient(circle at 50% 0%, rgba(255, 226, 133, 0.24), transparent 62%);
+}
+
+.winner-card .mvp-title,
+.winner-card .mvp-stat-value {
+  color: #ffd54f;
+}
+
+.other-card {
+  background: linear-gradient(145deg, rgba(122, 122, 122, 0.14), rgba(80, 80, 80, 0.06));
+  border-color: rgba(175, 175, 175, 0.32);
+  box-shadow: none;
+}
+
+.other-card::before {
+  background: radial-gradient(circle at 50% 0%, rgba(150, 150, 150, 0.12), transparent 65%);
+}
+
+.other-card .mvp-title,
+.other-card .mvp-stat-value {
+  color: #b5b5b5;
+}
+
 /* Hunter MVP card accent */
 .mvp-hunter-card {
   background: linear-gradient(135deg, rgba(239, 83, 80, 0.12), rgba(239, 83, 80, 0.04));
@@ -178,6 +208,16 @@ h2 {
 
 .mvp-hider-card .mvp-stat-value {
   color: #66bb6a;
+}
+
+.mvp-card.winner-card .mvp-title,
+.mvp-card.winner-card .mvp-stat-value {
+  color: #ffd54f;
+}
+
+.mvp-card.other-card .mvp-title,
+.mvp-card.other-card .mvp-stat-value {
+  color: #b5b5b5;
 }
 
 /* Secondary (non-winning team) MVP — smaller size */
