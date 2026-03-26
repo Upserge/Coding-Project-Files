@@ -1,5 +1,5 @@
 import { inject, Injectable, signal, computed } from '@angular/core';
-import { GamePhase, RoundMvp, RoundWinner } from '../models/session.model';
+import { GamePhase, RoundMvp, RoundMvps, RoundWinner } from '../models/session.model';
 import { HiderState, HunterState, PlayerState, Vec3, HUNTER_STAMINA_MAX, HUNTER_ANIMALS, HUNTER_HUNGER_MS } from '../models/player.model';
 import { HiderService } from './hider.service';
 import { HunterService } from './hunter.service';
@@ -47,10 +47,26 @@ export class GameLoopService {
   );
   /** MVP stats computed at round end for the scoreboard ceremony. */
   readonly roundMvp = signal<RoundMvp | null>(null);
+  /** Dual MVP stats (hunter + hider) computed at round end. */
+  readonly roundMvps = signal<RoundMvps | null>(null);
   /** Which team won the round (null before results). */
   readonly roundWinner = signal<RoundWinner>(null);
   /** Positions where survival bonus was just awarded (consumed by scene-render for floaters). */
   readonly survivalBonusPositions = signal<Vec3[]>([]);
+  /** UID of the hunter with the most kills this round (for devil-horns visual). */
+  readonly mvpHunterUid = computed(() => {
+    const hunters = this.hunters();
+    if (hunters.length === 0) return null;
+    const top = hunters.reduce((best, h) => (h.kills > best.kills ? h : best), hunters[0]);
+    return top.kills > 0 ? top.uid : null;
+  });
+  /** UID of the hider with the highest score this round (for halo visual). */
+  readonly mvpHiderUid = computed(() => {
+    const hiders = this.hiders().filter(h => h.isAlive && !h.isCaught);
+    if (hiders.length === 0) return null;
+    const top = hiders.reduce((best, h) => (h.score > best.score ? h : best), hiders[0]);
+    return top.uid;
+  });
 
   private roundDurationMs = 300_000; // Change how long each round lasts here
   private running = false;
@@ -205,13 +221,13 @@ export class GameLoopService {
     if (remaining <= 0) this.stopGame('hiders');
   }
 
-  /** Award survival score to all alive hiders and emit positions for floaters. */
+  /** Award survival score to alive, non-hiding hiders and emit positions for floaters. */
   private awardSurvivalBonus(aliveHiders: HiderState[]): void {
     const positions: Vec3[] = [];
     this.hiders.update(hiders =>
       hiders.map(h => {
-        const alive = aliveHiders.some(a => a.uid === h.uid);
-        if (alive) {
+        const eligible = aliveHiders.some(a => a.uid === h.uid) && !h.isHiding;
+        if (eligible) {
           positions.push({ ...h.position });
           return { ...h, score: h.score + this.survivalBonusPoints };
         }
@@ -306,6 +322,7 @@ export class GameLoopService {
 
   private trackSurvivalTimes(aliveHiders: HiderState[], delta: number): void {
     for (const hider of aliveHiders) {
+      if (hider.isHiding) continue;
       this.survivalTimes.set(hider.uid, (this.survivalTimes.get(hider.uid) ?? 0) + delta);
     }
   }
@@ -415,7 +432,8 @@ export class GameLoopService {
         if (catchPairs.some(p => p.hiderUid === hider.uid)) continue;
         if (this.hunterService.canCatch(hunter, hider)) {
           catchPairs.push({ hunterName: hunter.displayName, hiderName: hider.displayName, hiderUid: hider.uid });
-          return this.hunterService.performCatch(hunter, hider);
+          const caught = this.hunterService.performCatch(hunter, hider);
+          return { ...caught, kills: caught.kills + 1 };
         }
       }
       return hunter;
@@ -425,7 +443,7 @@ export class GameLoopService {
       this.hunters.set(updatedHunters);
       this.hitStopRemaining = this.hitStopDuration;
 
-      // Track per-hunter catch counts for MVP
+      // Track per-hunter catch counts for MVP (legacy map kept for computeRoundMvp)
       for (const pair of catchPairs) {
         const hunter = updatedHunters.find(h => h.displayName === pair.hunterName);
         if (hunter) {
@@ -665,6 +683,7 @@ export class GameLoopService {
       hidingSpotId: spot.id,
       position: { x: spot.position.x, y: hider.position.y, z: spot.position.z },
       idleTimerMs: 0,
+      score: Math.max(0, hider.score - 10),
     };
   }
 
@@ -691,12 +710,13 @@ export class GameLoopService {
     const allPlayers = [...this.hiders(), ...this.hunters()];
     if (allPlayers.length === 0) {
       this.roundMvp.set(null);
+      this.roundMvps.set(null);
       return;
     }
 
     const winner = this.roundWinner();
 
-    // Hiders win → MVP is the hider who survived the longest
+    // Legacy single-MVP (kept for backward compat)
     const top = winner === 'hiders'
       ? this.pickLongestSurvivor(allPlayers)
       : this.pickTopScorer(allPlayers);
@@ -711,6 +731,38 @@ export class GameLoopService {
       catches,
       survived,
     });
+
+    // Dual MVP computation
+    this.roundMvps.set({
+      hunter: this.computeMvpHunter(),
+      hider: this.computeMvpHider(),
+      winner,
+    });
+  }
+
+  private computeMvpHunter(): RoundMvps['hunter'] {
+    const hunters = this.hunters();
+    if (hunters.length === 0) return null;
+    const top = hunters.reduce((best, h) =>
+      (this.catchCounts.get(h.uid) ?? 0) > (this.catchCounts.get(best.uid) ?? 0) ? h : best,
+      hunters[0],
+    );
+    return {
+      displayName: top.displayName,
+      score: top.score,
+      catches: this.catchCounts.get(top.uid) ?? 0,
+    };
+  }
+
+  private computeMvpHider(): RoundMvps['hider'] {
+    const hiders = this.hiders();
+    if (hiders.length === 0) return null;
+    const top = [...hiders].sort((a, b) => b.score - a.score)[0];
+    return {
+      displayName: top.displayName,
+      score: top.score,
+      survived: top.isAlive,
+    };
   }
 
   /** Select the hider with the longest survival time; falls back to top scorer. */

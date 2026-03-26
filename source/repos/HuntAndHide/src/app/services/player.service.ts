@@ -88,8 +88,10 @@ export class PlayerService {
 
   /** Build a full HiderState. */
   createHiderState(animal: HiderAnimal, spawnPosition: Vec3): HiderState {
+    const base = this.createPlayerState('hider', animal, spawnPosition);
     return {
-      ...this.createPlayerState('hider', animal, spawnPosition),
+      ...base,
+      score: 50,
       role: 'hider',
       animal,
       idleTimerMs: 0,
@@ -110,6 +112,7 @@ export class PlayerService {
       isSprinting: false,
       exhaustionCooldownS: 0,
       exhaustedFeedbackS: 0,
+      kills: 0,
     };
   }
 }

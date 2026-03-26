@@ -19,6 +19,7 @@ import { ScreenShakeService } from './animation/screen-shake.service';
 import { ScoreFloaterService } from './animation/score-floater.service';
 import { FootprintVfxService } from './animation/footprint-vfx.service';
 import { HideRuffleService } from './animation/hide-ruffle.service';
+import { MvpCrownService } from './animation/mvp-crown.service';
 import { MapService } from '../services/map.service';
 import { PlayerSurfaceEffectsService } from '../services/player-surface-effects.service';
 
@@ -49,6 +50,7 @@ export class SceneRenderService {
   private readonly scoreFloater = inject(ScoreFloaterService);
   private readonly footprints = inject(FootprintVfxService);
   private readonly hideRuffle = inject(HideRuffleService);
+  private readonly mvpCrown = inject(MvpCrownService);
   private readonly mapService = inject(MapService);
   private readonly surfaceEffects = inject(PlayerSurfaceEffectsService);
 
@@ -153,6 +155,7 @@ export class SceneRenderService {
     this.caughtVfxSpawned.clear();
     this.hidingUids.clear();
     this.surfaceEffects.reset();
+    this.mvpCrown.dispose(this.playerMeshes);
     this.animation.dispose();
     this.particles.dispose();
     this.hideRuffle.dispose();
@@ -177,7 +180,14 @@ export class SceneRenderService {
 
   // ── Per-frame sync ─────────────────────────────────────────
 
-  syncPlayers(players: PlayerState[], localUid: string, delta: number, localRole: PlayerRole): void {
+  syncPlayers(
+    players: PlayerState[],
+    localUid: string,
+    delta: number,
+    localRole: PlayerRole,
+    mvpHunterUid: string | null = null,
+    mvpHiderUid: string | null = null,
+  ): void {
     const activeIds = new Set<string>();
 
     for (const player of players) {
@@ -201,6 +211,7 @@ export class SceneRenderService {
       this.previousPositions.set(player.uid, { ...player.position });
     }
 
+    this.mvpCrown.sync(this.playerMeshes, mvpHunterUid, mvpHiderUid, delta);
     this.updateBoundaryProximity(players, localUid);
     this.updatePlayerContactShadows(players);
     this.removeInactiveMeshes(activeIds);

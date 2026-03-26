@@ -157,7 +157,7 @@ export class CpuSpawnerService {
       position: { ...spawn },
       rotation: { x: 0, y: 0, z: 0 },
       isAlive: true,
-      score: 0,
+      score: 50,
       isCpu: true,
       idleTimerMs: 0,
       isHiding: false,
@@ -182,6 +182,7 @@ export class CpuSpawnerService {
       isSprinting: false,
       exhaustedFeedbackS: 0,
       exhaustionCooldownS: 0,
+      kills: 0,
     };
   }
 

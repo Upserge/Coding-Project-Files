@@ -325,7 +325,11 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private syncPlayerMeshes(uid: string, delta: number): void {
     const allPlayers = [...this.gameLoop.hiders(), ...this.gameLoop.hunters()];
     const localRole = this.gameLoop.getLocalPlayer()?.role ?? 'hider';
-    this.sceneRender.syncPlayers(allPlayers, uid, delta, localRole);
+    this.sceneRender.syncPlayers(
+      allPlayers, uid, delta, localRole,
+      this.gameLoop.mvpHunterUid(),
+      this.gameLoop.mvpHiderUid(),
+    );
   }
 
   private syncSurvivalBonusFloaters(): void {

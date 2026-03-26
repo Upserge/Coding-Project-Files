@@ -52,10 +52,28 @@ export const MAX_PLAYERS_PER_SESSION = 10;
 
 export type RoundWinner = 'hunters' | 'hiders' | null;
 
+export interface MvpHunter {
+  displayName: string;
+  score: number;
+  catches: number;
+}
+
+export interface MvpHider {
+  displayName: string;
+  score: number;
+  survived: boolean;
+}
+
 export interface RoundMvp {
   displayName: string;
   role: 'hunter' | 'hider';
   score: number;
   catches: number;
   survived: boolean;
+}
+
+export interface RoundMvps {
+  hunter: MvpHunter | null;
+  hider: MvpHider | null;
+  winner: RoundWinner;
 }

@@ -1,36 +1,96 @@
 <div class="scoreboard-container">
-  <h1 class="title">Round Over</h1>
 
-  <!-- MVP ceremony card -->
-  @if (mvp(); as mvp) {
-    <section class="mvp-section">
-      <div class="mvp-card">
-        <span class="mvp-crown">👑</span>
-        <h2 class="mvp-title">MVP</h2>
-        <span class="mvp-name">{{ mvp.displayName }}</span>
-        <span class="mvp-role" [class.hunter]="mvp.role === 'hunter'" [class.hider]="mvp.role === 'hider'">
-          {{ mvp.role | uppercase }}
-        </span>
-        <div class="mvp-stats">
-          <div class="mvp-stat">
-            <span class="mvp-stat-value">{{ mvp.score }}</span>
-            <span class="mvp-stat-label">Score</span>
-          </div>
-          @if (mvp.role === 'hunter') {
+  <!-- Winner banner -->
+  @if (winner(); as w) {
+    <h1 class="title winner-banner" [class.hunter-win]="w === 'hunters'" [class.hider-win]="w === 'hiders'">
+      {{ w === 'hunters' ? 'Hunters Win!' : 'Hiders Win!' }}
+    </h1>
+  } @else {
+    <h1 class="title">Round Over</h1>
+  }
+
+  <!-- Dual MVP cards — order determined by winner -->
+  @if (mvps(); as m) {
+
+    <!-- Primary MVP (winning team) -->
+    @if (winner() === 'hunters' && m.hunter) {
+      <section class="mvp-section primary">
+        <div class="mvp-card mvp-hunter-card">
+          <span class="mvp-crown">😈</span>
+          <h2 class="mvp-title">MVP HUNTER</h2>
+          <span class="mvp-name">{{ m.hunter.displayName }}</span>
+          <div class="mvp-stats">
             <div class="mvp-stat">
-              <span class="mvp-stat-value">{{ mvp.catches }}</span>
+              <span class="mvp-stat-value">{{ m.hunter.score }}</span>
+              <span class="mvp-stat-label">Score</span>
+            </div>
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ m.hunter.catches }}</span>
               <span class="mvp-stat-label">Catches</span>
             </div>
-          }
-          @if (mvp.role === 'hider') {
+          </div>
+        </div>
+      </section>
+    }
+    @if (winner() === 'hiders' && m.hider) {
+      <section class="mvp-section primary">
+        <div class="mvp-card mvp-hider-card">
+          <span class="mvp-crown">😇</span>
+          <h2 class="mvp-title">MVP HIDER</h2>
+          <span class="mvp-name">{{ m.hider.displayName }}</span>
+          <div class="mvp-stats">
             <div class="mvp-stat">
-              <span class="mvp-stat-value">{{ mvp.survived ? 'Yes' : 'No' }}</span>
+              <span class="mvp-stat-value">{{ m.hider.score }}</span>
+              <span class="mvp-stat-label">Score</span>
+            </div>
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ m.hider.survived ? 'Yes' : 'No' }}</span>
               <span class="mvp-stat-label">Survived</span>
             </div>
-          }
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    }
+
+    <!-- Secondary MVP (other team) -->
+    @if (winner() === 'hunters' && m.hider) {
+      <section class="mvp-section secondary">
+        <div class="mvp-card mvp-hider-card secondary-card">
+          <span class="mvp-crown">😇</span>
+          <h2 class="mvp-title">MVP HIDER</h2>
+          <span class="mvp-name">{{ m.hider.displayName }}</span>
+          <div class="mvp-stats">
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ m.hider.score }}</span>
+              <span class="mvp-stat-label">Score</span>
+            </div>
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ m.hider.survived ? 'Yes' : 'No' }}</span>
+              <span class="mvp-stat-label">Survived</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+    @if (winner() === 'hiders' && m.hunter) {
+      <section class="mvp-section secondary">
+        <div class="mvp-card mvp-hunter-card secondary-card">
+          <span class="mvp-crown">😈</span>
+          <h2 class="mvp-title">MVP HUNTER</h2>
+          <span class="mvp-name">{{ m.hunter.displayName }}</span>
+          <div class="mvp-stats">
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ m.hunter.score }}</span>
+              <span class="mvp-stat-label">Score</span>
+            </div>
+            <div class="mvp-stat">
+              <span class="mvp-stat-value">{{ m.hunter.catches }}</span>
+              <span class="mvp-stat-label">Catches</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    }
   }
 
   <!-- Round results -->

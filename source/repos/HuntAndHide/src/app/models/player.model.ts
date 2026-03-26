@@ -64,6 +64,8 @@ export interface HunterState extends PlayerState {
   exhaustionCooldownS: number;
   /** Seconds remaining for the local exhausted feedback animation. */
   exhaustedFeedbackS: number;
+  /** Number of hiders caught this round — used for MVP Hunter tracking. */
+  kills: number;
 }
 
 // ── Gameplay constants (all tuneable) ────────────────────
