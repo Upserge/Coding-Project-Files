@@ -11,6 +11,8 @@ import { UpgradeState } from './upgrade-state';
 import { UpgradeModal } from './upgrade-modal';
 import { UpgradeInventory } from './upgrade-inventory';
 import { MilestoneProgressBar } from './milestone-progress-bar';
+import { RunManager, RunStats } from './run-manager';
+import { RunSummary } from './run-summary';
 import { applyTractorAim, applyGravityWell } from './upgrade-physics';
 import { drawConnections } from './connection-renderer';
 import { createDustParticles, createRocketParticle, placeAwayFromOccupied, createGoalPost } from './particle-spawner';
@@ -32,7 +34,10 @@ export class ParticleField {
   private readonly upgradeModal = new UpgradeModal();
   private readonly inventory = new UpgradeInventory();
   private readonly progressBar = new MilestoneProgressBar();
+  private readonly runManager = new RunManager();
+  private readonly runSummary = new RunSummary();
   private paused = false;
+  private goalsScoredThisRun = 0;
 
   private readonly PARTICLE_COUNT = 2000;
   private readonly GOLDEN_COUNT = 3;
@@ -74,15 +79,7 @@ export class ParticleField {
 
     this.dpr = window.devicePixelRatio || 1;
     this.resize();
-    this.spawnParticles();
-    this.spawnGoals();
-
-    const w = window.innerWidth;
-    const h = this.pageHeight || window.innerHeight;
-    this.particles.push(...spawnGalaxies(w, h, this.DRIFT_SPEED, this.GALAXY_COUNT));
-    const taurus = spawnTaurus(w, h, this.DRIFT_SPEED);
-    this.particles.push(...taurus.particles);
-    this.taurusLines = taurus.lines;
+    this.spawnWorld();
 
     this.resizeHandler = () => this.resize();
     window.addEventListener('resize', this.resizeHandler);
@@ -92,7 +89,7 @@ export class ParticleField {
 
     this.inventory.init();
     this.progressBar.init();
-    this.progressBar.update(this.upgradeState.nextMilestoneProgress());
+    this.runManager.init((stats) => this.runSummary.show(stats, () => this.restartRun()));
 
     this.render();
   }
@@ -143,6 +140,20 @@ export class ParticleField {
     }
   }
 
+  private spawnWorld(): void {
+    this.spawnParticles();
+    this.spawnGoals();
+    const w = window.innerWidth;
+    const h = this.pageHeight || window.innerHeight;
+    this.particles.push(...spawnGalaxies(w, h, this.DRIFT_SPEED, this.GALAXY_COUNT));
+    const taurus = spawnTaurus(w, h, this.DRIFT_SPEED);
+    this.particles.push(...taurus.particles);
+    this.taurusLines = taurus.lines;
+    this.confetti = [];
+    this.trails = [];
+    this.spaghettiStreams = [];
+  }
+
   private onMouseMove = (e: MouseEvent) => {
     this.mouse.x = e.clientX;
     this.mouse.y = e.clientY;
@@ -188,6 +199,7 @@ export class ParticleField {
 
     this.isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     this.updateGoalHintStrength();
+    this.tickRunSystems();
 
     this.drawGoals(viewTop, viewBottom);
     this.updateParticles(w, h, mousePageX, mousePageY, viewTop, viewBottom);
@@ -353,9 +365,19 @@ export class ParticleField {
     goal.scored = true;
     goal.scoreTimer = 120;
 
-    const points = this.upgradeState.computeScorePoints();
+    // First goal starts the run — reveal all HUD
+    if (!this.runManager.isActive) {
+      this.runManager.startRun(this.inventory, this.progressBar, this.upgradeState.nextMilestoneProgress());
+    }
+
+    const mods = this.upgradeState.modifiers;
+    const comboMul = this.runManager.onGoalScored(mods.ventFreezeChance);
+
+    const basePoints = this.upgradeState.computeScorePoints();
+    const points = basePoints * comboMul;
     this.upgradeState.addScore(points);
     this.upgradeState.triggerChainReaction();
+    this.goalsScoredThisRun++;
 
     const newP = createRocketParticle(w, h, this.DRIFT_SPEED);
     placeAwayFromOccupied(newP, w, h, this.getOccupiedPositions(), 200);
@@ -399,6 +421,25 @@ export class ParticleField {
     }
   }
 
+  private tickRunSystems(): void {
+    if (!this.runManager.isActive) return;
+    const runEnded = this.runManager.tick(this.upgradeState.modifiers.entropyRateMul);
+    if (!runEnded) return;
+    this.paused = true;
+    const upgradeCount = [...this.upgradeState.stackMap.values()].reduce((s, v) => s + v, 0);
+    this.runManager.finalizeRun(this.upgradeState.score, upgradeCount);
+  }
+
+  private restartRun(): void {
+    this.upgradeState.reset();
+    this.runManager.restart(this.inventory, this.progressBar);
+    this.runSummary.destroy();
+    this.goalsScoredThisRun = 0;
+    this.shakeTimer = 0;
+    this.spawnWorld();
+    this.paused = false;
+  }
+
   destroy() {
     if (this.animationFrame !== null) {
       cancelAnimationFrame(this.animationFrame);
@@ -415,5 +456,7 @@ export class ParticleField {
     this.upgradeModal.destroyAll();
     this.inventory.destroy();
     this.progressBar.destroy();
+    this.runManager.destroy();
+    this.runSummary.destroy();
   }
 }

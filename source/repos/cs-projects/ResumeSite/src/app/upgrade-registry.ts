@@ -1,6 +1,6 @@
 // Upgrade definitions and random selection logic
 
-export type UpgradeCategory = 'mobility' | 'control' | 'scoring' | 'chaos';
+export type UpgradeCategory = 'mobility' | 'control' | 'scoring' | 'chaos' | 'survival';
 export type UpgradeRarity = 'common' | 'uncommon' | 'rare' | 'ultra-rare';
 
 export interface Upgrade {
@@ -114,6 +114,46 @@ export const UPGRADE_POOL: readonly Upgrade[] = [
     rarity: 'ultra-rare',
     maxStacks: 2,
   },
+  {
+    id: 'entropy-shield',
+    name: 'Entropy Shield',
+    description: 'Entropy corruption rate reduced by 15%.',
+    category: 'survival',
+    rarity: 'common',
+    maxStacks: 3,
+  },
+  {
+    id: 'emergency-vent',
+    name: 'Emergency Vent',
+    description: '25% chance to freeze entropy for 3s on goal.',
+    category: 'survival',
+    rarity: 'uncommon',
+    maxStacks: 2,
+  },
+  {
+    id: 'temporal-anchor',
+    name: 'Temporal Anchor',
+    description: 'Future wave events last 30% shorter.',
+    category: 'survival',
+    rarity: 'rare',
+    maxStacks: 2,
+  },
+  {
+    id: 'phoenix-protocol',
+    name: 'Phoenix Protocol',
+    description: 'Destroyed rockets respawn instantly.',
+    category: 'survival',
+    rarity: 'ultra-rare',
+    maxStacks: 1,
+  },
+  {
+    id: 'singularity-pulse',
+    name: 'Singularity Pulse',
+    description: 'Every 5th goal triggers a hazard-clearing shockwave.',
+    category: 'survival',
+    rarity: 'rare',
+    maxStacks: 1,
+  },
 ] as const;
 
 const CATEGORY_ICONS: Record<UpgradeCategory, string> = {
@@ -121,6 +161,7 @@ const CATEGORY_ICONS: Record<UpgradeCategory, string> = {
   control: '🎯',
   scoring: '⭐',
   chaos: '🌀',
+  survival: '🛡️',
 };
 
 export function getCategoryIcon(category: UpgradeCategory): string {

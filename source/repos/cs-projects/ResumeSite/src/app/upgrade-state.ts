@@ -16,6 +16,10 @@ export interface GameModifiers {
   readonly extraRockets: number;
   readonly extraGoals: number;
   readonly chainReactionActive: boolean;
+  readonly entropyRateMul: number;
+  readonly ventFreezeChance: number;
+  readonly phoenixProtocol: boolean;
+  readonly singularityPulseInterval: number;
 }
 
 export interface MilestoneProgress {
@@ -99,7 +103,18 @@ export class UpgradeState {
       extraRockets: this.getStacks('multi-rocket'),
       extraGoals: this.getStacks('dark-matter-rush') * 2,
       chainReactionActive: this.chainReactionTimer > 0,
+      entropyRateMul: Math.max(0.1, 1 - this.getStacks('entropy-shield') * 0.15),
+      ventFreezeChance: this.getStacks('emergency-vent') * 0.25,
+      phoenixProtocol: this.getStacks('phoenix-protocol') >= 1,
+      singularityPulseInterval: this.getStacks('singularity-pulse') >= 1 ? 5 : 0,
     };
+  }
+
+  reset(): void {
+    this.sessionScore = 0;
+    this.stacks.clear();
+    this.lastMilestoneIndex = -1;
+    this.chainReactionTimer = 0;
   }
 
   nextMilestoneProgress(): MilestoneProgress {

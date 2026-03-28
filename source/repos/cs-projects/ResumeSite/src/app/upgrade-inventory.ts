@@ -11,6 +11,17 @@ export class UpgradeInventory {
   init(): void {
     this.panel = this.buildPanel();
     document.body.appendChild(this.panel);
+    this.hide();
+  }
+
+  show(): void {
+    if (!this.panel) return;
+    this.panel.style.display = 'block';
+  }
+
+  hide(): void {
+    if (!this.panel) return;
+    this.panel.style.display = 'none';
   }
 
   refresh(stacks: ReadonlyMap<string, number>): void {

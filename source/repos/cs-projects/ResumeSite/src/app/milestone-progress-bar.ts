@@ -11,6 +11,17 @@ export class MilestoneProgressBar {
   init(): void {
     this.container = this.buildBar();
     document.body.appendChild(this.container);
+    this.hide();
+  }
+
+  show(): void {
+    if (!this.container) return;
+    this.container.style.display = 'flex';
+  }
+
+  hide(): void {
+    if (!this.container) return;
+    this.container.style.display = 'none';
   }
 
   update(progress: MilestoneProgress): void {

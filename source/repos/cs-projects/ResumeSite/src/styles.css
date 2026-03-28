@@ -702,3 +702,225 @@ button:active::before {
   .milestone-track { width: 90px; }
 }
 
+/* ===== Entropy Bar ===== */
+.entropy-bar {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  background: rgba(10, 15, 25, 0.9);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+.entropy-bar.entropy-danger {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.2), 0 4px 20px rgba(0, 0, 0, 0.35);
+  animation: entropyPulse 0.8s ease infinite;
+}
+
+.entropy-bar.entropy-frozen {
+  border-color: rgba(96, 165, 250, 0.5);
+  box-shadow: 0 0 20px rgba(96, 165, 250, 0.2);
+}
+
+.entropy-icon { font-size: 14px; }
+
+.entropy-track {
+  width: 160px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.entropy-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  transition: width 0.15s linear;
+}
+
+.entropy-bar.entropy-frozen .entropy-fill {
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
+}
+
+.entropy-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ef4444;
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: right;
+}
+
+.entropy-bar.entropy-frozen .entropy-label { color: #60a5fa; }
+
+@keyframes entropyPulse {
+  0%, 100% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.2), 0 4px 20px rgba(0, 0, 0, 0.35); }
+  50% { box-shadow: 0 0 36px rgba(239, 68, 68, 0.35), 0 4px 20px rgba(0, 0, 0, 0.35); }
+}
+
+/* ===== Combo Tracker ===== */
+.combo-tracker {
+  position: fixed;
+  top: 110px;
+  right: 24px;
+  z-index: 55;
+  display: none;
+}
+
+.combo-tracker.combo-active { display: flex; }
+
+.combo-ring {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(
+    rgba(124, 92, 255, 0.6) calc(var(--combo-progress, 0) * 360deg),
+    rgba(255, 255, 255, 0.06) 0deg
+  );
+  transition: background 0.15s linear;
+  position: relative;
+}
+
+.combo-ring::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: rgba(10, 15, 25, 0.92);
+}
+
+.combo-label {
+  position: relative;
+  font-size: 18px;
+  font-weight: 800;
+  color: #c084fc;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 12px rgba(192, 132, 252, 0.4);
+}
+
+.combo-tracker.combo-hot .combo-label {
+  color: #fbbf24;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.5);
+  animation: comboGlow 0.5s ease infinite;
+}
+
+.combo-tracker.combo-hot .combo-ring {
+  background: conic-gradient(
+    rgba(251, 191, 36, 0.7) calc(var(--combo-progress, 0) * 360deg),
+    rgba(255, 255, 255, 0.06) 0deg
+  );
+}
+
+@keyframes comboGlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* ===== Run Summary ===== */
+.run-summary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.run-summary-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.run-summary-content {
+  text-align: center;
+  max-width: 380px;
+  padding: 40px 32px;
+  border-radius: 20px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: linear-gradient(160deg, rgba(15, 20, 35, 0.98), rgba(20, 12, 30, 0.98));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.run-summary-title {
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #ef4444;
+  text-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+}
+
+.run-summary-subtitle {
+  margin: 0 0 24px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.run-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.run-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.run-stat-icon { font-size: 18px; flex-shrink: 0; }
+.run-stat-label { flex: 1; text-align: left; font-size: 13px; color: var(--muted); }
+.run-stat-value { font-size: 16px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.run-restart {
+  padding: 12px 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(124, 92, 255, 0.3);
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.15), rgba(124, 92, 255, 0.05));
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.run-restart:hover {
+  border-color: rgba(124, 92, 255, 0.6);
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.25), rgba(124, 92, 255, 0.1));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124, 92, 255, 0.2);
+}
+
+.run-restart:active { transform: scale(0.97); }
+
+@media (max-width: 480px) {
+  .entropy-bar { top: 50px; padding: 5px 10px; }
+  .entropy-track { width: 110px; }
+  .combo-tracker { top: 90px; right: 12px; }
+  .combo-ring { width: 48px; height: 48px; }
+  .combo-label { font-size: 14px; }
+  .run-summary-content { padding: 28px 20px; max-width: calc(100vw - 48px); }
+}
+
