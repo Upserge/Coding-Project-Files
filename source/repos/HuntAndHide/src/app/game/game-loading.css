@@ -1,0 +1,77 @@
+/* ── Loading screen (role reveal + rules) ──────────────── */
+
+.loading-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: #070a14;
+  z-index: 35;
+}
+
+.loading-card {
+  width: min(100%, 440px);
+  padding: 2.5rem 2rem 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(20, 22, 34, 0.95);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  animation: loading-drop-in 0.5s ease-out;
+}
+
+.loading-card.tone-hunter { border-color: rgba(255, 77, 77, 0.35); }
+.loading-card.tone-hider  { border-color: rgba(102, 187, 106, 0.35); }
+
+.loading-badge { display: block; font-size: 3rem; margin-bottom: 0.5rem; }
+
+.loading-role {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #f4f7fb;
+}
+
+.tone-hunter .loading-role { color: #ff8a80; }
+.tone-hider  .loading-role { color: #a5d6a7; }
+
+.loading-animal {
+  margin: 0.3rem 0 0;
+  color: #8f9bb3;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+.loading-rules {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: left;
+}
+
+.loading-rules p {
+  margin: 0 0 0.6rem;
+  color: #b7bcc8;
+  line-height: 1.55;
+  font-size: 0.9rem;
+}
+
+.loading-controls {
+  color: #8f9bb3 !important;
+  font-size: 0.82rem !important;
+  text-align: center;
+}
+
+.loading-dismiss {
+  margin: 1.5rem 0 0;
+  color: #666;
+  font-size: 0.8rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes loading-drop-in {
+  from { transform: translateY(-16px) scale(0.96); }
+  to { transform: translateY(0) scale(1); }
+}

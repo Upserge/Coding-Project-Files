@@ -1,30 +1,13 @@
 import { inject, Injectable, NgZone, OnDestroy } from '@angular/core';
 import * as THREE from 'three';
 import { MapService } from '../services/map.service';
-import { MapConfig, ObstaclePlacement, DecorationPlacement, WaterPlacement, OBSTACLE_CONFIGS, ObstacleType, DecorationType } from '../models/map.model';
-import { buildObstacleMesh } from './mesh/obstacle/obstacle-registry';
-import { buildGroundMaterial } from './mesh/ground-texture.builder';
-import { buildDecorationMesh } from './mesh/decoration-mesh.builder';
-import { buildEnvironmentMap } from './mesh/environment-light.builder';
-import {
-  applyHeightmap,
-  TERRAIN_SEGMENTS,
-  registerWaterDepressions,
-  clearWaterDepressions,
-} from './mesh/terrain-heightmap.builder';
-import { buildInstancedGrass, tickInstancedGrass } from './mesh/instanced-grass.builder';
-import { buildDappledLight } from './mesh/dappled-light.builder';
-import { buildContactShadows } from './mesh/contact-shadow.builder';
-import { placeOnTerrain } from './mesh/terrain-placement';
+import { clearWaterDepressions } from './mesh/terrain-heightmap.builder';
+import { tickInstancedGrass } from './mesh/instanced-grass.builder';
 import { TimeOfDayService } from './animation/time-of-day.service';
 import { ScreenShakeService } from './animation/screen-shake.service';
 import { GlbLoaderService } from './mesh/glb-loader.service';
-import { initVehicleLoader } from './mesh/obstacle/vehicle.builder';
-import { VEHICLE_GLB_ENTRIES } from './mesh/vehicle-model.config';
-import { initFoliageLoader } from './mesh/obstacle/foliage.builder';
-import { ALL_FOLIAGE_GLB_ENTRIES } from './mesh/foliage-model.config';
-import { initWaterLoader, buildWaterFeatureMesh } from './mesh/obstacle/water-feature.builder';
-import { ALL_WATER_GLB_ENTRIES } from './mesh/water-model.config';
+import { buildJungleScene } from './engine-scene.builder';
+import { buildEngineLighting, buildSun, buildAmbient } from './engine-lighting.builder';
 
 /**
  * EngineService owns the Three.js render loop and scene graph.
@@ -77,16 +60,22 @@ export class EngineService implements OnDestroy {
     this.createCamera(canvas.clientWidth, canvas.clientHeight);
     await this.createRenderer(canvas);
 
-    await this.buildJungleScene();
+    const result = await buildJungleScene(this.scene, this.mapService.generateJungleMap(), this.glbLoader);
+    this.obstacleMeshes = result.obstacleMeshes;
+    this.grassMesh = result.grassMesh;
 
-    // Guarantee the scene always has lighting even if buildLighting() failed
+    const lighting = buildEngineLighting(this.scene, this.timeOfDay);
+    this.sunLight = lighting.sunLight;
+    this.ambientLight = lighting.ambientLight;
+
+    // Guarantee fallback lighting if the builder failed
     if (!this.sunLight) {
-      this.sunLight = this.buildSun();
+      this.sunLight = buildSun();
       this.scene.add(this.sunLight);
       this.scene.add(this.sunLight.target);
     }
     if (!this.ambientLight) {
-      this.ambientLight = this.buildAmbient();
+      this.ambientLight = buildAmbient();
       this.scene.add(this.ambientLight);
     }
 
@@ -202,248 +191,6 @@ export class EngineService implements OnDestroy {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  }
-
-  // ── Jungle scene ───────────────────────────────────────────
-
-  private async buildJungleScene(): Promise<void> {
-    const map = this.mapService.generateJungleMap();
-    const safe = (label: string, fn: () => void) => {
-      try { fn(); } catch (e) { console.error(`[Engine] ${label} failed:`, e); }
-    };
-    this.registerDepressions(map);
-    safe('buildGround',          () => this.buildGround(map));
-    safe('buildDappledLight',    () => this.buildDappledLight());
-    await this.preloadVehicleModels();
-    await this.preloadFoliageModels();
-    await this.preloadWaterModels();
-    safe('buildObstacles',       () => this.buildObstacles(map));
-    safe('buildDecorations',     () => this.buildDecorations(map));
-    safe('buildWater',           () => this.buildWater(map));
-    safe('buildInstancedGrass',  () => this.buildInstancedGrass(map));
-    safe('buildLighting',        () => this.buildLighting());
-    safe('buildContactShadows',  () => this.buildContactShadows());
-  }
-
-  private async preloadVehicleModels(): Promise<void> {
-    initVehicleLoader(this.glbLoader);
-    try {
-      await this.glbLoader.preloadAll(VEHICLE_GLB_ENTRIES);
-    } catch (e) {
-      console.warn('[Engine] Vehicle GLB preload failed — fallback boxes will be used', e);
-    }
-  }
-
-  private async preloadFoliageModels(): Promise<void> {
-    initFoliageLoader(this.glbLoader);
-    try {
-      await this.glbLoader.preloadAll(ALL_FOLIAGE_GLB_ENTRIES);
-    } catch (e) {
-      console.warn('[Engine] Foliage GLB preload failed — fallback boxes will be used', e);
-    }
-  }
-
-  private async preloadWaterModels(): Promise<void> {
-    initWaterLoader(this.glbLoader);
-    try {
-      await this.glbLoader.preloadAll(ALL_WATER_GLB_ENTRIES);
-    } catch (e) {
-      console.warn('[Engine] Water GLB preload failed — fallback boxes will be used', e);
-    }
-  }
-
-  private buildDappledLight(): void {
-    this.scene.add(buildDappledLight());
-  }
-
-  private buildGround(map: MapConfig): void {
-    const geo = new THREE.PlaneGeometry(
-      map.width,
-      map.depth,
-      TERRAIN_SEGMENTS,
-      TERRAIN_SEGMENTS,
-    );
-    applyHeightmap(geo);
-    const ground = new THREE.Mesh(geo, buildGroundMaterial());
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    ground.renderOrder = 0;
-    this.scene.add(ground);
-  }
-
-  private buildObstacles(map: MapConfig): void {
-    for (const obs of map.obstacles) {
-      this.placeObstacle(obs);
-    }
-  }
-
-  private placeObstacle(obs: ObstaclePlacement): void {
-    const group = buildObstacleMesh(obs.type);
-    if (!group) return;
-    placeOnTerrain(
-      group,
-      obs.position.x,
-      obs.position.z,
-      obs.rotationY,
-      this.getObstacleFootprint(obs.type),
-      {
-        alignToSlope: this.shouldAlignObstacleToSlope(obs.type),
-        clearance: this.getObstacleClearance(obs.type) + obs.position.y,
-        sampleRadius: this.getObstacleSampleRadius(obs.type),
-      },
-    );
-    group.renderOrder = 2;
-    this.enableShadows(group);
-    this.scene.add(group);
-    this.obstacleMeshes.set(obs.id, group);
-  }
-
-  private enableShadows(obj: THREE.Object3D): void {
-    obj.traverse((child) => {
-      const mesh = child as THREE.Mesh;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-    });
-  }
-
-  private buildDecorations(map: MapConfig): void {
-    for (const deco of map.decorations) {
-      this.placeDecoration(deco);
-    }
-  }
-
-  private placeDecoration(deco: DecorationPlacement): void {
-    const group = buildDecorationMesh(deco.type);
-    if (!group) return;
-    group.scale.setScalar(deco.scale);
-    placeOnTerrain(
-      group,
-      deco.position.x,
-      deco.position.z,
-      deco.rotationY,
-      this.getDecorationFootprint(deco.type, deco.scale),
-      { alignToSlope: this.shouldAlignDecorationToSlope(deco.type), clearance: deco.position.y },
-    );
-    group.renderOrder = 1;
-    this.scene.add(group);
-  }
-
-  private buildWater(map: MapConfig): void {
-    for (const water of map.waterFeatures) {
-      this.placeWaterFeature(water);
-    }
-  }
-
-  private registerDepressions(map: MapConfig): void {
-    const ponds = map.waterFeatures.filter(w => w.type === 'pond');
-    registerWaterDepressions(ponds.map(p => ({ x: p.position.x, z: p.position.z, radius: p.size })));
-  }
-
-  private placeWaterFeature(water: WaterPlacement): void {
-    const group = buildWaterFeatureMesh(water.size);
-    if (!group) return;
-    placeOnTerrain(
-      group,
-      water.position.x,
-      water.position.z,
-      water.rotationY,
-      { width: water.size * 2, depth: water.size * 2 },
-      { alignToSlope: false, clearance: water.position.y, useFooting: false },
-    );
-    this.scene.add(group);
-  }
-
-  private buildContactShadows(): void {
-    buildContactShadows(this.scene);
-  }
-
-  private getObstacleFootprint(type: ObstacleType): { width: number; depth: number } {
-    const size = OBSTACLE_CONFIGS[type].size;
-    return { width: size.x, depth: size.z };
-  }
-
-  private getObstacleClearance(type: ObstacleType): number {
-    if (type === 'hole') return 0;
-    return this.isVehicle(type) ? 0.08 : 0.02;
-  }
-
-  private shouldAlignObstacleToSlope(type: ObstacleType): boolean {
-    return type !== 'tree' && type !== 'bush' && type !== 'hole';
-  }
-
-  private getObstacleSampleRadius(type: ObstacleType): number | undefined {
-    return this.isVehicle(type) ? 1.8 : undefined;
-  }
-
-  private isVehicle(type: ObstacleType): boolean {
-    return type === 'sedan';
-  }
-
-  private getDecorationFootprint(type: DecorationType, scale: number): { width: number; depth: number } {
-    const size = type === 'fallen_log' ? { width: 1.9, depth: 0.7 } : { width: 0.9, depth: 0.9 };
-    return { width: size.width * scale, depth: size.depth * scale };
-  }
-
-  private shouldAlignDecorationToSlope(type: DecorationType): boolean {
-    return type === 'fallen_log' || type === 'vine';
-  }
-
-  // ── Instanced grass ───────────────────────────────────────
-
-  private buildInstancedGrass(map: MapConfig): void {
-    this.grassMesh = buildInstancedGrass(map.width, map.depth);
-    this.grassMesh.renderOrder = 1;
-    this.scene.add(this.grassMesh);
-  }
-
-  // ── Lighting ───────────────────────────────────────────────
-
-  private buildLighting(): void {
-    this.ambientLight = this.buildAmbient();
-    this.scene.add(this.ambientLight);
-    this.sunLight = this.buildSun();
-    this.scene.add(this.sunLight);
-    this.scene.add(this.sunLight.target);
-    this.scene.add(this.buildFill());
-    this.applyEnvironmentMap();
-    this.timeOfDay.init(this.scene, this.sunLight, this.ambientLight);
-  }
-
-  private buildAmbient(): THREE.AmbientLight {
-    return new THREE.AmbientLight(0xe8edd8, 0.4);
-  }
-
-  private buildSun(): THREE.DirectionalLight {
-    const sun = new THREE.DirectionalLight(0xfff4d6, 0.72);
-    sun.position.set(60, 100, 40);
-    sun.castShadow = true;
-    this.configureSunShadow(sun);
-    return sun;
-  }
-
-  private configureSunShadow(sun: THREE.DirectionalLight): void {
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.near = 0.5;
-    sun.shadow.camera.far = 400;
-    sun.shadow.camera.left = -120;
-    sun.shadow.camera.right = 120;
-    sun.shadow.camera.top = 120;
-    sun.shadow.camera.bottom = -120;
-    sun.shadow.camera.updateProjectionMatrix();
-    sun.shadow.bias = -0.0005;
-    sun.shadow.radius = 3;
-  }
-
-  private buildFill(): THREE.DirectionalLight {
-    const fill = new THREE.DirectionalLight(0xc7ddd6, 0.34);
-    fill.position.set(-15, 20, -10);
-    return fill;
-  }
-
-  /** Apply procedural IBL for realistic ambient reflections on all PBR materials. */
-  private applyEnvironmentMap(): void {
-    this.scene.environment = buildEnvironmentMap();
-    this.scene.environmentIntensity = 0.34;
   }
 
   // ── Render loop ────────────────────────────────────────────

@@ -1,0 +1,424 @@
+/* ── Results overlay ──────────────────────────────────── */
+
+.results-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 50;
+  animation: results-fade-in 0.5s ease-out;
+}
+
+.results-card {
+  max-width: 760px;
+  width: min(92vw, 760px);
+  max-height: calc(100vh - 7.5rem);
+  overflow-y: auto;
+  text-align: center;
+  padding: 2rem 2rem 2.25rem;
+  margin: 1.25rem auto 0;
+}
+
+/* ── Winner banner ───────────────────────────────────── */
+
+.winner-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem 1.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18);
+  animation: winner-entrance 0.8s ease-out;
+}
+
+.hunters-win.winner-banner {
+  background: linear-gradient(90deg, rgba(120, 20, 20, 0.78), rgba(239, 83, 80, 0.2), rgba(120, 20, 20, 0.78));
+}
+
+.hiders-win.winner-banner {
+  background: linear-gradient(90deg, rgba(22, 72, 32, 0.78), rgba(102, 187, 106, 0.2), rgba(22, 72, 32, 0.78));
+}
+
+.winner-copy {
+  text-align: center;
+}
+
+.winner-icon {
+  font-size: 3.5rem;
+  display: block;
+  animation: winner-icon-bounce 0.6s ease-out 0.2s both;
+}
+
+.winner-title {
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 800;
+  margin: 0.1rem 0 0.25rem;
+}
+
+.hunters-win .winner-title {
+  color: #ef5350;
+}
+
+.hiders-win .winner-title {
+  color: #66bb6a;
+}
+
+.winner-flavor {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin: 0;
+}
+
+/* ── MVP cards ───────────────────────────────────────── */
+
+.mvp-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.mvp-section.secondary {
+  margin-bottom: 1rem;
+}
+
+.mvp-card {
+  background: linear-gradient(135deg, rgba(233, 196, 106, 0.12), rgba(233, 196, 106, 0.04));
+  border: 1px solid rgba(233, 196, 106, 0.3);
+  border-radius: 18px;
+  width: min(100%, 560px);
+  padding: 1.6rem 2.4rem;
+  text-align: center;
+  animation: mvp-entrance 0.8s ease-out 0.4s both;
+  position: relative;
+  overflow: hidden;
+}
+
+.mvp-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(233, 196, 106, 0.15), transparent 60%);
+  pointer-events: none;
+}
+
+.winner-card {
+  background: linear-gradient(145deg, rgba(255, 215, 64, 0.22), rgba(255, 183, 77, 0.08));
+  border-color: rgba(255, 214, 102, 0.75);
+  width: min(100%, 620px);
+  padding: 2.15rem 2.8rem;
+  box-shadow: 0 0 32px rgba(255, 214, 102, 0.28);
+  isolation: isolate;
+}
+
+.winner-card::before {
+  background: radial-gradient(circle at 50% 0%, rgba(255, 226, 133, 0.24), transparent 62%);
+}
+
+.winner-card .mvp-title,
+.winner-card .mvp-stat-value {
+  color: #ffd54f;
+}
+
+.other-card {
+  background: linear-gradient(145deg, rgba(122, 122, 122, 0.14), rgba(80, 80, 80, 0.06));
+  border-color: rgba(175, 175, 175, 0.32);
+  width: min(100%, 500px);
+}
+
+.other-card::before {
+  background: radial-gradient(circle at 50% 0%, rgba(150, 150, 150, 0.12), transparent 65%);
+}
+
+.other-card .mvp-title,
+.other-card .mvp-stat-value {
+  color: #b5b5b5;
+}
+
+.secondary-card {
+  padding: 1.15rem 1.8rem;
+}
+
+.secondary-card .mvp-crown {
+  font-size: 1.8rem;
+}
+
+.secondary-card .mvp-name {
+  font-size: 1.2rem;
+}
+
+.secondary-card .mvp-stat-value {
+  font-size: 1.25rem;
+}
+
+.mvp-crown {
+  font-size: 2.8rem;
+  display: block;
+  animation: mvp-crown-bounce 0.6s ease-out 0.7s both;
+}
+
+.mvp-title {
+  font-size: 0.9rem;
+  color: #e9c46a;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.mvp-name {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #e0e0e0;
+  margin-bottom: 0.2rem;
+}
+
+.mvp-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.mvp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mvp-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #e9c46a;
+}
+
+.mvp-rays {
+  position: absolute;
+  inset: -35%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 223, 120, 0.28) 0deg 10deg, transparent 10deg 24deg);
+  opacity: 0.55;
+  filter: blur(2px);
+  animation: winner-rays-spin 12s linear infinite;
+  z-index: -2;
+}
+
+.mvp-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mvp-confetti span {
+  position: absolute;
+  top: -0.4rem;
+  width: 0.55rem;
+  height: 1rem;
+  border-radius: 999px;
+  opacity: 0;
+  animation: confetti-burst 2.6s ease-out infinite;
+}
+
+.mvp-confetti span:nth-child(1) { left: 8%; background: #ffd54f; animation-delay: 0s; }
+.mvp-confetti span:nth-child(2) { left: 22%; background: #ff8a65; animation-delay: 0.25s; }
+.mvp-confetti span:nth-child(3) { left: 37%; background: #fff176; animation-delay: 0.5s; }
+.mvp-confetti span:nth-child(4) { right: 34%; background: #81c784; animation-delay: 0.75s; }
+
+.mvp-stat-label {
+  font-size: 0.65rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Scoreboard rows ─────────────────────────────────── */
+
+.round-scores {
+  margin-bottom: 1.5rem;
+  text-align: left;
+  animation: scores-slide-up 0.6s ease-out 0.8s both;
+}
+
+.scores-heading {
+  font-size: 0.9rem;
+  color: #aaa;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-bottom: 0.25rem;
+}
+
+.rank {
+  font-weight: 700;
+  color: #e9c46a;
+  min-width: 24px;
+  text-align: right;
+}
+
+.name {
+  flex: 1;
+  color: #e0e0e0;
+}
+
+.role {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.pts {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #e0e0e0;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ── Actions + buttons ───────────────────────────────── */
+
+.results-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  animation: scores-slide-up 0.6s ease-out 1s both;
+}
+
+.btn {
+  min-width: 140px;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #e9c46a;
+  color: #1a1a2e;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #f4d58d;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #e0e0e0;
+}
+
+/* ── Keyframe animations ─────────────────────────────── */
+
+@keyframes results-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes winner-entrance {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes winner-icon-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-15deg);
+  }
+  60% {
+    transform: scale(1.15) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes mvp-entrance {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes mvp-crown-bounce {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.5);
+  }
+  60% {
+    transform: translateY(4px) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes winner-rays-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes confetti-burst {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(5.5rem) rotate(220deg) scale(1);
+  }
+}
+
+@keyframes scores-slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -22,6 +22,7 @@ import { HideRuffleService } from './animation/hide-ruffle.service';
 import { MvpCrownService } from './animation/mvp-crown.service';
 import { MapService } from '../services/map.service';
 import { PlayerSurfaceEffectsService } from '../services/player-surface-effects.service';
+import { BoundaryRenderService } from './boundary-render.service';
 
 /**
  * SceneRenderService creates and syncs Three.js meshes for players
@@ -53,6 +54,7 @@ export class SceneRenderService {
   private readonly mvpCrown = inject(MvpCrownService);
   private readonly mapService = inject(MapService);
   private readonly surfaceEffects = inject(PlayerSurfaceEffectsService);
+  private readonly boundary = inject(BoundaryRenderService);
 
   private scene!: THREE.Scene;
 
@@ -61,16 +63,6 @@ export class SceneRenderService {
   private playerMeshRoles = new Map<string, PlayerRole>();
   private previousPositions = new Map<string, Vec3>();
 
-  // Boundary visual
-  private boundaryGroup?: THREE.Group;
-  private boundaryMaterial?: THREE.MeshBasicMaterial;
-  private boundaryPulse = 0;
-  private readonly boundaryBaseOpacity = 0.12;
-  private readonly boundaryAmplitude = 0.08;
-  // Proximity-based fade
-  private boundaryProximity = 0;
-  private readonly boundaryProximityThreshold = 12; // world units from edge to start fading
-  private readonly boundaryMinOpacity = 0.02;
   // World-space hide prompt (set by game component each frame)
   private pendingHideSpot: Vec3 | null = null;
   // Track UIDs that already had their catch VFX spawned
@@ -88,67 +80,12 @@ export class SceneRenderService {
     this.hidePrompt.init(scene);
     this.scoreFloater.init(scene);
     this.footprints.init(scene);
-    this.createBoundary();
-  }
-
-  private createBoundary(): void {
-    const map = this.mapService.getMap('jungle');
-    const halfW = map.width / 2;
-    const halfD = map.depth / 2;
-
-    // Slightly larger thickness and overlap to avoid thin-edge Z-fighting / gaps
-    const thickness = 1.2;
-    const height = 3.0;
-    const extra = 1.0; // extra overlap to cover seams at corners and sprite edges
-
-    this.boundaryGroup = new THREE.Group();
-    this.boundaryMaterial = new THREE.MeshBasicMaterial({
-      color: 0x66ccff,
-      transparent: true,
-      opacity: this.boundaryBaseOpacity,
-      depthWrite: false,
-      depthTest: false,
-      side: THREE.DoubleSide,
-    });
-
-    // Four walls
-    const wallGeoH = new THREE.BoxGeometry(map.width + thickness * 2 + extra, height, thickness);
-    const wallGeoV = new THREE.BoxGeometry(thickness, height, map.depth + thickness * 2 + extra);
-
-    const north = new THREE.Mesh(wallGeoH, this.boundaryMaterial);
-    north.position.set(0, height / 2, -halfD - thickness / 2 - extra / 2);
-    this.boundaryGroup.add(north);
-
-    const south = new THREE.Mesh(wallGeoH, this.boundaryMaterial);
-    south.position.set(0, height / 2, halfD + thickness / 2 + extra / 2);
-    this.boundaryGroup.add(south);
-
-    const west = new THREE.Mesh(wallGeoV, this.boundaryMaterial);
-    west.position.set(-halfW - thickness / 2 - extra / 2, height / 2, 0);
-    this.boundaryGroup.add(west);
-
-    const east = new THREE.Mesh(wallGeoV, this.boundaryMaterial);
-    east.position.set(halfW + thickness / 2 + extra / 2, height / 2, 0);
-    this.boundaryGroup.add(east);
-
-    this.boundaryGroup.traverse((c: any) => {
-      c.renderOrder = 999999;
-    });
-
-    this.scene.add(this.boundaryGroup);
+    this.boundary.init(scene);
   }
 
   dispose(): void {
     this.playerMeshes.forEach(m => this.scene?.remove(m));
-    if (this.boundaryGroup) {
-      this.scene?.remove(this.boundaryGroup);
-      this.boundaryGroup.traverse((c: any) => {
-        if (c.geometry) c.geometry.dispose();
-        if (c.material) c.material.dispose();
-      });
-      this.boundaryGroup = undefined;
-      this.boundaryMaterial = undefined;
-    }
+    this.boundary.dispose(this.scene);
     this.playerMeshes.clear();
     this.playerMeshRoles.clear();
     this.previousPositions.clear();
@@ -243,16 +180,7 @@ export class SceneRenderService {
     // Update world-space hide prompt
     this.hidePrompt.update(this.pendingHideSpot, delta);
     this.pendingHideSpot = null;
-    // Pulse + proximity-based opacity for boundary
-    if (this.boundaryMaterial && this.boundaryGroup) {
-      this.boundaryPulse += delta;
-      const pulse = this.boundaryBaseOpacity + Math.sin(this.boundaryPulse * 2) * this.boundaryAmplitude;
-
-      // Use proximity factor computed during syncPlayers (frame-local)
-      const proxFactor = this.boundaryProximity;
-      const opacity = this.boundaryMinOpacity + (pulse - this.boundaryMinOpacity) * proxFactor;
-      this.boundaryMaterial.opacity = Math.max(0, Math.min(1, opacity));
-    }
+    this.boundary.tick(delta);
   }
 
   // ── Player mesh assembly ───────────────────────────────────
@@ -406,19 +334,9 @@ export class SceneRenderService {
   }
 
   private updateBoundaryProximity(players: PlayerState[], localUid: string): void {
-    const localPos = this.getLocalPosition(players, localUid);
-    if (!localPos) return void (this.boundaryProximity = 0);
-    const map = this.mapService.getMap('jungle');
-    const distToEdgeX = map.width / 2 - Math.abs(localPos.x);
-    const distToEdgeZ = map.depth / 2 - Math.abs(localPos.z);
-    const nearest = Math.min(distToEdgeX, distToEdgeZ);
-    const t = (this.boundaryProximityThreshold - nearest) / this.boundaryProximityThreshold;
-    this.boundaryProximity = Math.max(0, Math.min(1, t));
-  }
-
-  private getLocalPosition(players: PlayerState[], localUid: string): Vec3 | null {
     const localPlayer = players.find(p => p.uid === localUid);
-    return localPlayer?.position ?? this.previousPositions.get(localUid) ?? null;
+    const localPos = localPlayer?.position ?? this.previousPositions.get(localUid) ?? null;
+    this.boundary.updateProximity(localPos);
   }
 
   private updatePlayerContactShadows(players: PlayerState[]): void {

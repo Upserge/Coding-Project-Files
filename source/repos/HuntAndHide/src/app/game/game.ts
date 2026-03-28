@@ -34,7 +34,7 @@ const TOTAL_PLAYER_SLOTS = 10;
   standalone: true,
   imports: [HudComponent, GameCeremonyComponent],
   templateUrl: './game.html',
-  styleUrl: './game.css',
+  styleUrls: ['./game.css', './game-loading.css', './game-results.css'],
 })
 export class GameComponent implements AfterViewInit, OnDestroy {
   private readonly engine = inject(EngineService);
