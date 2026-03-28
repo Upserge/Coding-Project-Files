@@ -4,12 +4,14 @@ import { GoalPost } from './particle-field-types';
 export function drawBlackHole(
   ctx: CanvasRenderingContext2D,
   goal: GoalPost,
-  isDark: boolean
+  isDark: boolean,
+  hintStrength = 0
 ): void {
   const r = goal.radius;
   const x = goal.x;
   const y = goal.y;
   const phase = goal.pulsePhase;
+  const hintPulse = hintStrength * (0.55 + 0.45 * (0.5 + 0.5 * Math.sin(phase * 3.5)));
 
   const darkMul = isDark ? 1 : 1.4;
   const diskTilt = goal.diskTilt;
@@ -30,6 +32,24 @@ export function drawBlackHole(
   ctx.arc(x, y, r * 3, 0, Math.PI * 2);
   ctx.fillStyle = outerGlow;
   ctx.fill();
+
+  if (hintPulse > 0.01) {
+    const hintGlow = ctx.createRadialGradient(x, y, r * 0.9, x, y, r * (3.4 + hintPulse * 0.5));
+    hintGlow.addColorStop(0, `rgba(255, 210, 120, ${hintPulse * 0.06 * darkMul})`);
+    hintGlow.addColorStop(0.45, `rgba(180, 110, 255, ${hintPulse * 0.12 * darkMul})`);
+    hintGlow.addColorStop(0.75, `rgba(120, 220, 255, ${hintPulse * 0.08 * darkMul})`);
+    hintGlow.addColorStop(1, 'rgba(120, 220, 255, 0)');
+    ctx.beginPath();
+    ctx.arc(x, y, r * (3.4 + hintPulse * 0.5), 0, Math.PI * 2);
+    ctx.fillStyle = hintGlow;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, r * (1.7 + hintPulse * 0.25), 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 220, 150, ${hintPulse * 0.18 * darkMul})`;
+    ctx.lineWidth = 1.2 + hintPulse * 0.8;
+    ctx.stroke();
+  }
 
   // --- Back half of accretion disk (behind the black hole) ---
   drawAccretionDisk(ctx, x, y, r, phase, diskTilt, diskRotation, darkMul, 'back');
@@ -65,7 +85,7 @@ export function drawBlackHole(
     const ringW = ring === 0 ? 1.2 : 0.6;
     ctx.beginPath();
     ctx.arc(x, y, ringR, 0, Math.PI * 2);
-    const ringAlpha = (ring === 0 ? 0.15 : 0.08) * darkMul;
+    const ringAlpha = ((ring === 0 ? 0.15 : 0.08) + hintPulse * (ring === 0 ? 0.12 : 0.06)) * darkMul;
     ctx.strokeStyle = `rgba(255, 200, 140, ${ringAlpha})`;
     ctx.lineWidth = ringW;
     ctx.stroke();

@@ -33,11 +33,13 @@ export class ParticleField {
   private readonly SHAKE_DURATION = 35;
   private readonly CONFETTI_COUNT = 60;
   private readonly SPAGHETTI_RADIUS = 120;
+  private readonly GOAL_HINT_PUSH_THRESHOLD = 4;
   private confetti: ConfettiPiece[] = [];
   private trails: TrailPiece[] = [];
   private spaghettiStreams: SpaghettiStream[] = [];
   private readonly GALAXY_COUNT = 4;
   private taurusLines: TaurusLine[] = [];
+  private goalHintStrength = 0;
 
   init(onScore?: () => void) {
     this.onScoreCallback = onScore ?? null;
@@ -238,6 +240,7 @@ export class ParticleField {
     this.ctx.translate(shakeX, shakeY - scrollY);
 
     this.isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    this.updateGoalHintStrength();
 
     this.drawGoals(viewTop, viewBottom);
     this.updateParticles(w, h, mousePageX, mousePageY, viewTop, viewBottom);
@@ -426,8 +429,14 @@ export class ParticleField {
 
       if (goal.y < viewTop || goal.y > viewBottom) continue;
 
-      drawBlackHole(this.ctx, goal, this.isDark);
+      drawBlackHole(this.ctx, goal, this.isDark, this.goalHintStrength);
     }
+  }
+
+  private updateGoalHintStrength() {
+    const isRocketMoving = this.particles.some(p => p.golden && p.pushTime >= this.GOAL_HINT_PUSH_THRESHOLD);
+    const targetStrength = isRocketMoving ? 1 : 0;
+    this.goalHintStrength += (targetStrength - this.goalHintStrength) * 0.12;
   }
 
   private drawConnections(viewTop: number, viewBottom: number) {

@@ -3,9 +3,9 @@
   <div class="container nav-inner">
     <div class="nav-links">
       <a [class.active]="highlightedSection() === 'summary'" (click)="scrollTo('summary')">Summary</a>
-      <a [class.active]="highlightedSection() === 'technologies'" (click)="scrollTo('technologies')">Technologies</a>
-      <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
       <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
+      <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
+      <a [class.active]="highlightedSection() === 'technologies'" (click)="scrollTo('technologies')">Technologies</a>
     </div>
     @if (score() > 0) {
       <span class="score-counter" (click)="showLeaderboard()" title="View leaderboard">🏆 {{ score() }}</span>
@@ -89,19 +89,30 @@
     </div>
   </section>
 
-  <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
+  <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
     <div class="container">
-      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
-      <ul class="tech-list">
-        @for (t of technologies(); track t; let i = $index) {
-          <li>
-            <button class="tech-chip reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.05) + 's'" (click)="openTechLink(t)" title="Learn more about {{ t }}">
-              <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
-              <span class="tech-label">{{ t }}</span>
-            </button>
-          </li>
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Projects</h2>
+
+      @if (resume().projects.length > 0) {
+      <ul class="projects-list">
+        @for (p of resume().projects; track p; let i = $index) {
+        <li class="project-card reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.08) + 's'">
+          <div class="project-inner">
+            <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
+            <div class="project-body">
+              <strong>{{ p.title }}</strong>
+              @if (p.description) {
+              <div class="project-desc">{{ p.description }}</div>
+              }
+              @if (p.url) {
+              <a [href]="p.url" target="_blank" rel="noopener" class="project-link">&#8594; View Project</a>
+              }
+            </div>
+          </div>
+        </li>
         }
       </ul>
+      }
     </div>
   </section>
 
@@ -109,58 +120,47 @@
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Experience</h2>
       @if (!resume().experience || resume().experience!.length === 0) {
-        <p class="reveal reveal-up" style="--delay: 0.2s">Add your work experience here.</p>
+      <p class="reveal reveal-up" style="--delay: 0.2s">Add your work experience here.</p>
       }
 
       @if (resume().experience && resume().experience!.length > 0) {
-        <div class="experience-timeline">
-          @for (e of resume().experience; track e; let i = $index; let last = $last) {
-            <div class="timeline-entry reveal reveal-up" [class.timeline-last]="last" [style]="'--delay: ' + (0.2 + i * 0.1) + 's'">
-              <div class="timeline-marker">
-                <span class="timeline-dot"></span>
-                @if (!last) {
-                  <span class="timeline-line"></span>
-                }
-              </div>
-              <div class="timeline-content">
-                <span class="experience-dates">{{ e.startDate }} &#8212; {{ e.endDate || 'Present' }}</span>
-                <strong class="experience-role">{{ e.role }}</strong>
-                <span class="experience-company">@ {{ e.company }}</span>
-                @if (e.description) {
-                  <p class="experience-desc">{{ e.description }}</p>
-                }
-              </div>
-            </div>
-          }
+      <div class="experience-timeline">
+        @for (e of resume().experience; track e; let i = $index; let last = $last) {
+        <div class="timeline-entry reveal reveal-up" [class.timeline-last]="last" [style]="'--delay: ' + (0.2 + i * 0.1) + 's'">
+          <div class="timeline-marker">
+            <span class="timeline-dot"></span>
+            @if (!last) {
+            <span class="timeline-line"></span>
+            }
+          </div>
+          <div class="timeline-content">
+            <span class="experience-dates">{{ e.startDate }} &#8212; {{ e.endDate || 'Present' }}</span>
+            <strong class="experience-role">{{ e.role }}</strong>
+            <span class="experience-company">@ {{ e.company }}</span>
+            @if (e.description) {
+            <p class="experience-desc">{{ e.description }}</p>
+            }
+          </div>
         </div>
+        }
+      </div>
       }
     </div>
   </section>
 
-  <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
+  <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
     <div class="container">
-      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Projects</h2>
-
-      @if (resume().projects.length > 0) {
-        <ul class="projects-list">
-          @for (p of resume().projects; track p; let i = $index) {
-            <li class="project-card reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.08) + 's'">
-              <div class="project-inner">
-                <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
-                <div class="project-body">
-                  <strong>{{ p.title }}</strong>
-                  @if (p.description) {
-                    <div class="project-desc">{{ p.description }}</div>
-                  }
-                  @if (p.url) {
-                    <a [href]="p.url" target="_blank" rel="noopener" class="project-link">&#8594; View Project</a>
-                  }
-                </div>
-              </div>
-            </li>
-          }
-        </ul>
-      }
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
+      <ul class="tech-list">
+        @for (t of technologies(); track t; let i = $index) {
+        <li>
+          <button class="tech-chip reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.05) + 's'" (click)="openTechLink(t)" title="Learn more about {{ t }}">
+            <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
+            <span class="tech-label">{{ t }}</span>
+          </button>
+        </li>
+        }
+      </ul>
     </div>
   </section>
 </main>
