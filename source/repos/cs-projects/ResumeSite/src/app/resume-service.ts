@@ -9,6 +9,7 @@ import { MagneticButtons } from './magnetic-buttons';
 import { getTechSVG, getTechLink, getProjectSVG } from './tech-icons';
 import { ParticleField } from './particle-field';
 import { Leaderboard } from './leaderboard';
+import { FocusMode } from './focus-mode';
 
 export interface ContactInfo {
   email: string;
@@ -86,6 +87,7 @@ export class ResumeService {
   private magneticButtons: MagneticButtons | null = null;
   private particleField: ParticleField | null = null;
   private leaderboard: Leaderboard | null = null;
+  private focusMode: FocusMode | null = null;
 
   private readonly firestore = inject(Firestore);
   private readonly destroyRef = inject(DestroyRef);
@@ -175,6 +177,8 @@ export class ResumeService {
     this.particleField = null;
     this.leaderboard?.destroy();
     this.leaderboard = null;
+    this.focusMode?.destroy();
+    this.focusMode = null;
   }
 
   // ===== Advanced Effects Initialization =====
@@ -198,9 +202,10 @@ export class ResumeService {
 
   initParticleField() {
     this.particleField = new ParticleField();
-    this.particleField.init(() => {
-      this.score.update(s => s + 1);
+    this.particleField.init((points: number) => {
+      this.score.update(s => s + points);
       this.leaderboard?.onScore(this.score());
+      this.focusMode?.onScore(this.score());
     });
   }
 
@@ -213,6 +218,11 @@ export class ResumeService {
         this.score.set(storedBest);
       }
     });
+  }
+
+  initFocusMode() {
+    this.focusMode = new FocusMode();
+    this.focusMode.init();
   }
 
   showLeaderboard() {

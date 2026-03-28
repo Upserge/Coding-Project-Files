@@ -6,7 +6,14 @@ import { Particle, GoalPost, ConfettiPiece, TrailPiece, SpaghettiStream, TaurusL
 import { drawParticle } from './particle-renderer';
 import { drawBlackHole } from './black-hole-renderer';
 import { spawnGalaxies, spawnTaurus, drawTaurusLines } from './celestial-spawner';
-import { createConfetti, updateConfetti, updateTrails, updateSpaghettiStreams, updateCursorSpaghetti } from './particle-effects';
+import { createConfetti, updateConfetti, updateTrails, updateSpaghettiStreams, updateCursorSpaghetti, spawnThrusterTrails, findNearestGoal, trySpawnSpaghettiStream } from './particle-effects';
+import { UpgradeState } from './upgrade-state';
+import { UpgradeModal } from './upgrade-modal';
+import { UpgradeInventory } from './upgrade-inventory';
+import { MilestoneProgressBar } from './milestone-progress-bar';
+import { applyTractorAim, applyGravityWell } from './upgrade-physics';
+import { drawConnections } from './connection-renderer';
+import { createDustParticles, createRocketParticle, placeAwayFromOccupied, createGoalPost } from './particle-spawner';
 
 export class ParticleField {
   private canvas: HTMLCanvasElement | null = null;
@@ -19,8 +26,13 @@ export class ParticleField {
   private dpr = 1;
   private isDark = true;
   private shakeTimer = 0;
-  private onScoreCallback: (() => void) | null = null;
+  private onScoreCallback: ((points: number) => void) | null = null;
   private pageHeight = 0;
+  private readonly upgradeState = new UpgradeState();
+  private readonly upgradeModal = new UpgradeModal();
+  private readonly inventory = new UpgradeInventory();
+  private readonly progressBar = new MilestoneProgressBar();
+  private paused = false;
 
   private readonly PARTICLE_COUNT = 2000;
   private readonly GOLDEN_COUNT = 3;
@@ -41,7 +53,7 @@ export class ParticleField {
   private taurusLines: TaurusLine[] = [];
   private goalHintStrength = 0;
 
-  init(onScore?: () => void) {
+  init(onScore?: (points: number) => void) {
     this.onScoreCallback = onScore ?? null;
 
     this.canvas = document.createElement('canvas');
@@ -78,6 +90,10 @@ export class ParticleField {
     document.addEventListener('mousemove', this.onMouseMove);
     document.addEventListener('mouseleave', this.onMouseLeave);
 
+    this.inventory.init();
+    this.progressBar.init();
+    this.progressBar.update(this.upgradeState.nextMilestoneProgress());
+
     this.render();
   }
 
@@ -98,58 +114,13 @@ export class ParticleField {
     this.particles = [];
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
-
-    for (let i = 0; i < this.PARTICLE_COUNT; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = this.DRIFT_SPEED * (0.3 + Math.random() * 0.7);
-      this.particles.push({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        r: this.PARTICLE_MIN_R + Math.random() * (this.PARTICLE_MAX_R - this.PARTICLE_MIN_R),
-        opacity: 0.1 + Math.random() * 0.3,
-        driftAngle: angle,
-        driftRate: (Math.random() - 0.5) * 0.008,
-        golden: false,
-        pushTime: 0,
-      });
-    }
+    this.particles.push(...createDustParticles(this.PARTICLE_COUNT, w, h, this.DRIFT_SPEED, this.PARTICLE_MIN_R, this.PARTICLE_MAX_R));
 
     for (let i = 0; i < this.GOLDEN_COUNT; i++) {
-      const gp = this.createGoldenParticle();
-      const occupied = this.getOccupiedPositions();
-      let attempts = 0;
-      do {
-        gp.x = Math.random() * w;
-        gp.y = Math.random() * h;
-        attempts++;
-      } while (attempts < 40 && occupied.some(o => {
-        const dx = o.x - gp.x;
-        const dy = o.y - gp.y;
-        return Math.sqrt(dx * dx + dy * dy) < 250;
-      }));
+      const gp = createRocketParticle(w, h, this.DRIFT_SPEED);
+      placeAwayFromOccupied(gp, w, h, this.getOccupiedPositions(), 250);
       this.particles.push(gp);
     }
-  }
-
-  private createGoldenParticle(): Particle {
-    const w = window.innerWidth;
-    const h = this.pageHeight || window.innerHeight;
-    const angle = Math.random() * Math.PI * 2;
-    const speed = this.DRIFT_SPEED * (0.2 + Math.random() * 0.4);
-    return {
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      r: 4.5 + Math.random() * 1.6,
-      opacity: 0.6 + Math.random() * 0.3,
-      driftAngle: angle,
-      driftRate: (Math.random() - 0.5) * 0.025,
-      golden: true,
-      pushTime: 0,
-    };
   }
 
   private getOccupiedPositions(): { x: number; y: number }[] {
@@ -167,37 +138,9 @@ export class ParticleField {
     this.goals = [];
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
-    const margin = 80;
-
     for (let i = 0; i < this.GOAL_COUNT; i++) {
-      this.goals.push(this.createGoal(w, h, margin));
+      this.goals.push(createGoalPost(w, h, 80, this.getOccupiedPositions()));
     }
-  }
-
-  private createGoal(w: number, h: number, margin: number): GoalPost {
-    let x: number, y: number;
-    let attempts = 0;
-    const occupied = this.getOccupiedPositions();
-    do {
-      x = margin + Math.random() * (w - margin * 2);
-      y = margin + Math.random() * (h - margin * 2);
-      attempts++;
-    } while (attempts < 40 && occupied.concat(this.goals.filter(g => !g.scored)).some(o => {
-      const dx = o.x - x;
-      const dy = o.y - y;
-      return Math.sqrt(dx * dx + dy * dy) < 250;
-    }));
-
-    return {
-      x, y,
-      pulsePhase: Math.random() * Math.PI * 2,
-      scored: false,
-      scoreTimer: 0,
-      radius: 22 + Math.random() * 22,
-      diskTilt: 0.18 + Math.random() * 0.32,
-      diskAxis: Math.random() * Math.PI * 2,
-      spinSpeed: 0.2 + Math.random() * 0.25,
-    };
   }
 
   private onMouseMove = (e: MouseEvent) => {
@@ -212,6 +155,10 @@ export class ParticleField {
 
   private render = () => {
     if (!this.ctx || !this.canvas) return;
+    if (this.paused) {
+      this.animationFrame = requestAnimationFrame(this.render);
+      return;
+    }
 
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
@@ -244,7 +191,7 @@ export class ParticleField {
 
     this.drawGoals(viewTop, viewBottom);
     this.updateParticles(w, h, mousePageX, mousePageY, viewTop, viewBottom);
-    this.drawConnections(viewTop, viewBottom);
+    drawConnections(this.ctx, this.particles, viewTop, viewBottom, this.isDark);
     drawTaurusLines(this.ctx, this.taurusLines, viewTop, viewBottom, this.isDark);
     updateConfetti(this.ctx, this.confetti);
     updateTrails(this.ctx, this.trails);
@@ -258,15 +205,20 @@ export class ParticleField {
   private updateParticles(w: number, h: number, mousePageX: number, mousePageY: number, viewTop: number, viewBottom: number) {
     if (!this.ctx) return;
 
+    const mods = this.upgradeState.modifiers;
+    const effectiveRepulse = this.REPULSE_RADIUS * mods.repulseRadiusMul;
+    const effectiveForce = this.REPULSE_FORCE * mods.repulseForceMul;
+    this.upgradeState.tickChainReaction();
+
     for (const p of this.particles) {
       // Mouse repulsion
       const dx = p.x - mousePageX;
       const dy = p.y - mousePageY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < this.REPULSE_RADIUS && dist > 0) {
+      if (dist < effectiveRepulse && dist > 0) {
         if (p.golden) p.pushTime = Math.min(p.pushTime + 1, 120);
         const pushBoost = p.golden ? 1 + p.pushTime * 0.04 : 1;
-        const force = (1 - dist / this.REPULSE_RADIUS) * this.REPULSE_FORCE * pushBoost;
+        const force = (1 - dist / effectiveRepulse) * effectiveForce * pushBoost;
         p.vx += (dx / dist) * force;
         p.vy += (dy / dist) * force;
       } else if (p.golden && p.pushTime > 0) {
@@ -278,8 +230,8 @@ export class ParticleField {
       }
 
       // Velocity with damping
-      p.vx *= 0.98;
-      p.vy *= 0.98;
+      p.vx *= mods.dragRetention;
+      p.vy *= mods.dragRetention;
 
       // Aimless wandering
       p.driftAngle += p.driftRate;
@@ -319,82 +271,40 @@ export class ParticleField {
       if (p.y < -20) p.y = h + 20;
       if (p.y > h + 20) p.y = -20;
 
-      // Thruster trail for Ranger when being pushed (3 nozzle ports)
-      if (p.golden && p.pushTime > 3) {
-        const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-        if (spd > 0.05) {
-          const heading = Math.atan2(p.vy, p.vx);
-          const perpX = -Math.sin(heading);
-          const perpY = Math.cos(heading);
-          const rearDist = p.r * 4.0;
-          const nozzleSpread = p.r * 1.3 * 1.8 * 1.5 * 0.22;
-          const count = Math.min(Math.floor(p.pushTime / 15) + 1, 5);
-          for (let ni = -1; ni <= 1; ni++) {
-            const nx = p.x - Math.cos(heading) * rearDist + perpX * ni * nozzleSpread;
-            const ny = p.y - Math.sin(heading) * rearDist + perpY * ni * nozzleSpread;
-            for (let t = 0; t < count; t++) {
-              this.trails.push({
-                x: nx + (Math.random() - 0.5) * 3,
-                y: ny + (Math.random() - 0.5) * 3,
-                vx: -Math.cos(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.6,
-                vy: -Math.sin(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.6,
-                life: 1,
-                decay: 0.03 + Math.random() * 0.03,
-                size: 1.2 + Math.random() * 2,
-                hot: Math.random() > 0.35,
-              });
-            }
-          }
-        }
+      // Thruster trail for Ranger when being pushed
+      this.trails.push(...spawnThrusterTrails(p));
+
+      // Tractor aim: gently steer pushed rockets toward nearest black hole
+      if (p.golden && p.pushTime > 5 && mods.tractorAimStrength > 0) {
+        applyTractorAim(p, this.goals, mods.tractorAimStrength);
+      }
+
+      // Gravity well: black holes pull nearby rockets
+      if (p.golden && mods.gravityWellStrength > 0) {
+        applyGravityWell(p, this.goals, mods.gravityWellStrength, this.SPAGHETTI_RADIUS * 1.5);
       }
 
       // Goal collision for golden particles
       if (p.golden) {
+        const goalRadiusMul = mods.goalRadiusMul;
         for (const goal of this.goals) {
           if (goal.scored) continue;
           const gx = p.x - goal.x;
           const gy = p.y - goal.y;
           const gd = Math.sqrt(gx * gx + gy * gy);
-          if (gd < goal.radius) {
+          if (gd < goal.radius * goalRadiusMul) {
             this.triggerGoal(p, goal, w, h);
           }
         }
       }
 
       // Spaghettification: find nearest active black hole
-      let spaghettiGoal: GoalPost | null = null;
-      let spaghettiDist = Infinity;
-      for (const goal of this.goals) {
-        if (goal.scored) continue;
-        const gx = p.x - goal.x;
-        const gy = p.y - goal.y;
-        const gd = Math.sqrt(gx * gx + gy * gy);
-        if (gd < this.SPAGHETTI_RADIUS && gd < spaghettiDist) {
-          spaghettiDist = gd;
-          spaghettiGoal = goal;
-        }
-      }
+      const { goal: spaghettiGoal, dist: spaghettiDist } = findNearestGoal(p, this.goals, this.SPAGHETTI_RADIUS);
 
       // Spawn spaghetti stream particles for objects being pulled in
-      if (spaghettiGoal && spaghettiDist < this.SPAGHETTI_RADIUS * 0.8) {
-        const t = 1 - spaghettiDist / (this.SPAGHETTI_RADIUS * 0.8);
-        if (Math.random() < t * (p.golden ? 0.6 : 0.15)) {
-          const angle = Math.atan2(spaghettiGoal.y - p.y, spaghettiGoal.x - p.x);
-          const spd = 1.5 + t * 4;
-          this.spaghettiStreams.push({
-            x: p.x,
-            y: p.y,
-            vx: Math.cos(angle) * spd + (Math.random() - 0.5) * 0.5,
-            vy: Math.sin(angle) * spd + (Math.random() - 0.5) * 0.5,
-            life: 1,
-            decay: 0.025 + Math.random() * 0.025,
-            width: p.golden ? 2 + t * 3 : 0.5 + t * 1.5,
-            length: p.golden ? 8 + t * 16 : 3 + t * 8,
-            color: p.golden ? 'rgba(255, 200, 80,' : (this.isDark ? 'rgba(124, 92, 255,' : 'rgba(80, 50, 200,'),
-            goalX: spaghettiGoal.x,
-            goalY: spaghettiGoal.y,
-          });
-        }
+      if (spaghettiGoal) {
+        const stream = trySpawnSpaghettiStream(p, spaghettiGoal, spaghettiDist, this.SPAGHETTI_RADIUS, this.isDark);
+        if (stream) this.spaghettiStreams.push(stream);
       }
 
       // Only draw particles near the viewport
@@ -414,7 +324,7 @@ export class ParticleField {
           goal.scored = false;
           const w = window.innerWidth;
           const h = this.pageHeight || window.innerHeight;
-          const newGoal = this.createGoal(w, h, 80);
+          const newGoal = createGoalPost(w, h, 80, this.getOccupiedPositions());
           goal.x = newGoal.x;
           goal.y = newGoal.y;
           goal.radius = newGoal.radius;
@@ -439,50 +349,16 @@ export class ParticleField {
     this.goalHintStrength += (targetStrength - this.goalHintStrength) * 0.12;
   }
 
-  private drawConnections(viewTop: number, viewBottom: number) {
-    if (!this.ctx) return;
-
-    for (let i = 0; i < this.particles.length; i++) {
-      const a = this.particles[i];
-      if (a.golden || a.galaxyColor || a.y < viewTop || a.y > viewBottom) continue;
-      for (let j = i + 1; j < this.particles.length; j++) {
-        const b = this.particles[j];
-        if (b.golden || b.galaxyColor || b.y < viewTop || b.y > viewBottom) continue;
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < 100) {
-          const alpha = (1 - dist / 100) * (this.isDark ? 0.06 : 0.12);
-          this.ctx.beginPath();
-          this.ctx.moveTo(a.x, a.y);
-          this.ctx.lineTo(b.x, b.y);
-          this.ctx.strokeStyle = this.isDark
-            ? `rgba(124, 92, 255, ${alpha})`
-            : `rgba(80, 50, 200, ${alpha})`;
-          this.ctx.lineWidth = 0.5;
-          this.ctx.stroke();
-        }
-      }
-    }
-  }
-
   private triggerGoal(p: Particle, goal: GoalPost, w: number, h: number) {
     goal.scored = true;
     goal.scoreTimer = 120;
 
-    const newP = this.createGoldenParticle();
-    const occupied = this.getOccupiedPositions();
-    let attempts = 0;
-    do {
-      newP.x = Math.random() * w;
-      newP.y = Math.random() * h;
-      attempts++;
-    } while (attempts < 40 && occupied.some(o => {
-      const dx = o.x - newP.x;
-      const dy = o.y - newP.y;
-      return Math.sqrt(dx * dx + dy * dy) < 200;
-    }));
+    const points = this.upgradeState.computeScorePoints();
+    this.upgradeState.addScore(points);
+    this.upgradeState.triggerChainReaction();
+
+    const newP = createRocketParticle(w, h, this.DRIFT_SPEED);
+    placeAwayFromOccupied(newP, w, h, this.getOccupiedPositions(), 200);
     p.x = newP.x;
     p.y = newP.y;
     p.vx = newP.vx;
@@ -491,7 +367,36 @@ export class ParticleField {
 
     this.shakeTimer = this.SHAKE_DURATION;
     this.confetti.push(...createConfetti(goal.x, goal.y, this.CONFETTI_COUNT));
-    this.onScoreCallback?.();
+    this.onScoreCallback?.(points);
+    this.progressBar.update(this.upgradeState.nextMilestoneProgress());
+    this.checkMilestoneAndUpgrade(w, h);
+  }
+
+  private checkMilestoneAndUpgrade(w: number, h: number): void {
+    if (!this.upgradeState.checkMilestone(this.upgradeState.score)) return;
+
+    this.paused = true;
+    this.upgradeModal.show(this.upgradeState.stackMap, (upgrade) => {
+      this.upgradeState.applyUpgrade(upgrade);
+      this.applyStructuralUpgrades(w, h);
+      this.inventory.refresh(this.upgradeState.stackMap);
+      this.progressBar.update(this.upgradeState.nextMilestoneProgress());
+      this.paused = false;
+    });
+  }
+
+  private applyStructuralUpgrades(w: number, h: number): void {
+    const mods = this.upgradeState.modifiers;
+    const targetRockets = this.GOLDEN_COUNT + mods.extraRockets;
+    const currentRockets = this.particles.filter(p => p.golden).length;
+    for (let i = currentRockets; i < targetRockets; i++) {
+      this.particles.push(createRocketParticle(w, h, this.DRIFT_SPEED));
+    }
+
+    const targetGoals = this.GOAL_COUNT + mods.extraGoals;
+    for (let i = this.goals.length; i < targetGoals; i++) {
+      this.goals.push(createGoalPost(w, h, 80, this.getOccupiedPositions()));
+    }
   }
 
   destroy() {
@@ -507,5 +412,8 @@ export class ParticleField {
     this.canvas?.remove();
     this.canvas = null;
     this.ctx = null;
+    this.upgradeModal.destroyAll();
+    this.inventory.destroy();
+    this.progressBar.destroy();
   }
 }

@@ -54,6 +54,7 @@ export class App {
       this.resumeService.initMagneticButtons();
       this.resumeService.initParticleField();
       this.resumeService.initLeaderboard();
+      this.resumeService.initFocusMode();
       this.initKeyboardShortcuts();
     });
 
