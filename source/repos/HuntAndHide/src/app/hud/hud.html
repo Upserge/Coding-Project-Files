@@ -9,12 +9,12 @@
     <span class="phase-badge">{{ phase() | uppercase }}</span>
     <div class="hud-top-right">
       <button
-        class="fullscreen-toggle"
+        class="settings-toggle"
         type="button"
-        [attr.aria-label]="isFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'"
-        [attr.title]="isFullscreen() ? 'Exit fullscreen (F11)' : 'Enter fullscreen (F11)'"
-        (click)="toggleFullscreen()">
-        {{ isFullscreen() ? '⤢' : '⛶' }}
+        aria-label="Settings (Esc)"
+        title="Settings (Esc)"
+        (click)="openSettings()">
+        ⚙
       </button>
       <span class="timer">{{ timeRemaining() }}s</span>
     </div>
@@ -34,6 +34,15 @@
       @if (isHiding()) {
         <div class="hidden-badge">HIDDEN</div>
       }
+      <div class="ability-bar-wrapper">
+        <label class="bar-label">{{ isDashing() ? 'DASH!' : 'Dash [Space]' }}</label>
+        <div class="bar-track">
+          <div class="bar-fill dash-fill instant"
+               [style.width.%]="(1 - dashCooldownPercent()) * 100"
+               [class.ready]="dashCooldownPercent() === 0"
+               [class.active]="isDashing()"></div>
+        </div>
+      </div>
     </div>
   }
 
@@ -58,6 +67,15 @@
         @if (isHunterExhausted()) {
           <div class="stamina-status">Recovering {{ hunterExhaustionCountdown() }}s</div>
         }
+      </div>
+      <div class="ability-bar-wrapper">
+        <label class="bar-label">{{ isPouncing() ? 'POUNCE!' : 'Pounce [Q]' }}</label>
+        <div class="bar-track">
+          <div class="bar-fill pounce-fill instant"
+               [style.width.%]="(1 - pounceCooldownPercent()) * 100"
+               [class.ready]="pounceCooldownPercent() === 0"
+               [class.active]="isPouncing()"></div>
+        </div>
       </div>
     </div>
   }
@@ -94,3 +112,17 @@
     <span class="players">Players: {{ playerCount() }}</span>
   </div>
 </div>
+
+@if (settingsOpen()) {
+  <app-settings-menu
+    [isFullscreen]="isFullscreen()"
+    (closed)="closeSettings()"
+    (leaveGame)="onLeaveGame()"
+    (showRules)="onShowRules()"
+    (toggleFullscreen)="toggleFullscreen()"
+  />
+}
+
+@if (scoreboardVisible()) {
+  <app-game-scoreboard />
+}

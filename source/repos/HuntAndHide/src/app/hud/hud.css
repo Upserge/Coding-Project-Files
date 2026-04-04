@@ -25,7 +25,7 @@
   pointer-events: auto;
 }
 
-.fullscreen-toggle {
+.settings-toggle {
   width: 2rem;
   height: 2rem;
   display: inline-flex;
@@ -46,7 +46,7 @@
   opacity: 0.72;
 }
 
-.fullscreen-toggle:hover {
+.settings-toggle:hover {
   opacity: 1;
   color: #fff;
   background: rgba(0, 0, 0, 0.55);
@@ -200,6 +200,40 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* ── Ability bars (Dash / Pounce) ────────────────────────── */
+
+.ability-bar-wrapper {
+  margin-top: 0.5rem;
+}
+
+.dash-fill {
+  background: #66ffee;
+}
+
+.dash-fill.ready {
+  background: #66ffee;
+  box-shadow: 0 0 6px rgba(102, 255, 238, 0.4);
+}
+
+.dash-fill.active {
+  background: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+.pounce-fill {
+  background: #ff8833;
+}
+
+.pounce-fill.ready {
+  background: #ff8833;
+  box-shadow: 0 0 6px rgba(255, 136, 51, 0.4);
+}
+
+.pounce-fill.active {
+  background: #ffcc44;
+  box-shadow: 0 0 12px rgba(255, 204, 68, 0.6);
 }
 
 /* ── Kill-feed ───────────────────────────────────────────── */

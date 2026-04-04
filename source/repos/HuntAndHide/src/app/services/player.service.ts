@@ -98,6 +98,9 @@ export class PlayerService {
       isHiding: false,
       hidingSpotId: null,
       isCaught: false,
+      isDashing: false,
+      dashTimeS: 0,
+      dashCooldownS: 0,
     };
   }
 
@@ -113,6 +116,9 @@ export class PlayerService {
       exhaustionCooldownS: 0,
       exhaustedFeedbackS: 0,
       kills: 0,
+      isPouncing: false,
+      pounceTimeS: 0,
+      pounceCooldownS: 0,
     };
   }
 }

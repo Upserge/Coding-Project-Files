@@ -1,0 +1,156 @@
+.scoreboard-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  animation: sb-fade-in 0.1s ease-out;
+}
+
+.scoreboard-card {
+  background: rgba(18, 18, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  min-width: 420px;
+  max-width: 560px;
+  width: 90%;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.scoreboard-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  text-align: center;
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Header row ──────────────────────────────────────────── */
+
+.scoreboard-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Player rows ─────────────────────────────────────────── */
+
+.scoreboard-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.scoreboard-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: #ccc;
+  transition: background 0.1s ease;
+}
+
+.scoreboard-row:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.scoreboard-row.dead {
+  opacity: 0.5;
+}
+
+.scoreboard-row.hunter {
+  color: #ef9a9a;
+}
+
+/* ── Column widths ───────────────────────────────────────── */
+
+.col-rank {
+  min-width: 24px;
+  text-align: right;
+  font-weight: 700;
+  color: #e9c46a;
+}
+
+.col-role {
+  min-width: 22px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.col-name {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-score {
+  min-width: 48px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-detail {
+  min-width: 72px;
+  text-align: right;
+  font-size: 0.75rem;
+  color: #999;
+}
+
+.col-status {
+  min-width: 52px;
+  text-align: right;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #81c784;
+}
+
+.col-status.status-dead {
+  color: #ef5350;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+
+.scoreboard-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.player-count {
+  font-size: 0.72rem;
+  color: #777;
+}
+
+.tab-hint {
+  font-size: 0.65rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Animation ───────────────────────────────────────────── */
+
+@keyframes sb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

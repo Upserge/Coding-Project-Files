@@ -17,12 +17,12 @@ import { GameLoopService } from '../services/game-loop.service';
 import { SessionService } from '../services/session.service';
 import { IdentityService } from '../services/identity.service';
 import { InputService } from '../services/input.service';
-import { LeaderboardService } from '../services/leaderboard.service';
+import { EndOfGameService } from '../services/end-of-game.service';
 import { FullscreenService } from '../services/fullscreen.service';
 import { MatchmakingService } from '../services/matchmaking.service';
 import { HudComponent } from '../hud/hud';
 import { GameCeremonyComponent } from '../game-ceremony/game-ceremony';
-import { GameSession, RoundWinner } from '../models/session.model';
+import { GameSession } from '../models/session.model';
 import { PlayerState } from '../models/player.model';
 import { GameCeremonyService } from '../services/game-ceremony.service';
 
@@ -43,7 +43,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   private readonly sessionService = inject(SessionService);
   private readonly identity = inject(IdentityService);
   private readonly inputService = inject(InputService);
-  private readonly leaderboardService = inject(LeaderboardService);
+  private readonly endOfGame = inject(EndOfGameService);
   private readonly fullscreen = inject(FullscreenService);
   private readonly matchmaking = inject(MatchmakingService);
   private readonly ceremony = inject(GameCeremonyService);
@@ -108,6 +108,11 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.toggleFullscreen();
   }
 
+  protected showRoleRevealFromSettings(): void {
+    this.showLoadingScreen.set(true);
+    this.clearLoadingTimer();
+  }
+
   /** Initialize (or reinitialize) the session subscription and game state. */
   private initSession(sessionId: string): void {
     this.resetSessionState(sessionId);
@@ -118,6 +123,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.endOfGame.recordIfNeeded(this.gameLoop.roundWinner());
     this.clearLoadingTimer();
     this.ceremony.clear();
     this.disposeViewResources();
@@ -183,17 +189,9 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   /** Record game result to Firestore leaderboard and update session phase. */
   private async recordRoundResult(): Promise<void> {
-    const sessionId = this.currentSessionId;
-    const username = this.identity.getUsername();
-    if (!username) return; // no leaderboard entry without a username
-
-    const localPlayer = this.gameLoop.getLocalPlayer();
     const winner = this.gameLoop.roundWinner();
-    if (!localPlayer || !winner) return;
-
-    const won = winner === (localPlayer.role === 'hider' ? 'hiders' : 'hunters');
-    await this.recordLeaderboardResult(username, localPlayer, won);
-    await this.updateResultsPhase(sessionId);
+    await this.endOfGame.recordResult(winner);
+    await this.updateResultsPhase(this.currentSessionId);
   }
 
   /** Allow leaving the lobby before game starts. */
@@ -268,6 +266,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.currentSessionId = sessionId;
     this.inLobby.set(true);
     this.gameLoop.reset();
+    this.endOfGame.reset();
     this.ceremony.clear();
   }
 
@@ -365,18 +364,6 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     const localPlayer = this.gameLoop.getLocalPlayer();
     if (!localPlayer) return;
     this.engine.followTarget(localPlayer.position, delta);
-  }
-
-  private async recordLeaderboardResult(
-    username: string,
-    localPlayer: PlayerState,
-    won: boolean,
-  ): Promise<void> {
-    try {
-      await this.leaderboardService.recordGameResult(username, localPlayer.score, won, localPlayer.role);
-    } catch (err) {
-      console.error('[Game] Failed to record leaderboard result:', err);
-    }
   }
 
   private async updateResultsPhase(sessionId: string): Promise<void> {

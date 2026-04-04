@@ -163,6 +163,9 @@ export class CpuSpawnerService {
       isHiding: false,
       hidingSpotId: null,
       isCaught: false,
+      isDashing: false,
+      dashTimeS: 0,
+      dashCooldownS: 0,
     };
   }
 
@@ -183,6 +186,9 @@ export class CpuSpawnerService {
       exhaustedFeedbackS: 0,
       exhaustionCooldownS: 0,
       kills: 0,
+      isPouncing: false,
+      pounceTimeS: 0,
+      pounceCooldownS: 0,
     };
   }
 

@@ -194,9 +194,11 @@ export class GameLoopService {
     const movement = this.inputService.getMovementVector();
     const wantsSprint = this.inputService.isSprinting();
     const wantsInteract = this.inputService.consumeInteract();
+    const wantsDash = this.inputService.consumeDash();
+    const wantsPounce = this.inputService.consumePounce();
     this.tickRoundTimer(delta);
-    this.tickHiders(delta, movement, wantsInteract);
-    this.tickHunters(delta, movement, wantsSprint);
+    this.tickHiders(delta, movement, wantsInteract, wantsDash);
+    this.tickHunters(delta, movement, wantsSprint, wantsPounce);
     this.processDeathsAndCatches(delta);
     this.updateRoundSnapshots();
     this.checkWinConditions();
@@ -240,7 +242,7 @@ export class GameLoopService {
 
   // ── Hider tick ─────────────────────────────────────────────
 
-  private tickHiders(delta: number, movement: Vec3, localWantsInteract: boolean): void {
+  private tickHiders(delta: number, movement: Vec3, localWantsInteract: boolean, localWantsDash = false): void {
     const localUid = this.localPlayerUid();
     let localNearSpot: Vec3 | null = null;
 
@@ -248,6 +250,7 @@ export class GameLoopService {
       const cpuDecision = this.getCpuDecision(hider, delta);
       const input = this.resolveInput(hider.uid, localUid, movement, cpuDecision?.movement);
       const isMoving = input.x !== 0 || input.z !== 0;
+      const wantsDash = hider.uid === localUid ? localWantsDash : false;
       const wantsHide = this.resolveHideIntent(hider.uid, localUid, localWantsInteract, cpuDecision?.wantsHide);
 
       hider = this.exitRoundHidingIfNeeded(hider, wantsHide, isMoving);
@@ -258,7 +261,7 @@ export class GameLoopService {
       localNearSpot = this.getLocalNearSpot(hider, localUid, localNearSpot);
 
       if (hider.isHiding) {
-        const { state, result } = this.hiderService.tick(hider, delta, { x: 0, y: 0, z: 0 });
+        const { state, result } = this.hiderService.tick(hider, delta, { x: 0, y: 0, z: 0 }, false);
         if (result.convertToHunter) {
           this.hidingService.vacate(state.uid);
           this.convertHiderToHunter(state);
@@ -267,7 +270,7 @@ export class GameLoopService {
         return state;
       }
 
-      const { state, result } = this.hiderService.tick(hider, delta, input);
+      const { state, result } = this.hiderService.tick(hider, delta, input, wantsDash);
       if (result.convertToHunter) {
         this.convertHiderToHunter(state);
         return null;
@@ -281,14 +284,15 @@ export class GameLoopService {
 
   // ── Hunter tick ────────────────────────────────────────────
 
-  private tickHunters(delta: number, movement: Vec3, wantsSprint: boolean): void {
+  private tickHunters(delta: number, movement: Vec3, wantsSprint: boolean, wantsPounce = false): void {
     const localUid = this.localPlayerUid();
 
     const updatedHunters = this.hunters().map(hunter => {
       const cpuDecision = this.getCpuDecision(hunter, delta);
       const sprint = this.resolveHunterSprint(hunter.uid, localUid, wantsSprint, cpuDecision?.wantsSprint);
+      const pounce = hunter.uid === localUid ? wantsPounce : false;
       const input = this.resolveInput(hunter.uid, localUid, movement, cpuDecision?.movement);
-      const { state, result } = this.hunterService.tick(hunter, delta, input, sprint);
+      const { state, result } = this.hunterService.tick(hunter, delta, input, sprint, pounce);
 
       const starved = this.respawn.handleStarvation(state, result.starved, localUid);
       if (starved) return starved;

@@ -67,6 +67,9 @@ export class SceneRenderService {
   private pendingHideSpot: Vec3 | null = null;
   // Track UIDs that already had their catch VFX spawned
   private caughtVfxSpawned = new Set<string>();
+  // Track UIDs currently dashing/pouncing (to detect start-of-action)
+  private dashingUids = new Set<string>();
+  private pouncingUids = new Set<string>();
   // Track UIDs currently hiding (to detect enter-hide transitions)
   private hidingUids = new Set<string>();
 
@@ -90,6 +93,8 @@ export class SceneRenderService {
     this.playerMeshRoles.clear();
     this.previousPositions.clear();
     this.caughtVfxSpawned.clear();
+    this.dashingUids.clear();
+    this.pouncingUids.clear();
     this.hidingUids.clear();
     this.surfaceEffects.reset();
     this.mvpCrown.dispose(this.playerMeshes);
@@ -153,6 +158,8 @@ export class SceneRenderService {
       this.syncAnimation(player, group, prevPos, delta, isCaughtHider);
       this.syncBlink(player.uid, group, delta, moveDelta);
       this.spawnCatchEffects(player, isCaughtHider);
+      this.spawnDashEffects(player);
+      this.spawnPounceEffects(player);
       this.spawnFootstepEffects(player, moveDelta);
 
       this.syncHidingVisuals(group, player, localRole);
@@ -266,7 +273,12 @@ export class SceneRenderService {
     isCaughtHider: boolean,
   ): void {
     const exhausted = player.role === 'hunter' && (player as any).exhaustedFeedbackS > 0;
-    this.animation.tick(player.uid, group, player.position, prevPos, delta, player.isAlive, isCaughtHider, exhausted);
+    const isDashing = player.role === 'hider' && (player as any).isDashing === true;
+    const isPouncing = player.role === 'hunter' && (player as any).isPouncing === true;
+    this.animation.tick(
+      player.uid, group, player.position, prevPos, delta,
+      player.isAlive, isCaughtHider, exhausted, isDashing, isPouncing,
+    );
   }
 
   private syncBlink(uid: string, group: THREE.Group, delta: number, moveDelta: Vec3): void {
@@ -279,15 +291,41 @@ export class SceneRenderService {
   private spawnCatchEffects(player: PlayerState, isCaughtHider: boolean): void {
     if (!isCaughtHider) return;
     if (this.caughtVfxSpawned.has(player.uid)) return;
+    const renderPosition = this.getEffectPosition(player.position);
     this.caughtVfxSpawned.add(player.uid);
-    this.particles.spawnCatchBurst(player.position);
-    this.particles.spawnConfetti(player.position);
+    this.particles.spawnCatchBurst(renderPosition);
+    this.particles.spawnConfetti(renderPosition);
     this.screenShake.trigger(0.3, 0.3);
-    this.scoreFloater.spawn(player.position, '+100', '#e9c46a');
+    this.scoreFloater.spawn(renderPosition, '+100', '#e9c46a');
     this.scoreFloater.spawn(
-      { x: player.position.x + 0.3, y: player.position.y, z: player.position.z + 0.3 },
+      { x: renderPosition.x + 0.3, y: renderPosition.y, z: renderPosition.z + 0.3 },
       '+40% Hunger', '#66bb6a',
     );
+  }
+
+  private spawnDashEffects(player: PlayerState): void {
+    if (player.role !== 'hider') return;
+    const isDashing = (player as any).isDashing === true;
+    if (!isDashing) return void this.dashingUids.delete(player.uid);
+    const renderPosition = this.getEffectPosition(player.position);
+    if (!this.dashingUids.has(player.uid)) {
+      this.dashingUids.add(player.uid);
+      this.particles.spawnDashTrail(renderPosition);
+    }
+    this.particles.spawnDashTrailTick(renderPosition);
+  }
+
+  private spawnPounceEffects(player: PlayerState): void {
+    if (player.role !== 'hunter') return;
+    const isPouncing = (player as any).isPouncing === true;
+    if (!isPouncing) return void this.pouncingUids.delete(player.uid);
+    const renderPosition = this.getEffectPosition(player.position);
+    if (!this.pouncingUids.has(player.uid)) {
+      this.pouncingUids.add(player.uid);
+      this.particles.spawnPounceShockwave(renderPosition);
+      this.screenShake.trigger(0.15, 0.15);
+    }
+    this.particles.spawnPounceTrailTick(renderPosition);
   }
 
   private spawnFootstepEffects(player: PlayerState, moveDelta: Vec3): void {
@@ -331,6 +369,11 @@ export class SceneRenderService {
       child.material.transparent = true;
       child.material.opacity = opacity;
     });
+  }
+
+  private getEffectPosition(position: Vec3): Vec3 {
+    const terrainY = getTerrainHeight(position.x, position.z);
+    return { x: position.x, y: position.y + terrainY, z: position.z };
   }
 
   private updateBoundaryProximity(players: PlayerState[], localUid: string): void {

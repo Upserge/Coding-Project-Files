@@ -1,0 +1,26 @@
+<div class="settings-backdrop" (click)="close()">
+  <div class="settings-card" (click)="$event.stopPropagation()">
+    <h2 class="settings-title">Settings</h2>
+
+    <nav class="settings-nav">
+      @for (item of menuItems; track item.action) {
+        <button
+          class="settings-item"
+          [class.danger]="item.action === 'leave'"
+          type="button"
+          (click)="onItemClick(item.action)">
+          <span class="item-icon">{{ item.icon }}</span>
+          <span class="item-label">
+            {{ item.action === 'fullscreen' ? getFullscreenLabel() : item.label }}
+          </span>
+        </button>
+      }
+    </nav>
+
+    <div class="settings-footer">
+      <button class="btn btn-ghost" type="button" (click)="close()">
+        Resume
+      </button>
+    </div>
+  </div>
+</div>

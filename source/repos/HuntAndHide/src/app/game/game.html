@@ -46,6 +46,8 @@
   <app-hud
     [isFullscreen]="isFullscreen()"
     (toggleFullscreenRequested)="toggleFullscreen()"
+    (leaveGameRequested)="leaveToMenu()"
+    (showRulesRequested)="showRoleRevealFromSettings()"
   />
 
   <!-- Round-results overlay ─────────────────────────────── -->

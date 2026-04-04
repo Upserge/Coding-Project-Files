@@ -26,6 +26,8 @@ export class InputService implements OnDestroy {
   // ── Readable state (polled each tick by GameLoopService) ──
   private readonly keysDown = new Set<string>();
   private _interactPressed = false;
+  private _dashPressed = false;
+  private _pouncePressed = false;
 
   private boundKeyDown = this.onKeyDown.bind(this);
   private boundKeyUp = this.onKeyUp.bind(this);
@@ -82,11 +84,27 @@ export class InputService implements OnDestroy {
     return true;
   }
 
+  /** Consume a one-shot Space press for hider dash (returns true once per press). */
+  consumeDash(): boolean {
+    if (!this._dashPressed) return false;
+    this._dashPressed = false;
+    return true;
+  }
+
+  /** Consume a one-shot Q press for hunter pounce (returns true once per press). */
+  consumePounce(): boolean {
+    if (!this._pouncePressed) return false;
+    this._pouncePressed = false;
+    return true;
+  }
+
   // ── Event handlers ─────────────────────────────────────────
 
   private onKeyDown(e: KeyboardEvent): void {
     this.keysDown.add(e.code);
     this._interactPressed ||= e.code === 'KeyF';
+    this._dashPressed ||= e.code === 'Space';
+    this._pouncePressed ||= e.code === 'KeyQ';
   }
 
   private onKeyUp(e: KeyboardEvent): void {

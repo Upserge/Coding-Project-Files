@@ -1,0 +1,37 @@
+<div class="scoreboard-backdrop">
+  <div class="scoreboard-card">
+    <h2 class="scoreboard-title">Scoreboard</h2>
+    <div class="scoreboard-header">
+      <span class="col-rank">#</span>
+      <span class="col-role"></span>
+      <span class="col-name">Player</span>
+      <span class="col-score">Score</span>
+      <span class="col-detail">Info</span>
+      <span class="col-status">Status</span>
+    </div>
+    <div class="scoreboard-list">
+      @for (entry of entries(); track entry.uid; let i = $index) {
+        <div class="scoreboard-row" [class.hunter]="entry.role === 'hunter'" [class.dead]="!entry.isAlive || entry.isCaught">
+          <span class="col-rank">{{ i + 1 }}</span>
+          <span class="col-role">{{ roleIcon(entry) }}</span>
+          <span class="col-name">{{ entry.displayName }}</span>
+          <span class="col-score">{{ entry.score }}</span>
+          <span class="col-detail">
+            @if (entry.role === 'hunter') {
+              {{ entry.catches }} catch{{ entry.catches !== 1 ? 'es' : '' }}
+            } @else {
+              {{ entry.animal }}
+            }
+          </span>
+          <span class="col-status" [class.status-dead]="!entry.isAlive || entry.isCaught">
+            {{ statusLabel(entry) }}
+          </span>
+        </div>
+      }
+    </div>
+    <div class="scoreboard-footer">
+      <span class="player-count">{{ playerCount() }} players</span>
+      <span class="tab-hint">Hold TAB</span>
+    </div>
+  </div>
+</div>

@@ -49,6 +49,12 @@ export interface HiderState extends PlayerState {
   hidingSpotId: string | null;
   /** True when the hider has been caught — plays the caught animation before conversion. */
   isCaught: boolean;
+  /** True during the dash burst — grants invulnerability and speed boost. */
+  isDashing: boolean;
+  /** Seconds remaining in the current dash. */
+  dashTimeS: number;
+  /** Seconds remaining before dash can be used again. */
+  dashCooldownS: number;
 }
 
 export interface HunterState extends PlayerState {
@@ -66,6 +72,12 @@ export interface HunterState extends PlayerState {
   exhaustedFeedbackS: number;
   /** Number of hiders caught this round — used for MVP Hunter tracking. */
   kills: number;
+  /** True during the pounce lunge — extends catch range, locks direction. */
+  isPouncing: boolean;
+  /** Seconds remaining in the current pounce. */
+  pounceTimeS: number;
+  /** Seconds remaining before pounce can be used again. */
+  pounceCooldownS: number;
 }
 
 // ── Gameplay constants (all tuneable) ────────────────────
@@ -92,3 +104,15 @@ export const HUNTER_SPRINT_MULTIPLIER = 1.6;
 export const HUNTER_EXHAUSTION_COOLDOWN_S = 3.0;
 /** Short feedback animation when a hunter becomes exhausted. */
 export const HUNTER_EXHAUSTED_FEEDBACK_S = 0.55;
+
+/** Hider dash — quick dodge roll. */
+export const HIDER_DASH_DURATION_S = 0.25;
+export const HIDER_DASH_COOLDOWN_S = 2.5;
+export const HIDER_DASH_SPEED_MULTIPLIER = 3.2;
+
+/** Hunter pounce — forward lunge to extend catch range. */
+export const HUNTER_POUNCE_DURATION_S = 0.3;
+export const HUNTER_POUNCE_COOLDOWN_S = 3.0;
+export const HUNTER_POUNCE_SPEED_MULTIPLIER = 2.8;
+export const HUNTER_POUNCE_CATCH_RADIUS = 1.8;
+export const HUNTER_POUNCE_STAMINA_COST = 35;

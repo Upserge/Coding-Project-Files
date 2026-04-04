@@ -1,13 +1,15 @@
-import { Component, inject, computed, signal, effect, input, output } from '@angular/core';
+import { Component, inject, computed, signal, effect, input, output, HostListener } from '@angular/core';
 import { UpperCasePipe } from '@angular/common';
 import { GameLoopService } from '../services/game-loop.service';
 import { HiderService } from '../services/hider.service';
 import { HunterService } from '../services/hunter.service';
+import { SettingsMenuComponent } from '../settings-menu/settings-menu';
+import { GameScoreboardComponent } from '../game-scoreboard/game-scoreboard';
 
 @Component({
   selector: 'app-hud',
   standalone: true,
-  imports: [UpperCasePipe],
+  imports: [UpperCasePipe, SettingsMenuComponent, GameScoreboardComponent],
   templateUrl: './hud.html',
   styleUrl: './hud.css',
 })
@@ -18,6 +20,27 @@ export class HudComponent {
 
   readonly isFullscreen = input(false);
   readonly toggleFullscreenRequested = output<void>();
+  readonly leaveGameRequested = output<void>();
+  readonly showRulesRequested = output<void>();
+
+  protected readonly settingsOpen = signal(false);
+  protected readonly scoreboardVisible = signal(false);
+
+  @HostListener('window:keydown.escape')
+  protected onEscape(): void {
+    this.settingsOpen.update(open => !open);
+  }
+
+  @HostListener('window:keydown.tab', ['$event'])
+  protected onTabDown(event: Event): void {
+    event.preventDefault();
+    this.scoreboardVisible.set(true);
+  }
+
+  @HostListener('window:keyup.tab')
+  protected onTabUp(): void {
+    this.scoreboardVisible.set(false);
+  }
 
   // ── Derived signals for the template ───────────────────────
 
@@ -43,6 +66,13 @@ export class HudComponent {
   protected readonly isHiding = computed(() =>
     this.gameLoop.getLocalHider()?.isHiding ?? false
   );
+  protected readonly dashCooldownPercent = computed(() => {
+    const hider = this.gameLoop.getLocalHider();
+    return hider ? this.hiderService.getDashCooldownPercent(hider) : 0;
+  });
+  protected readonly isDashing = computed(() =>
+    this.gameLoop.getLocalHider()?.isDashing ?? false
+  );
 
   // Hunter-specific
   protected readonly hungerPercent = computed(() => {
@@ -62,6 +92,13 @@ export class HudComponent {
     if (!hunter) return 0;
     return Math.max(0, hunter.exhaustionCooldownS).toFixed(1);
   });
+  protected readonly pounceCooldownPercent = computed(() => {
+    const hunter = this.gameLoop.getLocalHunter();
+    return hunter ? this.hunterService.getPounceCooldownPercent(hunter) : 0;
+  });
+  protected readonly isPouncing = computed(() =>
+    this.gameLoop.getLocalHunter()?.isPouncing ?? false
+  );
 
   // Shared
   protected readonly score = computed(() =>
@@ -93,6 +130,24 @@ export class HudComponent {
 
   protected toggleFullscreen(): void {
     this.toggleFullscreenRequested.emit();
+  }
+
+  protected openSettings(): void {
+    this.settingsOpen.set(true);
+  }
+
+  protected closeSettings(): void {
+    this.settingsOpen.set(false);
+  }
+
+  protected onLeaveGame(): void {
+    this.settingsOpen.set(false);
+    this.leaveGameRequested.emit();
+  }
+
+  protected onShowRules(): void {
+    this.settingsOpen.set(false);
+    this.showRulesRequested.emit();
   }
 
   private triggerCatchFlash(): void {

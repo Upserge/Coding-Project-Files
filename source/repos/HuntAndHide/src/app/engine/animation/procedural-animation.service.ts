@@ -25,6 +25,8 @@ export class ProceduralAnimationService {
     idle: (group, ctx, delta) => this.applyIdle(group, ctx, delta),
     walk: (group, ctx, delta) => this.applyWalk(group, ctx, delta),
     run: (group, ctx, delta) => this.applyRun(group, ctx, delta),
+    dash: (group, ctx, delta) => this.applyDash(group, ctx, delta),
+    pounce: (group, ctx, delta) => this.applyPounce(group, ctx, delta),
     exhausted: (group, ctx, delta) => this.applyExhausted(group, ctx, delta),
     caught: (group, ctx, delta) => this.applyCaught(group, ctx, delta),
     death: (group, ctx, delta) => this.applyDeath(group, ctx, delta),
@@ -71,10 +73,12 @@ export class ProceduralAnimationService {
     isAlive: boolean,
     isCaught = false,
     isExhausted = false,
+    isDashing = false,
+    isPouncing = false,
   ): void {
     const ctx = this.getContext(uid);
     this.prepareFrame(ctx, position, prevPos, delta);
-    const newState = this.resolveState(ctx, isAlive, isCaught, isExhausted);
+    const newState = this.resolveState(ctx, isAlive, isCaught, isExhausted, isDashing, isPouncing);
     this.transitionState(group, ctx, newState);
     ctx.elapsed += delta;
     this.applyState(group, ctx, delta);
@@ -82,9 +86,14 @@ export class ProceduralAnimationService {
 
   // ── State resolution ─────────────────────────────────────
 
-  private resolveState(ctx: AnimationContext, isAlive: boolean, isCaught: boolean, isExhausted: boolean): AnimationState {
-    if (isCaught) return 'caught'; // caught animation takes priority
+  private resolveState(
+    ctx: AnimationContext, isAlive: boolean, isCaught: boolean,
+    isExhausted: boolean, isDashing: boolean, isPouncing: boolean,
+  ): AnimationState {
+    if (isCaught) return 'caught';
     if (!isAlive) return 'death';
+    if (isDashing) return 'dash';
+    if (isPouncing) return 'pounce';
     if (isExhausted) return 'exhausted';
     if (ctx.state === 'caught' && ctx.elapsed < 0.6) return 'caught';
     if (ctx.speed >= ANIM_RUN_THRESHOLD) return 'run';
@@ -216,6 +225,41 @@ export class ProceduralAnimationService {
     this.applyArmSwing(group, Math.cos(ctx.phase), 0.18);
   }
 
+  // ── Dash: quick forward roll — low + fast + spin ─────────
+
+  private applyDash(group: THREE.Group, ctx: AnimationContext, _delta: number): void {
+    const t = Math.min(ctx.elapsed / 0.25, 1);
+    const body = group.getObjectByName(PART_NAMES.body);
+    if (body) {
+      const baseY = (body.userData['baseY'] as number) ?? 0.65;
+      const arc = Math.sin(t * Math.PI) * 0.15;
+      body.position.y = baseY - 0.1 + arc;
+      body.rotation.x = t * Math.PI * 2;
+      body.scale.set(1 + (1 - t) * 0.1, 1 - (1 - t) * 0.15, 1 + (1 - t) * 0.1);
+    }
+    this.applyLegCycle(group, Math.sin(ctx.elapsed * 20), 0.6);
+    this.applyArmSwing(group, Math.cos(ctx.elapsed * 20), 0.5);
+  }
+
+  // ── Pounce: forward lunge — body dips then launches ─────
+
+  private applyPounce(group: THREE.Group, ctx: AnimationContext, _delta: number): void {
+    const t = Math.min(ctx.elapsed / 0.3, 1);
+    const body = group.getObjectByName(PART_NAMES.body);
+    if (body) {
+      const baseY = (body.userData['baseY'] as number) ?? 0.65;
+      const windUp = t < 0.2 ? t / 0.2 : 1;
+      const launch = t >= 0.2 ? (t - 0.2) / 0.8 : 0;
+      body.position.y = baseY - windUp * 0.12 + launch * 0.2;
+      body.rotation.x = 0.3 - launch * 0.15;
+      body.scale.set(1 - windUp * 0.08 + launch * 0.08, 1 + windUp * 0.1 - launch * 0.1, 1);
+    }
+    const head = group.getObjectByName(PART_NAMES.head);
+    if (head) head.rotation.x = t < 0.2 ? -0.15 : 0.1;
+    this.applyLegCycle(group, Math.sin(ctx.elapsed * 16), 0.45);
+    this.applyArmSwing(group, Math.cos(ctx.elapsed * 16), 0.4);
+  }
+
   // ── Caught: pop-up bounce → comedic spin + shrink ─────────
 
   private applyCaught(group: THREE.Group, ctx: AnimationContext, _delta: number): void {
@@ -330,6 +374,7 @@ export class ProceduralAnimationService {
   private resetTerminalTransforms(group: THREE.Group, state: AnimationState): void {
     this.resetCaughtTransform(group, state);
     this.resetDeathTransform(group, state);
+    this.resetDashTransform(group, state);
   }
 
   private resetCaughtTransform(group: THREE.Group, state: AnimationState): void {
@@ -340,6 +385,15 @@ export class ProceduralAnimationService {
   private resetDeathTransform(group: THREE.Group, state: AnimationState): void {
     if (state !== 'death') return;
     group.rotation.z = 0;
+  }
+
+  private resetDashTransform(group: THREE.Group, state: AnimationState): void {
+    if (state !== 'dash') return;
+    const body = group.getObjectByName(PART_NAMES.body);
+    if (body) {
+      body.rotation.x = 0;
+      body.scale.set(1, 1, 1);
+    }
   }
 
   private applyState(group: THREE.Group, ctx: AnimationContext, delta: number): void {
