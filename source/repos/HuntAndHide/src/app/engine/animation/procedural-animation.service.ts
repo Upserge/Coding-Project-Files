@@ -8,7 +8,7 @@ import {
   ANIM_WALK_THRESHOLD,
   ANIM_RUN_THRESHOLD,
 } from '../../models/animation.model';
-import { Vec3 } from '../../models/player.model';
+import { HUNTER_POUNCE_DURATION_S, Vec3 } from '../../models/player.model';
 
 /**
  * Procedural animation service — drives chibi character motion
@@ -241,23 +241,34 @@ export class ProceduralAnimationService {
     this.applyArmSwing(group, Math.cos(ctx.elapsed * 20), 0.5);
   }
 
-  // ── Pounce: forward lunge — body dips then launches ─────
+  // ── Pounce: crouch → spring → slam ───────────────────────
 
   private applyPounce(group: THREE.Group, ctx: AnimationContext, _delta: number): void {
-    const t = Math.min(ctx.elapsed / 0.3, 1);
+    const t = Math.min(ctx.elapsed / HUNTER_POUNCE_DURATION_S, 1);
     const body = group.getObjectByName(PART_NAMES.body);
+    const head = group.getObjectByName(PART_NAMES.head);
+    const tail = group.getObjectByName(PART_NAMES.tail);
+
+    const windUpT = this.normalizePhase(t, 0, 0.26);
+    const leapT = this.normalizePhase(t, 0.26, 0.84);
+    const landT = this.normalizePhase(t, 0.84, 1);
+
     if (body) {
       const baseY = (body.userData['baseY'] as number) ?? 0.65;
-      const windUp = t < 0.2 ? t / 0.2 : 1;
-      const launch = t >= 0.2 ? (t - 0.2) / 0.8 : 0;
-      body.position.y = baseY - windUp * 0.12 + launch * 0.2;
-      body.rotation.x = 0.3 - launch * 0.15;
-      body.scale.set(1 - windUp * 0.08 + launch * 0.08, 1 + windUp * 0.1 - launch * 0.1, 1);
+      body.position.y = this.resolvePounceBodyY(baseY, windUpT, leapT, landT);
+      body.rotation.x = this.resolvePounceBodyPitch(windUpT, leapT, landT);
+      body.scale.set(
+        this.resolvePounceBodyScaleX(windUpT, leapT, landT),
+        this.resolvePounceBodyScaleY(windUpT, leapT, landT),
+        this.resolvePounceBodyScaleZ(windUpT, leapT),
+      );
     }
-    const head = group.getObjectByName(PART_NAMES.head);
-    if (head) head.rotation.x = t < 0.2 ? -0.15 : 0.1;
-    this.applyLegCycle(group, Math.sin(ctx.elapsed * 16), 0.45);
-    this.applyArmSwing(group, Math.cos(ctx.elapsed * 16), 0.4);
+
+    if (head) head.rotation.x = -windUpT * 0.28 + leapT * 0.14 - landT * 0.12;
+    if (tail) tail.rotation.z = -windUpT * 0.14 + leapT * 0.18;
+
+    this.applyLegCycle(group, this.resolvePounceLegPhase(t), this.resolvePounceLegAmplitude(windUpT, leapT, landT));
+    this.applyArmSwing(group, this.resolvePounceArmPhase(t), this.resolvePounceArmAmplitude(windUpT, leapT, landT));
   }
 
   // ── Caught: pop-up bounce → comedic spin + shrink ─────────
@@ -285,6 +296,61 @@ export class ProceduralAnimationService {
       const scale = Math.max(0, 1 - shrinkT);
       group.scale.set(scale, scale, scale);
     }
+  }
+
+  private normalizePhase(t: number, start: number, end: number): number {
+    if (t <= start) return 0;
+    if (t >= end) return 1;
+    return (t - start) / Math.max(end - start, 0.0001);
+  }
+
+  private resolvePounceBodyY(baseY: number, windUpT: number, leapT: number, landT: number): number {
+    if (windUpT < 1) return baseY - windUpT * 0.28;
+    if (leapT < 1) return baseY - 0.28 + Math.sin(leapT * Math.PI) * 0.72;
+    return baseY + (1 - landT) * 0.1;
+  }
+
+  private resolvePounceBodyPitch(windUpT: number, leapT: number, landT: number): number {
+    if (windUpT < 1) return 0.5 * windUpT;
+    if (leapT < 1) return 0.5 - leapT * 0.26;
+    return 0.24 - landT * 0.4;
+  }
+
+  private resolvePounceBodyScaleX(windUpT: number, leapT: number, landT: number): number {
+    if (windUpT < 1) return 1.14 - windUpT * 0.24;
+    if (leapT < 1) return 0.9 + leapT * 0.26;
+    return 1.16 - landT * 0.18;
+  }
+
+  private resolvePounceBodyScaleY(windUpT: number, leapT: number, landT: number): number {
+    if (windUpT < 1) return 0.94 - windUpT * 0.16;
+    if (leapT < 1) return 0.78 + leapT * 0.42;
+    return 1.2 - landT * 0.28;
+  }
+
+  private resolvePounceBodyScaleZ(windUpT: number, leapT: number): number {
+    if (windUpT < 1) return 1.06 + windUpT * 0.12;
+    return 1.18 - leapT * 0.1;
+  }
+
+  private resolvePounceLegPhase(t: number): number {
+    return t < 0.26 ? -1 : t < 0.84 ? 0.55 : Math.cos(t * 24);
+  }
+
+  private resolvePounceLegAmplitude(windUpT: number, leapT: number, landT: number): number {
+    if (windUpT < 1) return 0.16 + windUpT * 0.14;
+    if (leapT < 1) return 0.38 + leapT * 0.16;
+    return 0.54 - landT * 0.34;
+  }
+
+  private resolvePounceArmPhase(t: number): number {
+    return t < 0.26 ? -1 : t < 0.84 ? 1 : Math.sin(t * 20);
+  }
+
+  private resolvePounceArmAmplitude(windUpT: number, leapT: number, landT: number): number {
+    if (windUpT < 1) return 0.14 + windUpT * 0.12;
+    if (leapT < 1) return 0.42 + leapT * 0.12;
+    return 0.54 - landT * 0.26;
   }
 
   // ── Death: fall over sideways ────────────────────────────

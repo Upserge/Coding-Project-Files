@@ -49,7 +49,7 @@ export class HunterService {
     const starved = hungerRemainingMs <= 0;
     const isMoving = movementInput.x !== 0 || movementInput.z !== 0;
 
-    const pounce = this.advancePounce(hunter, delta, wantsPounce, isMoving);
+    const pounce = this.advancePounce(hunter, delta, wantsPounce, isMoving, movementInput);
     const sprint = pounce.isPouncing
       ? this.idleSprintState(hunter)
       : this.resolveSprintState(hunter, delta, wantsSprint, isMoving);
@@ -58,8 +58,9 @@ export class HunterService {
       ? this.getPounceSpeed()
       : this.getSpeed(sprint.isSprinting);
 
-    const newPosition = this.applyMovement(hunter.position, movementInput, speed, delta);
-    const rotation = this.resolveRotation(hunter.rotation, movementInput, isMoving);
+    const lockedInput = pounce.isPouncing ? pounce.direction : movementInput;
+    const newPosition = this.applyMovement(hunter.position, lockedInput, speed, delta);
+    const rotation = this.resolveRotation(hunter.rotation, lockedInput, pounce.isPouncing || isMoving);
 
     const updatedState: HunterState = {
       ...hunter,
@@ -76,6 +77,7 @@ export class HunterService {
       isPouncing: pounce.isPouncing,
       pounceTimeS: pounce.pounceTimeS,
       pounceCooldownS: pounce.pounceCooldownS,
+      pounceDirection: pounce.direction,
     };
 
     return {
@@ -87,27 +89,35 @@ export class HunterService {
   // ── Pounce ───────────────────────────────────────────────────
 
   private advancePounce(
-    hunter: HunterState, delta: number, wantsPounce: boolean, isMoving: boolean,
+    hunter: HunterState, delta: number, wantsPounce: boolean, isMoving: boolean, movementInput: Vec3,
   ): PounceState {
-    if (hunter.isPouncing) return this.continuePounce(hunter.pounceTimeS, delta);
+    if (hunter.isPouncing) return this.continuePounce(hunter.pounceTimeS, delta, hunter.pounceDirection);
     const cooldownS = Math.max(0, hunter.pounceCooldownS - delta);
     if (wantsPounce && cooldownS <= 0 && isMoving && hunter.stamina >= HUNTER_POUNCE_STAMINA_COST) {
-      return this.startPounce();
+      return this.startPounce(movementInput);
     }
-    return { isPouncing: false, pounceTimeS: 0, pounceCooldownS: cooldownS, justTriggered: false, staminaCost: 0 };
+    return {
+      isPouncing: false,
+      pounceTimeS: 0,
+      pounceCooldownS: cooldownS,
+      justTriggered: false,
+      staminaCost: 0,
+      direction: hunter.pounceDirection,
+    };
   }
 
-  private startPounce(): PounceState {
+  private startPounce(movementInput: Vec3): PounceState {
     return {
       isPouncing: true,
       pounceTimeS: HUNTER_POUNCE_DURATION_S,
       pounceCooldownS: HUNTER_POUNCE_COOLDOWN_S,
       justTriggered: true,
       staminaCost: HUNTER_POUNCE_STAMINA_COST,
+      direction: this.normalizeDirection(movementInput),
     };
   }
 
-  private continuePounce(pounceTimeS: number, delta: number): PounceState {
+  private continuePounce(pounceTimeS: number, delta: number, direction: Vec3): PounceState {
     const remaining = pounceTimeS - delta;
     return {
       isPouncing: remaining > 0,
@@ -115,6 +125,7 @@ export class HunterService {
       pounceCooldownS: HUNTER_POUNCE_COOLDOWN_S,
       justTriggered: false,
       staminaCost: 0,
+      direction,
     };
   }
 
@@ -230,6 +241,12 @@ export class HunterService {
     if (!isMoving) return rotation;
     return { ...rotation, y: Math.atan2(input.x, input.z) };
   }
+
+  private normalizeDirection(input: Vec3): Vec3 {
+    const length = Math.sqrt(input.x * input.x + input.z * input.z);
+    if (!length) return { x: 0, y: 0, z: 0 };
+    return { x: input.x / length, y: 0, z: input.z / length };
+  }
 }
 
 interface HunterSprintState {
@@ -245,4 +262,5 @@ interface PounceState {
   pounceCooldownS: number;
   justTriggered: boolean;
   staminaCost: number;
+  direction: Vec3;
 }

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as THREE from 'three';
+import { PART_NAMES } from '../mesh/mesh-helpers';
 
 /**
  * MvpCrownService attaches / detaches floating MVP indicators
@@ -92,16 +93,16 @@ export class MvpCrownService {
       horns.add(glow);
     }
 
-    horns.position.set(0, 2.28, 0);
+    horns.position.set(0, 0.34, 0.02);
     horns.renderOrder = 101;
-    group.add(horns);
+    this.getOrnamentAnchor(group).add(horns);
     this.hornsMap.set(group, horns);
   }
 
   private detachHorns(group: THREE.Group): void {
     const horns = this.hornsMap.get(group);
     if (!horns) return;
-    group.remove(horns);
+    horns.parent?.remove(horns);
     this.hornsMap.delete(group);
   }
 
@@ -124,17 +125,23 @@ export class MvpCrownService {
     glow.rotation.x = Math.PI / 2;
     halo.add(glow);
 
-    halo.position.set(0, 2.2, 0);
+    halo.position.set(0, 0.5, 0);
     halo.renderOrder = 101;
-    group.add(halo);
+    this.getOrnamentAnchor(group).add(halo);
     this.halosMap.set(group, halo);
   }
 
   private detachHalo(group: THREE.Group): void {
     const halo = this.halosMap.get(group);
     if (!halo) return;
-    group.remove(halo);
+    halo.parent?.remove(halo);
     this.halosMap.delete(group);
+  }
+
+  private getOrnamentAnchor(group: THREE.Group): THREE.Object3D {
+    return group.getObjectByName(PART_NAMES.head)
+      ?? group.getObjectByName(PART_NAMES.body)
+      ?? group;
   }
 
   private buildFresnelMaterial(color: number, power: number): THREE.ShaderMaterial {
@@ -186,14 +193,14 @@ export class MvpCrownService {
     if (!group) return;
     const horns = this.hornsMap.get(group);
     if (!horns) return;
-    horns.position.y = 2.28 + Math.sin(this.elapsed * 3.0) * 0.06;
+    horns.position.y = 0.34 + Math.sin(this.elapsed * 3.0) * 0.04;
   }
 
   private animateHalo(group: THREE.Group | undefined): void {
     if (!group) return;
     const halo = this.halosMap.get(group);
     if (!halo) return;
-    halo.position.y = 2.2 + Math.sin(this.elapsed * 2.0) * 0.04;
+    halo.position.y = 0.5 + Math.sin(this.elapsed * 2.0) * 0.04;
   }
 
   // ── Cleanup ───────────────────────────────────────────────

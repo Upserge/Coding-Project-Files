@@ -119,6 +119,7 @@ export class PlayerService {
       isPouncing: false,
       pounceTimeS: 0,
       pounceCooldownS: 0,
+      pounceDirection: { x: 0, y: 0, z: 0 },
     };
   }
 }

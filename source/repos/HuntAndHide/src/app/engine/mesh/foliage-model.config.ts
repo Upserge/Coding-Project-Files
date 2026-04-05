@@ -58,10 +58,23 @@ export const PICNIC_MODEL_DEF: FoliageModelDef = {
   width: 4, depth: 4, height: 2,
 };
 
+// ── Leaf pile ────────────────────────────────────────────────
+
+export const LEAF_PILE_GLB_ENTRIES: GlbEntry[] = [
+  { key: 'leaf_pile', path: 'models/foliage/leaf_pile.glb' },
+];
+
+export const LEAF_PILE_MODEL_DEF: FoliageModelDef = {
+  width: 3.5,
+  depth: 3.5,
+  height: 2,
+};
+
 /** All foliage GLB entries combined for bulk preloading. */
 export const ALL_FOLIAGE_GLB_ENTRIES: GlbEntry[] = [
   ...TREE_GLB_ENTRIES,
   ...BUSH_GLB_ENTRIES,
   ...TENT_GLB_ENTRIES,
   ...PICNIC_GLB_ENTRIES,
+  ...LEAF_PILE_GLB_ENTRIES,
 ];

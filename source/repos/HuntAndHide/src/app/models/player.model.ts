@@ -78,6 +78,8 @@ export interface HunterState extends PlayerState {
   pounceTimeS: number;
   /** Seconds remaining before pounce can be used again. */
   pounceCooldownS: number;
+  /** Locked XZ movement direction captured when the pounce starts. */
+  pounceDirection: Vec3;
 }
 
 // ── Gameplay constants (all tuneable) ────────────────────
@@ -111,8 +113,8 @@ export const HIDER_DASH_COOLDOWN_S = 2.5;
 export const HIDER_DASH_SPEED_MULTIPLIER = 3.2;
 
 /** Hunter pounce — forward lunge to extend catch range. */
-export const HUNTER_POUNCE_DURATION_S = 0.3;
+export const HUNTER_POUNCE_DURATION_S = 0.54;
 export const HUNTER_POUNCE_COOLDOWN_S = 3.0;
-export const HUNTER_POUNCE_SPEED_MULTIPLIER = 2.8;
+export const HUNTER_POUNCE_SPEED_MULTIPLIER = 1.56;
 export const HUNTER_POUNCE_CATCH_RADIUS = 1.8;
 export const HUNTER_POUNCE_STAMINA_COST = 35;

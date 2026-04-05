@@ -194,8 +194,9 @@ export class GameLoopService {
     const movement = this.inputService.getMovementVector();
     const wantsSprint = this.inputService.isSprinting();
     const wantsInteract = this.inputService.consumeInteract();
-    const wantsDash = this.inputService.consumeDash();
-    const wantsPounce = this.inputService.consumePounce();
+    const localHider = this.getLocalHider();
+    const wantsDash = localHider ? this.inputService.consumeDash() : false;
+    const wantsPounce = localHider ? false : this.inputService.consumePounce();
     this.tickRoundTimer(delta);
     this.tickHiders(delta, movement, wantsInteract, wantsDash);
     this.tickHunters(delta, movement, wantsSprint, wantsPounce);

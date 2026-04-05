@@ -91,7 +91,7 @@ export class InputService implements OnDestroy {
     return true;
   }
 
-  /** Consume a one-shot Q press for hunter pounce (returns true once per press). */
+  /** Consume a one-shot Space press for hunter pounce (returns true once per press). */
   consumePounce(): boolean {
     if (!this._pouncePressed) return false;
     this._pouncePressed = false;
@@ -104,7 +104,7 @@ export class InputService implements OnDestroy {
     this.keysDown.add(e.code);
     this._interactPressed ||= e.code === 'KeyF';
     this._dashPressed ||= e.code === 'Space';
-    this._pouncePressed ||= e.code === 'KeyQ';
+    this._pouncePressed ||= e.code === 'Space';
   }
 
   private onKeyUp(e: KeyboardEvent): void {

@@ -1,10 +1,9 @@
 import * as THREE from 'three';
 import { ObstacleType } from '../../../models/map.model';
-import { buildTreeMesh, buildBushMesh, buildTentMesh, buildPicnicSceneMesh } from './foliage.builder';
+import { buildTreeMesh, buildBushMesh, buildTentMesh, buildPicnicSceneMesh, buildLeafPileMesh } from './foliage.builder';
 import { buildRockMesh } from './rock.builder';
 import { buildVehicleMesh } from './vehicle.builder';
 import { buildHoleMesh } from './hole.builder';
-import { buildLeafPileMesh } from './leaf-pile.builder';
 import { buildSafariGearMesh } from './safari-gear.builder';
 
 /** Map-based dispatch — each ObstacleType resolves to a builder function. */

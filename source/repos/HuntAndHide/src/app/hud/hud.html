@@ -69,7 +69,7 @@
         }
       </div>
       <div class="ability-bar-wrapper">
-        <label class="bar-label">{{ isPouncing() ? 'POUNCE!' : 'Pounce [Q]' }}</label>
+        <label class="bar-label">{{ isPouncing() ? 'POUNCE!' : 'Pounce [Space]' }}</label>
         <div class="bar-track">
           <div class="bar-fill pounce-fill instant"
                [style.width.%]="(1 - pounceCooldownPercent()) * 100"

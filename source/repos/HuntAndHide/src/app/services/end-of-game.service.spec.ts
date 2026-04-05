@@ -25,6 +25,7 @@ describe('EndOfGameService', () => {
     hungerRemainingMs: 60000, stamina: 100, isSprinting: false,
     exhaustionCooldownS: 0, exhaustedFeedbackS: 0, kills: 3,
     isPouncing: false, pounceTimeS: 0, pounceCooldownS: 0,
+    pounceDirection: { x: 0, y: 0, z: 0 },
   };
 
   const mockGameLoop = {

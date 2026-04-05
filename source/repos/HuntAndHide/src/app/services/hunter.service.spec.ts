@@ -25,6 +25,7 @@ describe('HunterService', () => {
     hungerRemainingMs: 60000, stamina: HUNTER_STAMINA_MAX, isSprinting: false,
     exhaustionCooldownS: 0, exhaustedFeedbackS: 0, kills: 0,
     isPouncing: false, pounceTimeS: 0, pounceCooldownS: 0,
+    pounceDirection: { x: 0, y: 0, z: 0 },
     ...overrides,
   });
 
@@ -51,6 +52,16 @@ describe('HunterService', () => {
     expect(result.pounceTriggered).toBeTrue();
     expect(state.pounceTimeS).toBeGreaterThan(0);
     expect(state.pounceCooldownS).toBe(HUNTER_POUNCE_COOLDOWN_S);
+    expect(state.pounceDirection).toEqual(FORWARD);
+  });
+
+  it('should keep the original pounce direction for the full pounce', () => {
+    const hunter = makeHunter();
+    const started = service.tick(hunter, 0.016, { x: 1, y: 0, z: 0 }, false, true).state;
+    const continued = service.tick(started, 0.1, { x: 0, y: 0, z: -1 }, false, false).state;
+    expect(continued.pounceDirection).toEqual({ x: 1, y: 0, z: 0 });
+    expect(continued.position.x).toBeGreaterThan(started.position.x);
+    expect(continued.position.z).toBeCloseTo(started.position.z, 5);
   });
 
   it('should drain stamina when pounce starts', () => {
@@ -82,7 +93,12 @@ describe('HunterService', () => {
   });
 
   it('should end pounce when pounceTimeS expires', () => {
-    const hunter = makeHunter({ isPouncing: true, pounceTimeS: 0.05, pounceCooldownS: HUNTER_POUNCE_COOLDOWN_S });
+    const hunter = makeHunter({
+      isPouncing: true,
+      pounceTimeS: 0.05,
+      pounceCooldownS: HUNTER_POUNCE_COOLDOWN_S,
+      pounceDirection: FORWARD,
+    });
     const { state } = service.tick(hunter, 0.1, FORWARD, false);
     expect(state.isPouncing).toBeFalse();
     expect(state.pounceTimeS).toBe(0);

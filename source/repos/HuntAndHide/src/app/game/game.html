@@ -22,17 +22,19 @@
           @if (loadingRole() === 'hider') {
             <p>
               Survive the round! Press <strong>F</strong> to hide inside objects — hunters can't see you.
+              Press <strong>Space</strong> to dash through danger with a quick burst.
               Hiding costs <strong>10 pts</strong> and pauses your survival timer.
               Stay moving to earn <strong>+50 pts</strong> every 30s.
             </p>
           } @else {
             <p>
               Catch hiders before you starve! Each catch earns <strong>+100 pts</strong> and restores 40% hunger.
-              Use <strong>Shift</strong> to sprint. If hunger hits zero, you die and respawn after 3s.
+              Use <strong>Shift</strong> to sprint and <strong>Space</strong> to pounce in a locked direction for a fast lunge.
+              If hunger hits zero, you die and respawn after 3s.
             </p>
           }
           <p class="loading-controls">
-            <strong>WASD</strong> Move · <strong>Shift</strong> Sprint · <strong>F</strong> Hide · <strong>F11</strong> Fullscreen
+            <strong>WASD</strong> Move · <strong>Shift</strong> Sprint · <strong>Space</strong> Ability · <strong>F</strong> Hide · <strong>F11</strong> Fullscreen
           </p>
         </div>
 

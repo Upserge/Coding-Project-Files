@@ -6,6 +6,7 @@ import {
   BUSH_MODEL_DEF, BUSH_VARIANT_KEYS,
   TENT_MODEL_DEF,
   PICNIC_MODEL_DEF,
+  LEAF_PILE_MODEL_DEF,
 } from '../foliage-model.config';
 
 /** Module-level loader reference, set once via initFoliageLoader(). */
@@ -32,6 +33,10 @@ export function buildTentMesh(): THREE.Group {
 
 export function buildPicnicSceneMesh(): THREE.Group {
   return buildFromPool(['picnic_scene'], PICNIC_MODEL_DEF, 0.8, 1.2);
+}
+
+export function buildLeafPileMesh(): THREE.Group {
+  return buildFromPool(['leaf_pile'], LEAF_PILE_MODEL_DEF, 1.0, 1.4);
 }
 
 // ── Shared pipeline ──────────────────────────────────────────
