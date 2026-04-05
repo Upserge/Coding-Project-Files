@@ -376,34 +376,7 @@ export class SceneRenderService {
     );
     cone.name = 'pounce-cone';
 
-    const arrowBody = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.1, 0.14),
-      new THREE.MeshBasicMaterial({
-        color: 0xfff1a8,
-        transparent: true,
-        opacity: 0.85,
-        depthTest: false,
-      }),
-    );
-    arrowBody.name = 'pounce-arrow-body';
-    arrowBody.position.set(0, 0, 0.55);
-
-    const arrowHead = new THREE.Mesh(
-      new THREE.CircleGeometry(0.26, 3),
-      new THREE.MeshBasicMaterial({
-        color: 0xffcc44,
-        transparent: true,
-        opacity: 0.95,
-        depthTest: false,
-      }),
-    );
-    arrowHead.name = 'pounce-arrow-head';
-    arrowHead.position.set(0, 0, 1.03);
-    arrowHead.rotation.z = Math.PI;
-
     wedge.add(cone);
-    wedge.add(arrowBody);
-    wedge.add(arrowHead);
     wedge.renderOrder = 50;
     group.add(wedge);
     return wedge;
@@ -470,15 +443,8 @@ export class SceneRenderService {
   private syncPounceIndicatorOpacity(wedge: THREE.Object3D, landing: number): void {
     wedge.traverse((child: any) => {
       if (!child.material?.opacity) return;
-      const baseOpacity = this.getPounceIndicatorOpacity(child.name);
-      child.material.opacity = Math.min(1, baseOpacity + landing * 0.28);
+      child.material.opacity = Math.min(1, 0.32 + landing * 0.28);
     });
-  }
-
-  private getPounceIndicatorOpacity(name: string): number {
-    if (name === 'pounce-arrow-body') return 0.85;
-    if (name === 'pounce-arrow-head') return 0.95;
-    return 0.32;
   }
 
   private getLandingShockwave(progress: number): number {

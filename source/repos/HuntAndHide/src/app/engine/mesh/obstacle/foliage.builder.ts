@@ -36,7 +36,7 @@ export function buildPicnicSceneMesh(): THREE.Group {
 }
 
 export function buildLeafPileMesh(): THREE.Group {
-  return buildFromPool(['leaf_pile'], LEAF_PILE_MODEL_DEF, 1.0, 1.4);
+  return buildFromPool(['leaf_pile'], LEAF_PILE_MODEL_DEF, 1.6, 1.8);
 }
 
 // ── Shared pipeline ──────────────────────────────────────────

@@ -135,7 +135,7 @@ function getObstacleFootprint(type: ObstacleType): { width: number; depth: numbe
 }
 
 function getObstacleClearance(type: ObstacleType): number {
-  if (type === 'hole') return 0;
+  if (type === 'hole' || type === 'leaf_pile') return 0;
   return isVehicle(type) ? 0.08 : 0.02;
 }
 

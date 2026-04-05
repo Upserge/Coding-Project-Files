@@ -93,7 +93,7 @@ export class MvpCrownService {
       horns.add(glow);
     }
 
-    horns.position.set(0, 0.34, 0.02);
+    horns.position.set(0, 0.44, 0.02);
     horns.renderOrder = 101;
     this.getOrnamentAnchor(group).add(horns);
     this.hornsMap.set(group, horns);
