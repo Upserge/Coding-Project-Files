@@ -21,29 +21,31 @@
 
 /* ===== Base Styles ===== */
 
-html {
-  scroll-behavior: smooth;
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-body {
-  font-family: var(--font-body);
-  background-color: var(--color-void);
-  color: var(--color-mist);
-  min-height: 100vh;
-}
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-void);
+    color: var(--color-mist);
+    min-height: 100vh;
+  }
 
-h1, h2, h3, h4 {
-  font-family: var(--font-display);
-  color: var(--color-ghost-white);
-}
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    color: var(--color-ghost-white);
+  }
 
-a {
-  color: var(--color-ecto-green);
-  transition: color 0.2s ease;
-}
+  a {
+    color: var(--color-ecto-green);
+    transition: color 0.2s ease;
+  }
 
-a:hover {
-  color: var(--color-candle-glow);
+  a:hover {
+    color: var(--color-candle-glow);
+  }
 }
 
 /* ===== Glassmorphism Utility ===== */

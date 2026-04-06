@@ -3,6 +3,7 @@ import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user } from '@angul
 import { Firestore, doc, getDoc, setDoc, Timestamp } from '@angular/fire/firestore';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { AppUser } from '../models/user.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -21,6 +22,10 @@ export class AuthService {
   /** Whether any user is currently signed in */
   readonly isSignedIn = computed(() => !!this.firebaseUser());
 
+  private resolveRole(email: string): 'admin' | 'viewer' {
+    return environment.adminEmails.includes(email) ? 'admin' : 'viewer';
+  }
+
   async signInWithGoogle(): Promise<void> {
     const provider = new GoogleAuthProvider();
     const credential = await signInWithPopup(this.auth, provider);
@@ -28,20 +33,20 @@ export class AuthService {
 
     const userDocRef = doc(this.firestore, `users/${fbUser.uid}`);
     const userSnap = await getDoc(userDocRef);
+    const role = this.resolveRole(fbUser.email ?? '');
 
     if (userSnap.exists()) {
-      // Update last login
       const existingData = userSnap.data() as AppUser;
-      await setDoc(userDocRef, { ...existingData, lastLogin: Timestamp.now() });
-      this.appUser.set({ ...existingData, lastLogin: Timestamp.now() });
+      const updated = { ...existingData, role, lastLogin: Timestamp.now() };
+      await setDoc(userDocRef, updated);
+      this.appUser.set(updated);
     } else {
-      // Create new viewer user
       const newUser: AppUser = {
         uid: fbUser.uid,
         displayName: fbUser.displayName ?? 'Anonymous Ghost',
         email: fbUser.email ?? '',
         photoURL: fbUser.photoURL ?? '',
-        role: 'viewer',
+        role,
         createdAt: Timestamp.now(),
         lastLogin: Timestamp.now(),
       };

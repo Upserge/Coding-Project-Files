@@ -8,4 +8,5 @@ export const environment = {
     messagingSenderId: '773239377928',
     appId: '1:773239377928:web:c9e2c77c70b701debfc1bd',
   },
+  adminEmails: ['jasoncsalas@gmail.com', 'smiles2785@gmail.com'],
 };

@@ -14,9 +14,9 @@ export class AboutComponent {
     { icon: '🎙️', name: 'EVP Recorder' },
     { icon: '🌡️', name: 'Thermal Scanner' },
     { icon: '📡', name: 'EMF Detector' },
-    { icon: '🔦', name: 'UV Flashlight' },
-    { icon: '📸', name: 'Full-Spectrum Camera' },
-    { icon: '🧭', name: 'Spirit Box' },
-    { icon: '💻', name: 'Analysis Software' },
+    { icon: '🪵', name: 'Stake' },
+    { icon: '🧄', name: 'Garlic' },
+    { icon: '⭕', name: 'Anti-Sea-Bear Circle' },
+    { icon: '🩲', name: 'Anti-Sea-Bear Underwear' },
   ];
 }
