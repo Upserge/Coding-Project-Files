@@ -1,0 +1,62 @@
+<section class="mx-auto max-w-5xl px-6 py-12">
+  <h1 class="mb-4 text-center font-display text-5xl text-ghost-white">About Us</h1>
+  <p class="mx-auto mb-12 max-w-2xl text-center text-mist/70">
+    Two curious souls on a mission to explore the unknown and document what goes bump in the night.
+  </p>
+
+  <!-- Team Grid -->
+  <div class="mb-16 grid gap-8 md:grid-cols-2">
+    <!-- Team Member 1 -->
+    <div class="glass p-8 text-center">
+      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-haunt-purple/20 text-4xl">
+        🔦
+      </div>
+      <h3 class="mb-2 font-display text-2xl text-ghost-white">Partner One</h3>
+      <p class="text-sm text-mist/60">Lead Investigator</p>
+      <p class="mt-3 text-mist/70">
+        Armed with night-vision cameras and an unhealthy curiosity, Partner One leads our expeditions into the unknown.
+      </p>
+    </div>
+
+    <!-- Team Member 2 -->
+    <div class="glass p-8 text-center">
+      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-ecto-green/20 text-4xl">
+        📸
+      </div>
+      <h3 class="mb-2 font-display text-2xl text-ghost-white">Partner Two</h3>
+      <p class="text-sm text-mist/60">Evidence Specialist</p>
+      <p class="mt-3 text-mist/70">
+        If there's something strange in the footage, Partner Two will find it, enhance it, and share it with the world.
+      </p>
+    </div>
+  </div>
+
+  <!-- Mission -->
+  <div class="glass mb-16 p-8">
+    <h2 class="mb-4 font-display text-3xl text-ghost-white">Our Mission 🎯</h2>
+    <p class="mb-4 text-mist/70">
+      We're not trying to prove or disprove anything. We're just two friends who find the paranormal
+      fascinating and want to share our experiences with the people we care about.
+    </p>
+    <p class="text-mist/70">
+      Every adventure is documented here — the creepy, the unexplainable, and sometimes the
+      hilariously mundane. We bring cameras, audio recorders, and open minds to every investigation.
+    </p>
+  </div>
+
+  <!-- Equipment -->
+  <div class="mb-16">
+    <h2 class="mb-6 text-center font-display text-3xl text-ghost-white">Our Toolkit 🛠️</h2>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      @for (item of equipment; track item.name) {
+        <div class="glass p-4 text-center">
+          <span class="mb-2 block text-2xl">{{ item.icon }}</span>
+          <p class="text-sm font-medium text-ghost-white">{{ item.name }}</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Subscribe -->
+  <app-subscribe-form />
+</section>

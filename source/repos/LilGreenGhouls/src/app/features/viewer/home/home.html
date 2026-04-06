@@ -1,0 +1,53 @@
+<!-- Hero Section -->
+<section class="hero-section relative flex min-h-[80vh] items-center justify-center overflow-hidden px-6">
+  <!-- Fog overlay -->
+  <div class="fog-layer"></div>
+
+  <div class="relative z-10 text-center">
+    <h1 class="mb-4 font-display text-6xl tracking-wider text-ghost-white md:text-8xl">
+      LilGreenGhouls
+    </h1>
+    <p class="mx-auto mb-8 max-w-xl text-lg text-mist/80">
+      Documenting the unexplained. Join us as we explore haunted locations,
+      capture evidence, and share our paranormal encounters.
+    </p>
+    <div class="flex justify-center gap-4">
+      <a routerLink="/adventures"
+         class="glow-green rounded-lg bg-ecto-green px-8 py-3 font-semibold text-void no-underline transition-all hover:bg-candle-glow hover:scale-105">
+        Explore Adventures
+      </a>
+      <a routerLink="/about"
+         class="rounded-lg border border-haunt-purple px-8 py-3 text-haunt-purple no-underline transition-all hover:bg-haunt-purple hover:text-ghost-white">
+        Meet the Team
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Recent Adventures -->
+<section class="mx-auto max-w-7xl px-6 py-16">
+  <h2 class="mb-8 text-center font-display text-4xl text-ghost-white">
+    Recent Encounters
+  </h2>
+
+  @if (recentPosts().length) {
+    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      @for (post of recentPosts(); track post.id) {
+        <app-post-card [post]="post" />
+      }
+    </div>
+    <div class="mt-8 text-center">
+      <a routerLink="/adventures"
+         class="text-ecto-green transition-colors hover:text-candle-glow">
+        View All Adventures →
+      </a>
+    </div>
+  } @else {
+    <p class="text-center text-mist/50">No adventures yet... but something is stirring. 👻</p>
+  }
+</section>
+
+<!-- Subscribe CTA -->
+<section class="px-6 py-16">
+  <app-subscribe-form />
+</section>

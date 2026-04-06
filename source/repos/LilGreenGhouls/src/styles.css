@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+/* ===== LilGreenGhouls Custom Theme ===== */
+
+@theme {
+  /* Core palette */
+  --color-void: #0d0d1a;
+  --color-shadow: #1a1a2e;
+  --color-phantom: #16213e;
+  --color-mist: #e0e0e0;
+  --color-ghost-white: #f5f5f5;
+  --color-ecto-green: #00ff88;
+  --color-haunt-purple: #7b2ff7;
+  --color-blood-red: #ff4444;
+  --color-candle-glow: #ffaa00;
+
+  /* Font families */
+  --font-display: 'Creepster', cursive;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* ===== Base Styles ===== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-void);
+  color: var(--color-mist);
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--color-ghost-white);
+}
+
+a {
+  color: var(--color-ecto-green);
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-candle-glow);
+}
+
+/* ===== Glassmorphism Utility ===== */
+
+.glass {
+  background: rgba(26, 26, 46, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(123, 47, 247, 0.2);
+  border-radius: 1rem;
+}
+
+/* ===== Glow Effects ===== */
+
+.glow-green {
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.3), 0 0 30px rgba(0, 255, 136, 0.1);
+}
+
+.glow-purple {
+  box-shadow: 0 0 15px rgba(123, 47, 247, 0.3), 0 0 30px rgba(123, 47, 247, 0.1);
+}
+
+/* ===== Scrollbar Styling ===== */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-void);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-haunt-purple);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ecto-green);
+}

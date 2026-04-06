@@ -1,0 +1,62 @@
+<div>
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="font-display text-3xl text-ghost-white">Manage Posts</h1>
+    <a routerLink="/admin/posts/new"
+       class="glow-green rounded-lg bg-ecto-green px-4 py-2 text-sm font-semibold text-void no-underline hover:bg-candle-glow">
+      ✍️ New Post
+    </a>
+  </div>
+
+  @if (posts().length) {
+    <div class="overflow-x-auto rounded-xl border border-haunt-purple/20">
+      <table class="w-full text-left">
+        <thead class="border-b border-haunt-purple/20 bg-shadow">
+          <tr>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Title</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Status</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Date</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (post of posts(); track post.id) {
+            <tr class="border-b border-haunt-purple/10 transition-colors hover:bg-phantom/30">
+              <td class="px-4 py-3 text-ghost-white">{{ post.title }}</td>
+              <td class="px-4 py-3">
+                <button (click)="toggleStatus(post)"
+                        [class]="post.status === 'published' ? 'bg-ecto-green/20 text-ecto-green' : 'bg-candle-glow/20 text-candle-glow'"
+                        class="rounded-full px-3 py-1 text-xs font-medium transition-colors hover:opacity-80">
+                  {{ post.status }}
+                </button>
+              </td>
+              <td class="px-4 py-3 text-sm text-mist/50">
+                {{ post.updatedAt.toDate() | date:'medium' }}
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex gap-2">
+                  <a [routerLink]="['/admin/posts', post.id, 'edit']"
+                     class="rounded-lg bg-haunt-purple/20 px-3 py-1 text-sm text-haunt-purple no-underline hover:bg-haunt-purple hover:text-ghost-white">
+                    Edit
+                  </a>
+                  <button (click)="deletePost(post.id!)"
+                          class="rounded-lg bg-blood-red/20 px-3 py-1 text-sm text-blood-red hover:bg-blood-red hover:text-ghost-white">
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="glass p-12 text-center">
+      <p class="mb-4 font-display text-2xl text-ghost-white">No posts yet 👻</p>
+      <p class="mb-6 text-mist/60">Time to document your first paranormal adventure!</p>
+      <a routerLink="/admin/posts/new"
+         class="glow-green inline-block rounded-lg bg-ecto-green px-6 py-3 font-semibold text-void no-underline hover:bg-candle-glow">
+        Create Your First Post
+      </a>
+    </div>
+  }
+</div>

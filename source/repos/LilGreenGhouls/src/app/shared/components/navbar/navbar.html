@@ -1,0 +1,75 @@
+<nav class="glass sticky top-0 z-50 px-6 py-3">
+  <div class="mx-auto flex max-w-7xl items-center justify-between">
+    <!-- Logo -->
+    <a routerLink="/" class="font-display text-2xl tracking-wider text-ghost-white no-underline hover:text-ecto-green">
+      👻 LilGreenGhouls
+    </a>
+
+    <!-- Desktop Nav -->
+    <div class="hidden items-center gap-6 md:flex">
+      <a routerLink="/" routerLinkActive="text-ecto-green" [routerLinkActiveOptions]="{ exact: true }"
+         class="text-mist transition-colors hover:text-ecto-green">Home</a>
+      <a routerLink="/adventures" routerLinkActive="text-ecto-green"
+         class="text-mist transition-colors hover:text-ecto-green">Adventures</a>
+      <a routerLink="/about" routerLinkActive="text-ecto-green"
+         class="text-mist transition-colors hover:text-ecto-green">About</a>
+
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin" routerLinkActive="text-haunt-purple"
+           class="text-candle-glow transition-colors hover:text-haunt-purple">Admin</a>
+      }
+
+      @if (auth.isSignedIn()) {
+        <div class="flex items-center gap-3">
+          <img [src]="auth.appUser()?.photoURL" [alt]="auth.appUser()?.displayName"
+               class="h-8 w-8 rounded-full border border-haunt-purple" />
+          <button (click)="signOut()"
+                  class="rounded-lg border border-blood-red px-3 py-1 text-sm text-blood-red transition-colors hover:bg-blood-red hover:text-ghost-white">
+            Sign Out
+          </button>
+        </div>
+      } @else {
+        <button (click)="signIn()"
+                class="glow-green rounded-lg bg-ecto-green px-4 py-2 text-sm font-semibold text-void transition-all hover:bg-candle-glow">
+          Sign In
+        </button>
+      }
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button (click)="toggleMobileMenu()" class="text-mist md:hidden">
+      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        @if (mobileMenuOpen) {
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        } @else {
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        }
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile Nav -->
+  @if (mobileMenuOpen) {
+    <div class="mt-4 flex flex-col gap-4 border-t border-haunt-purple/30 pt-4 md:hidden">
+      <a routerLink="/" (click)="toggleMobileMenu()" class="text-mist hover:text-ecto-green">Home</a>
+      <a routerLink="/adventures" (click)="toggleMobileMenu()" class="text-mist hover:text-ecto-green">Adventures</a>
+      <a routerLink="/about" (click)="toggleMobileMenu()" class="text-mist hover:text-ecto-green">About</a>
+
+      @if (auth.isAdmin()) {
+        <a routerLink="/admin" (click)="toggleMobileMenu()" class="text-candle-glow hover:text-haunt-purple">Admin</a>
+      }
+
+      @if (auth.isSignedIn()) {
+        <button (click)="signOut()"
+                class="w-fit rounded-lg border border-blood-red px-3 py-1 text-sm text-blood-red hover:bg-blood-red hover:text-ghost-white">
+          Sign Out
+        </button>
+      } @else {
+        <button (click)="signIn()"
+                class="w-fit rounded-lg bg-ecto-green px-4 py-2 text-sm font-semibold text-void hover:bg-candle-glow">
+          Sign In
+        </button>
+      }
+    </div>
+  }
+</nav>

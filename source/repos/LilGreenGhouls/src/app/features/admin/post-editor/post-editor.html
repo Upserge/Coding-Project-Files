@@ -1,0 +1,143 @@
+<div class="mx-auto max-w-4xl">
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="font-display text-3xl text-ghost-white">
+      @if (isEditing()) { Edit Post } @else { New Post }
+    </h1>
+    <a routerLink="/admin/posts" class="text-sm text-mist/60 hover:text-ecto-green">← Back to Posts</a>
+  </div>
+
+  <form (ngSubmit)="savePost()" class="space-y-6">
+    <!-- Title -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">Title</label>
+      <input type="text" [(ngModel)]="title" name="title" required
+             class="w-full rounded-lg border border-haunt-purple/30 bg-void px-4 py-3 text-lg text-ghost-white outline-none focus:border-ecto-green"
+             placeholder="The Haunting of..." />
+    </div>
+
+    <!-- Excerpt -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">Excerpt</label>
+      <textarea [(ngModel)]="excerpt" name="excerpt" rows="2"
+                class="w-full rounded-lg border border-haunt-purple/30 bg-void px-4 py-3 text-mist outline-none focus:border-ecto-green"
+                placeholder="A brief summary for preview cards..."></textarea>
+    </div>
+
+    <!-- Content (plain textarea for MVP — Quill integration in Phase 2) -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">Content (HTML supported)</label>
+      <textarea [(ngModel)]="content" name="content" rows="15"
+                class="w-full rounded-lg border border-haunt-purple/30 bg-void px-4 py-3 font-mono text-sm text-mist outline-none focus:border-ecto-green"
+                placeholder="Write your adventure here... HTML tags are supported."></textarea>
+    </div>
+
+    <!-- Cover Image -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">Cover Image</label>
+      <input type="file" accept="image/*" (change)="onCoverImageUpload($event)"
+             class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple" />
+      @if (coverImageUrl) {
+        <img [src]="coverImageUrl" alt="Cover preview" class="mt-2 h-32 rounded-lg object-cover" />
+      }
+    </div>
+
+    <!-- Additional Media -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">Additional Photos/Media</label>
+      <input type="file" accept="image/*,video/*" multiple (change)="onMediaUpload($event)"
+             class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple" />
+      @if (mediaUrls().length) {
+        <div class="mt-2 flex flex-wrap gap-2">
+          @for (url of mediaUrls(); track url; let i = $index) {
+            <div class="group relative">
+              <img [src]="url" alt="Media" class="h-20 w-20 rounded-lg object-cover" />
+              <button type="button" (click)="removeMediaUrl(i)"
+                      class="absolute -right-1 -top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-blood-red text-xs text-white group-hover:flex">
+                ×
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- YouTube Embeds -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">YouTube Videos</label>
+      <div class="flex gap-2">
+        <input type="text" [(ngModel)]="youtubeInput" name="youtubeInput"
+               class="flex-1 rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-mist outline-none focus:border-ecto-green"
+               placeholder="YouTube URL or video ID" />
+        <button type="button" (click)="addYoutubeEmbed()"
+                class="rounded-lg bg-haunt-purple/20 px-4 py-2 text-haunt-purple hover:bg-haunt-purple hover:text-ghost-white">
+          Add
+        </button>
+      </div>
+      @if (youtubeEmbeds().length) {
+        <div class="mt-2 flex flex-wrap gap-2">
+          @for (id of youtubeEmbeds(); track id; let i = $index) {
+            <span class="flex items-center gap-1 rounded-full bg-phantom px-3 py-1 text-sm text-mist">
+              🎬 {{ id }}
+              <button type="button" (click)="removeYoutubeEmbed(i)" class="ml-1 text-blood-red">×</button>
+            </span>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- External Links -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">External Links</label>
+      <div class="flex gap-2">
+        <input type="text" [(ngModel)]="newLinkLabel" name="newLinkLabel"
+               class="rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-mist outline-none focus:border-ecto-green"
+               placeholder="Label" />
+        <input type="url" [(ngModel)]="newLinkUrl" name="newLinkUrl"
+               class="flex-1 rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-mist outline-none focus:border-ecto-green"
+               placeholder="https://..." />
+        <button type="button" (click)="addExternalLink()"
+                class="rounded-lg bg-haunt-purple/20 px-4 py-2 text-haunt-purple hover:bg-haunt-purple hover:text-ghost-white">
+          Add
+        </button>
+      </div>
+      @if (externalLinks().length) {
+        <div class="mt-2 flex flex-col gap-1">
+          @for (link of externalLinks(); track link.url; let i = $index) {
+            <div class="flex items-center gap-2 rounded-lg bg-phantom px-3 py-2 text-sm">
+              <span class="text-ecto-green">🔗 {{ link.label }}</span>
+              <span class="text-mist/50">{{ link.url }}</span>
+              <button type="button" (click)="removeExternalLink(i)" class="ml-auto text-blood-red">×</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Tags -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">Tags (comma-separated)</label>
+      <input type="text" [(ngModel)]="tagsInput" name="tags"
+             class="w-full rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-mist outline-none focus:border-ecto-green"
+             placeholder="EVP, haunted-house, apparition" />
+    </div>
+
+    <!-- Status & Submit -->
+    <div class="flex items-center justify-between border-t border-haunt-purple/20 pt-6">
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-2 text-sm text-mist">
+          <input type="radio" [(ngModel)]="status" name="status" value="draft" class="accent-candle-glow" />
+          Draft
+        </label>
+        <label class="flex items-center gap-2 text-sm text-mist">
+          <input type="radio" [(ngModel)]="status" name="status" value="published" class="accent-ecto-green" />
+          Publish
+        </label>
+      </div>
+
+      <button type="submit" [disabled]="saving()"
+              class="glow-green rounded-lg bg-ecto-green px-8 py-3 font-semibold text-void transition-all hover:bg-candle-glow disabled:opacity-50">
+        @if (saving()) { Saving... } @else if (isEditing()) { Update Post } @else { Create Post }
+      </button>
+    </div>
+  </form>
+</div>

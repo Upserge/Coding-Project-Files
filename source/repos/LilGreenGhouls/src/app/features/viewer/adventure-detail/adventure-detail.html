@@ -1,0 +1,100 @@
+@if (loading()) {
+  <div class="flex min-h-[60vh] items-center justify-center">
+    <div class="h-12 w-12 animate-spin rounded-full border-4 border-haunt-purple border-t-ecto-green"></div>
+  </div>
+} @else if (post(); as p) {
+  <article class="mx-auto max-w-4xl px-6 py-12">
+    <!-- Back Link -->
+    <a routerLink="/adventures" class="mb-6 inline-block text-sm text-mist/60 hover:text-ecto-green">
+      ← Back to Adventures
+    </a>
+
+    <!-- Cover Image -->
+    @if (p.coverImageUrl) {
+      <div class="mb-8 overflow-hidden rounded-2xl">
+        <img [src]="p.coverImageUrl" [alt]="p.title" class="w-full object-cover" />
+      </div>
+    }
+
+    <!-- Header -->
+    <header class="mb-8">
+      <!-- Tags -->
+      @if (p.tags.length) {
+        <div class="mb-3 flex flex-wrap gap-2">
+          @for (tag of p.tags; track tag) {
+            <span class="rounded-full bg-haunt-purple/20 px-3 py-1 text-xs text-haunt-purple">{{ tag }}</span>
+          }
+        </div>
+      }
+
+      <h1 class="mb-4 font-display text-5xl leading-tight text-ghost-white">{{ p.title }}</h1>
+
+      <div class="flex items-center gap-4 text-sm text-mist/60">
+        <span>By {{ p.authorName }}</span>
+        @if (p.publishedAt) {
+          <span>{{ p.publishedAt.toDate() | date:'longDate' }}</span>
+        }
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="prose-content mb-12" [innerHTML]="p.content"></div>
+
+    <!-- YouTube Embeds -->
+    @if (p.youtubeEmbeds.length) {
+      <section class="mb-12">
+        <h2 class="mb-4 font-display text-2xl text-ghost-white">Video Evidence 📹</h2>
+        <div class="grid gap-4 md:grid-cols-2">
+          @for (videoId of p.youtubeEmbeds; track videoId) {
+            <div class="aspect-video overflow-hidden rounded-xl">
+              <iframe [src]="'https://www.youtube.com/embed/' + videoId"
+                      class="h-full w-full" frameborder="0" allowfullscreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+              </iframe>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Media Gallery -->
+    @if (p.mediaUrls.length) {
+      <section class="mb-12">
+        <h2 class="mb-4 font-display text-2xl text-ghost-white">Photo Evidence 📸</h2>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          @for (url of p.mediaUrls; track url) {
+            <div class="overflow-hidden rounded-xl">
+              <img [src]="url" alt="Evidence photo"
+                   class="w-full object-cover transition-transform duration-300 hover:scale-105" />
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- External Links -->
+    @if (p.externalLinks.length) {
+      <section class="mb-12">
+        <h2 class="mb-4 font-display text-2xl text-ghost-white">Related Links 🔗</h2>
+        <div class="flex flex-col gap-2">
+          @for (link of p.externalLinks; track link.url) {
+            <a [href]="link.url" target="_blank" rel="noopener noreferrer"
+               class="glass inline-flex items-center gap-2 px-4 py-3 text-ecto-green no-underline transition-colors hover:text-candle-glow">
+              🔗 {{ link.label }}
+            </a>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Subscribe -->
+    <section class="py-8">
+      <app-subscribe-form />
+    </section>
+  </article>
+} @else {
+  <div class="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+    <p class="font-display text-4xl text-ghost-white">404 — Ghost Not Found 👻</p>
+    <a routerLink="/adventures" class="text-ecto-green hover:text-candle-glow">Back to Adventures</a>
+  </div>
+}

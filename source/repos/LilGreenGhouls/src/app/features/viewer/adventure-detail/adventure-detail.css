@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+/* Basic rich-text content styling */
+.prose-content {
+  color: var(--color-mist);
+  line-height: 1.8;
+}
+
+.prose-content h2 {
+  font-family: var(--font-display);
+  color: var(--color-ghost-white);
+  font-size: 1.75rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.prose-content h3 {
+  font-family: var(--font-display);
+  color: var(--color-ghost-white);
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-content p {
+  margin-bottom: 1rem;
+}
+
+.prose-content img {
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.prose-content a {
+  color: var(--color-ecto-green);
+}
+
+.prose-content blockquote {
+  border-left: 3px solid var(--color-haunt-purple);
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: rgba(224, 224, 224, 0.7);
+  font-style: italic;
+}

@@ -1,0 +1,44 @@
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-64 border-r border-haunt-purple/20 bg-shadow p-6">
+    <a routerLink="/" class="mb-8 block font-display text-xl text-ghost-white no-underline hover:text-ecto-green">
+      👻 LilGreenGhouls
+    </a>
+
+    <nav class="flex flex-col gap-2">
+      <a routerLink="/admin" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="bg-haunt-purple/20 text-ecto-green"
+         class="rounded-lg px-4 py-2 text-mist transition-colors hover:bg-haunt-purple/10 hover:text-ecto-green">
+        📊 Dashboard
+      </a>
+      <a routerLink="/admin/posts" routerLinkActive="bg-haunt-purple/20 text-ecto-green"
+         class="rounded-lg px-4 py-2 text-mist transition-colors hover:bg-haunt-purple/10 hover:text-ecto-green">
+        📝 Posts
+      </a>
+      <a routerLink="/admin/posts/new" routerLinkActive="bg-haunt-purple/20 text-ecto-green"
+         class="rounded-lg px-4 py-2 text-mist transition-colors hover:bg-haunt-purple/10 hover:text-ecto-green">
+        ✍️ New Post
+      </a>
+      <a routerLink="/admin/subscribers" routerLinkActive="bg-haunt-purple/20 text-ecto-green"
+         class="rounded-lg px-4 py-2 text-mist transition-colors hover:bg-haunt-purple/10 hover:text-ecto-green">
+        📬 Subscribers
+      </a>
+    </nav>
+
+    <div class="mt-auto pt-8">
+      <a routerLink="/" class="text-sm text-mist/60 hover:text-ecto-green">← Back to Site</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1 overflow-y-auto p-8">
+    <div class="mb-6 flex items-center justify-between">
+      <div></div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-mist/60">{{ auth.appUser()?.displayName }}</span>
+        <img [src]="auth.appUser()?.photoURL" [alt]="auth.appUser()?.displayName"
+             class="h-8 w-8 rounded-full border border-haunt-purple" />
+      </div>
+    </div>
+    <router-outlet />
+  </div>
+</div>

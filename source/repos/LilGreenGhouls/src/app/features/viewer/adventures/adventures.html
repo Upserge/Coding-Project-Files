@@ -1,0 +1,33 @@
+<section class="mx-auto max-w-7xl px-6 py-12">
+  <h1 class="mb-2 text-center font-display text-5xl text-ghost-white">Adventures</h1>
+  <p class="mb-8 text-center text-mist/60">Browse our paranormal encounters</p>
+
+  <!-- Tag Filter -->
+  @if (allTags().length) {
+    <div class="mb-8 flex flex-wrap justify-center gap-2">
+      <button (click)="filterByTag(null)"
+              [class]="selectedTag() === null ? 'bg-ecto-green text-void' : 'bg-haunt-purple/20 text-haunt-purple'"
+              class="rounded-full px-4 py-1.5 text-sm transition-colors hover:bg-ecto-green hover:text-void">
+        All
+      </button>
+      @for (tag of allTags(); track tag) {
+        <button (click)="filterByTag(tag)"
+                [class]="selectedTag() === tag ? 'bg-ecto-green text-void' : 'bg-haunt-purple/20 text-haunt-purple'"
+                class="rounded-full px-4 py-1.5 text-sm transition-colors hover:bg-ecto-green hover:text-void">
+          {{ tag }}
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Posts Grid -->
+  @if (filteredPosts.length) {
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      @for (post of filteredPosts; track post.id) {
+        <app-post-card [post]="post" />
+      }
+    </div>
+  } @else {
+    <p class="py-16 text-center text-mist/50">No adventures found in this dimension... yet. 🔮</p>
+  }
+</section>

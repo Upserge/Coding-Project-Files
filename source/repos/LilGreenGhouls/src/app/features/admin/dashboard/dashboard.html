@@ -1,0 +1,35 @@
+<div>
+  <h1 class="mb-8 font-display text-4xl text-ghost-white">Dashboard</h1>
+
+  <!-- Stats Grid -->
+  <div class="mb-12 grid gap-6 md:grid-cols-3">
+    <div class="glass p-6">
+      <p class="text-sm text-mist/60">Published Posts</p>
+      <p class="font-display text-4xl text-ecto-green">{{ publishedCount() }}</p>
+    </div>
+    <div class="glass p-6">
+      <p class="text-sm text-mist/60">Drafts</p>
+      <p class="font-display text-4xl text-candle-glow">{{ draftCount() }}</p>
+    </div>
+    <div class="glass p-6">
+      <p class="text-sm text-mist/60">Subscribers</p>
+      <p class="font-display text-4xl text-haunt-purple">{{ subscriberCount() }}</p>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="flex gap-4">
+    <a routerLink="/admin/posts/new"
+       class="glow-green rounded-lg bg-ecto-green px-6 py-3 font-semibold text-void no-underline transition-all hover:bg-candle-glow">
+      ✍️ New Post
+    </a>
+    <a routerLink="/admin/posts"
+       class="rounded-lg border border-haunt-purple px-6 py-3 text-haunt-purple no-underline transition-all hover:bg-haunt-purple hover:text-ghost-white">
+      📝 Manage Posts
+    </a>
+    <a routerLink="/admin/subscribers"
+       class="rounded-lg border border-mist/30 px-6 py-3 text-mist no-underline transition-all hover:bg-mist/10">
+      📬 View Subscribers
+    </a>
+  </div>
+</div>

@@ -1,0 +1,51 @@
+<div>
+  <h1 class="mb-6 font-display text-3xl text-ghost-white">Subscribers</h1>
+
+  @if (subscribers().length) {
+    <div class="mb-4 text-sm text-mist/60">
+      {{ subscribers().length }} subscriber(s)
+    </div>
+
+    <div class="overflow-x-auto rounded-xl border border-haunt-purple/20">
+      <table class="w-full text-left">
+        <thead class="border-b border-haunt-purple/20 bg-shadow">
+          <tr>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Email</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Name</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Subscribed</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Status</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (sub of subscribers(); track sub.id) {
+            <tr class="border-b border-haunt-purple/10 transition-colors hover:bg-phantom/30">
+              <td class="px-4 py-3 text-ghost-white">{{ sub.email }}</td>
+              <td class="px-4 py-3 text-mist/70">{{ sub.displayName ?? '—' }}</td>
+              <td class="px-4 py-3 text-sm text-mist/50">
+                {{ sub.subscribedAt.toDate() | date:'mediumDate' }}
+              </td>
+              <td class="px-4 py-3">
+                <span [class]="sub.active ? 'bg-ecto-green/20 text-ecto-green' : 'bg-blood-red/20 text-blood-red'"
+                      class="rounded-full px-3 py-1 text-xs font-medium">
+                  {{ sub.active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="px-4 py-3">
+                <button (click)="removeSubscriber(sub.id!)"
+                        class="rounded-lg bg-blood-red/20 px-3 py-1 text-sm text-blood-red hover:bg-blood-red hover:text-ghost-white">
+                  Remove
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="glass p-12 text-center">
+      <p class="mb-4 font-display text-2xl text-ghost-white">No subscribers yet 📬</p>
+      <p class="text-mist/60">Share your site with friends and family to start building your audience!</p>
+    </div>
+  }
+</div>
