@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { FooterComponent } from '../footer/footer';
 
 @Component({
   selector: 'app-stats-bar',
@@ -7,10 +8,11 @@ import { Component } from '@angular/core';
   styleUrl: './stats-bar.css',
 })
 export class StatsBarComponent {
+
   readonly stats = [
     { value: '12+', label: 'Investigations', icon: '🔦' },
     { value: '200+', label: 'Photos Captured', icon: '📸' },
-    { value: '48+', label: 'Hours in the Dark', icon: '🌙' },
+    { value: '9', label: 'Bangers penned', icon: '🌙' },
     { value: '8', label: 'Locations Explored', icon: '🏚️' },
   ];
 }
