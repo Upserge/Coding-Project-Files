@@ -1,31 +1,35 @@
-<div class="glass mx-auto max-w-md p-6 text-center">
-  <h3 class="mb-2 font-display text-2xl text-ghost-white">Stay Haunted 👻</h3>
-  <p class="mb-4 text-sm text-mist/70">Subscribe to get notified when we post new paranormal adventures.</p>
+<div class="glass mx-auto max-w-md p-8 text-center">
+  <span class="mb-3 block text-3xl">👻</span>
+  <h3 class="mb-1 font-display text-2xl text-ghost-white">Stay Haunted</h3>
+  <p class="mb-6 text-sm text-mist/50">We'll only email you when something truly spooky happens. No séance required.</p>
 
   @switch (status()) {
     @case ('success') {
-      <div class="rounded-lg bg-ecto-green/10 p-4 text-ecto-green">
-        ✅ You're in! Watch your inbox for spooky updates.
+      <div class="fade-in-up rounded-xl border border-ecto-green/30 bg-ecto-green/10 p-6">
+        <span class="mb-2 block text-3xl">🎉</span>
+        <p class="font-display text-lg text-ecto-green">You're in the circle!</p>
+        <p class="mt-1 text-sm text-mist/60">Watch your inbox for spooky dispatches.</p>
       </div>
     }
     @case ('error') {
-      <div class="mb-4 rounded-lg bg-blood-red/10 p-3 text-sm text-blood-red">
-        Something went wrong. Please try again.
+      <div class="fade-in-up mb-4 rounded-xl border border-blood-red/30 bg-blood-red/10 p-4">
+        <p class="text-sm text-blood-red">👻 The spirits interfered. Please try again.</p>
       </div>
     }
     @default {
       <form (ngSubmit)="subscribe()" class="flex gap-2">
         <input type="email" [(ngModel)]="email" name="email" placeholder="your@email.com" required
-               class="flex-1 rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-mist outline-none transition-colors placeholder:text-mist/30 focus:border-ecto-green" />
+               class="flex-1 rounded-lg border border-haunt-purple/30 bg-void px-4 py-2.5 text-mist outline-none transition-all duration-300 placeholder:text-mist/30 focus:border-ecto-green focus:shadow-[0_0_15px_rgba(0,255,136,0.15)]" />
         <button type="submit" [disabled]="status() === 'loading'"
-                class="glow-green rounded-lg bg-ecto-green px-6 py-2 font-semibold text-void transition-all hover:bg-candle-glow disabled:opacity-50">
+                class="pulse-glow rounded-lg bg-ecto-green px-6 py-2.5 font-semibold text-void transition-all hover:bg-candle-glow disabled:opacity-50 disabled:animate-none">
           @if (status() === 'loading') {
-            ...
+            <span class="inline-block animate-spin">👻</span>
           } @else {
             Subscribe
           }
         </button>
       </form>
+      <p class="mt-3 text-xs text-mist/30">No spam. Unsubscribe anytime. We pinky-promise.</p>
     }
   }
 </div>

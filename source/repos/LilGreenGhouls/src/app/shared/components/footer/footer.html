@@ -1,16 +1,44 @@
-<footer class="mt-auto border-t border-haunt-purple/20 bg-shadow px-6 py-8">
-  <div class="mx-auto flex max-w-7xl flex-col items-center gap-4 md:flex-row md:justify-between">
-    <div class="text-center md:text-left">
-      <p class="font-display text-lg text-ghost-white">👻 Lil Green Ghouls</p>
-      <p class="text-sm text-mist/60">Documenting the unexplained, one adventure at a time.</p>
+<footer class="mt-auto border-t border-haunt-purple/20 bg-shadow px-6 py-12">
+  <div class="mx-auto max-w-7xl">
+    <!-- Top row: brand + nav columns -->
+    <div class="grid gap-8 md:grid-cols-3">
+      <!-- Brand -->
+      <div>
+        <p class="font-display text-2xl text-ghost-white">👻 Lil Green Ghouls</p>
+        <p class="mt-2 max-w-xs text-sm text-mist/60">
+          Documenting the unexplained, one adventure at a time. Two curious souls exploring what goes bump in the night.
+        </p>
+      </div>
+
+      <!-- Navigation -->
+      <div>
+        <p class="mb-3 text-xs tracking-widest text-haunt-purple uppercase">Explore</p>
+        <div class="flex flex-col gap-2 text-sm">
+          <a routerLink="/" class="text-mist/60 no-underline transition-colors hover:text-ecto-green">Home</a>
+          <a routerLink="/adventures" class="text-mist/60 no-underline transition-colors hover:text-ecto-green">Adventures</a>
+          <a routerLink="/about" class="text-mist/60 no-underline transition-colors hover:text-ecto-green">About Us</a>
+        </div>
+      </div>
+
+      <!-- Vibes -->
+      <div>
+        <p class="mb-3 text-xs tracking-widest text-haunt-purple uppercase">This'll do NUMBERS</p>
+        <p class="text-sm text-mist/40 italic">
+          {{ getRandomBanger() }}
+        </p>
+        <div class="mt-4 flex gap-3 text-xl">
+          <span class="transition-transform duration-300 hover:scale-125" title="We investigate">🔦</span>
+          <span class="transition-transform duration-300 hover:scale-125" title="We capture">📸</span>
+          <span class="transition-transform duration-300 hover:scale-125" title="We share">👻</span>
+        </div>
+      </div>
     </div>
 
-    <div class="flex gap-6 text-sm">
-      <a routerLink="/" class="text-mist/60 hover:text-ecto-green">Home</a>
-      <a routerLink="/adventures" class="text-mist/60 hover:text-ecto-green">Adventures</a>
-      <a routerLink="/about" class="text-mist/60 hover:text-ecto-green">About</a>
+    <!-- Bottom divider + copyright -->
+    <div class="spooky-divider mt-10 mb-6"></div>
+    <div class="flex flex-col items-center gap-2 text-xs text-mist/30 md:flex-row md:justify-between">
+      <p>&copy; {{ currentYear }} Lil Green Ghouls. All spirits preserved.</p>
+      <p>Built with 👻 and a lot of courage</p>
     </div>
-
-    <p class="text-xs text-mist/40">&copy; {{ currentYear }} Lil Green Ghouls. All spirits preserved.</p>
   </div>
 </footer>

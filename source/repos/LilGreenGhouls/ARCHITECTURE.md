@@ -37,6 +37,15 @@ a newsletter so they never miss a new post.
 - **Micro-interactions** — hover glow effects, skeleton loaders, subtle floating particles
 - **Responsive grid** — CSS Grid + Tailwind for masonry-like adventure gallery
 - **Lazy-loaded routes** — snappy navigation, code-split per feature area
+- **Gradient animated text** — hero headings use a shifting multi-color gradient (`gradient-text` utility) cycling through ecto-green → haunt-purple → candle-glow
+- **Infinite-scroll marquee** — horizontally scrolling location ticker (à la Railway/CandyCode logo bars); CSS `marquee-scroll` keyframe, pauses on hover
+- **Floating ghost particles** — ambient emoji particles (`ghost-particle` utility) with staggered `animation-delay` drift upward through hero and CTA sections
+- **Pulse-glow CTAs** — primary buttons softly pulse their glow shadow to draw attention (`pulse-glow` utility)
+- **Staggered fade-in** — content fades in sequentially using `.fade-in-up` + `.delay-*` classes for a cinematic reveal
+- **Gradient-border hover cards** — post cards & team cards show a multi-color gradient border on hover via `::before` pseudo-element (`gradient-border-hover` utility)
+- **Shimmer skeleton placeholders** — animated gradient shimmer on cards missing cover images (`shimmer` utility)
+- **Atmospheric section dividers** — translucent gradient horizontal rules (`spooky-divider` utility) replace hard borders between content sections
+- **Atmospheric CTA banner** — full-width radial-gradient section above the footer with floating particles and a dramatic heading; present on every viewer page via the shell layout
 
 ---
 
@@ -133,9 +142,12 @@ src/
 │   ├── shared/                        # Reusable dumb components, pipes, directives
 │   │   ├── components/
 │   │   │   ├── navbar/                # Responsive nav with auth state
-│   │   │   ├── footer/                # Site footer with ghoul flair
-│   │   │   ├── post-card/             # Glassmorphism blog preview card
-│   │   │   ├── subscribe-form/        # Email capture inline component
+│   │   │   ├── footer/                # Multi-column footer with brand, nav, and field-notes quote
+│   │   │   ├── post-card/             # Glassmorphism blog preview card with gradient-border hover
+│   │   │   ├── subscribe-form/        # Email capture inline component with personality copy
+│   │   │   ├── location-marquee/      # Infinite-scroll location ticker (marquee animation)
+│   │   │   ├── stats-bar/             # Investigation stats counter row (investigations, photos, hours, locations)
+│   │   │   ├── atmospheric-cta/       # Full-width atmospheric CTA banner (viewer shell, above footer)
 │   │   │   ├── media-gallery/         # Lightbox-style image/video viewer
 │   │   │   ├── youtube-embed/         # Responsive YouTube iframe wrapper
 │   │   │   ├── tag-chip/              # Styled tag pill
@@ -173,7 +185,7 @@ src/
 │   ├── app.routes.ts                  # Top-level routes (viewer shell, admin shell)
 │   └── app.routes.server.ts           # SSR route config
 │
-├── styles.css                         # Tailwind imports + global custom styles
+├── styles.css                         # Tailwind imports + global custom styles + animation utilities (gradient-text, marquee, ghost-particle, pulse-glow, fade-in-up, gradient-border-hover, shimmer, spooky-divider)
 ├── index.html
 ├── main.ts
 └── main.server.ts
@@ -332,23 +344,31 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 
 ## 12. Phase Roadmap
 
-### Phase 1 — MVP (Current Sprint)
+### Phase 1 — MVP
 - [x] Project scaffold (Angular 20 + SSR)
-- [ ] Tailwind CSS v4 integration + dark spooky theme
-- [ ] Firebase Auth (Google) + admin guard
-- [ ] Firestore services (posts, subscribers)
-- [ ] Viewer pages (home, adventures, adventure detail, about)
-- [ ] Admin pages (dashboard, post editor with Quill, post management)
-- [ ] Subscribe form component
-- [ ] Firebase Hosting deployment
+- [x] Tailwind CSS v4 integration + dark spooky theme
+- [x] Firebase Auth (Google) + admin guard
+- [x] Firestore services (posts, subscribers)
+- [x] Viewer pages (home, adventures, adventure detail, about)
+- [x] Admin pages (dashboard, post editor with Quill, post management)
+- [x] Subscribe form component
+- [x] Firebase Hosting deployment
 
-### Phase 2 — Polish & Engagement
+### Phase 2 — Polish & Engagement (current focus)
 - [ ] AOS scroll animations on viewer pages
 - [ ] Parallax hero effect
-- [ ] Glassmorphism card refinements
-- [ ] Fog/particle CSS ambient effects
-- [ ] Skeleton loaders for async content
+- [x] Glassmorphism card refinements (gradient-border hover, shimmer placeholders)
+- [x] Fog/particle CSS ambient effects (floating ghost particles in hero & CTA)
+- [x] Skeleton loaders for async content (shimmer utility on post cards)
 - [ ] Image lightbox in media gallery
+- [x] Gradient animated text on hero headings
+- [x] Infinite-scroll location marquee on home page
+- [x] Investigation stats counter section on home page
+- [x] Atmospheric CTA banner in viewer shell
+- [x] Enhanced footer with multi-column layout
+- [x] Staggered fade-in-up entrance animations
+- [x] Pulse-glow CTA buttons
+- [x] Spooky gradient section dividers
 
 ### Phase 3 — Newsletter & Growth
 - [ ] Firebase Cloud Function for email on publish

@@ -3,32 +3,48 @@
   <!-- Fog overlay -->
   <div class="fog-layer"></div>
 
+  <!-- Floating ghost particles -->
+  <span class="ghost-particle left-[10%] top-[60%]" style="animation-delay: 0s">👻</span>
+  <span class="ghost-particle left-[25%] top-[75%]" style="animation-delay: 3s">🕯️</span>
+  <span class="ghost-particle left-[55%] top-[70%]" style="animation-delay: 6s">👻</span>
+  <span class="ghost-particle left-[80%] top-[65%]" style="animation-delay: 9s">🕯️</span>
+  <span class="ghost-particle left-[42%] top-[80%]" style="animation-delay: 4.5s">✨</span>
+
   <div class="relative z-10 text-center">
-    <h1 class="mb-4 font-display text-6xl tracking-wider text-ghost-white md:text-8xl">
+    <h1 class="gradient-text fade-in-up mb-4 font-display text-6xl tracking-wider md:text-8xl">
       Lil Green Ghouls
     </h1>
-    <p class="mx-auto mb-8 max-w-xl text-lg text-mist/80">
+    <p class="fade-in-up delay-200 mx-auto mb-8 max-w-xl text-lg text-mist/80">
       Documenting our silly lil adventures. Join us as we explore haunted locations,
       capture evidence, and share our paranormal encounters.
     </p>
-    <div class="flex justify-center gap-4">
+    <div class="fade-in-up delay-500 flex justify-center gap-4">
       <a routerLink="/adventures"
-         class="glow-green rounded-lg bg-ecto-green px-8 py-3 font-semibold text-void no-underline transition-all hover:bg-candle-glow hover:scale-105">
+         class="pulse-glow rounded-lg bg-ecto-green px-8 py-3 font-semibold text-void no-underline transition-all hover:bg-candle-glow hover:scale-105">
         Explore Adventures
       </a>
       <a routerLink="/about"
-         class="rounded-lg border border-haunt-purple px-8 py-3 text-haunt-purple no-underline transition-all hover:bg-haunt-purple hover:text-ghost-white">
+         class="rounded-lg border border-haunt-purple px-8 py-3 text-haunt-purple no-underline transition-all hover:bg-haunt-purple hover:text-ghost-white hover:scale-105">
         Meet the Team
       </a>
     </div>
   </div>
 </section>
 
+<!-- Location Marquee (inspired by Railway/CandyCode infinite tickers) -->
+<app-location-marquee />
+
+<!-- Divider -->
+<div class="spooky-divider mx-auto my-0 max-w-4xl"></div>
+
 <!-- Recent Adventures -->
 <section class="mx-auto max-w-7xl px-6 py-16">
-  <h2 class="mb-8 text-center font-display text-4xl text-ghost-white">
+  <h2 class="mb-2 text-center font-display text-4xl text-ghost-white">
     Recent Encounters
   </h2>
+  <p class="mx-auto mb-8 max-w-lg text-center text-sm text-mist/50">
+    Fresh from the field — our latest paranormal investigations
+  </p>
 
   @if (recentPosts().length) {
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -46,6 +62,9 @@
     <p class="text-center text-mist/50">No adventures yet... but something is stirring. 👻</p>
   }
 </section>
+
+<!-- Stats Bar (inspired by Railway live counters) -->
+<app-stats-bar />
 
 <!-- Subscribe CTA -->
 <section class="px-6 py-16">

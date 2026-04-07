@@ -1,0 +1,20 @@
+<section class="overflow-hidden border-y border-haunt-purple/20 bg-shadow/50 py-5">
+  <div class="marquee-track">
+    <!-- First copy -->
+    @for (loc of locations; track loc.name) {
+      <span class="mx-6 flex shrink-0 items-center gap-2 text-sm font-medium text-mist/60 whitespace-nowrap">
+        <span class="text-lg">{{ loc.icon }}</span>
+        {{ loc.name }}
+        <span class="ml-6 text-haunt-purple/40">✦</span>
+      </span>
+    }
+    <!-- Duplicate for seamless loop -->
+    @for (loc of locations; track loc.name) {
+      <span class="mx-6 flex shrink-0 items-center gap-2 text-sm font-medium text-mist/60 whitespace-nowrap">
+        <span class="text-lg">{{ loc.icon }}</span>
+        {{ loc.name }}
+        <span class="ml-6 text-haunt-purple/40">✦</span>
+      </span>
+    }
+  </div>
+</section>

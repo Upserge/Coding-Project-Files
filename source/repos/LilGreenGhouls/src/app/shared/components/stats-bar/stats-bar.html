@@ -1,0 +1,17 @@
+<section class="border-y border-haunt-purple/10 bg-gradient-to-r from-shadow via-phantom to-shadow py-12">
+  <div class="mx-auto grid max-w-5xl grid-cols-2 gap-8 px-6 md:grid-cols-4">
+    @for (stat of stats; track stat.label) {
+      <div class="group text-center">
+        <span class="mb-2 block text-2xl transition-transform duration-300 group-hover:scale-125">
+          {{ stat.icon }}
+        </span>
+        <p class="font-display text-3xl text-ecto-green md:text-4xl">
+          {{ stat.value }}
+        </p>
+        <p class="mt-1 text-xs tracking-widest text-mist/50 uppercase">
+          {{ stat.label }}
+        </p>
+      </div>
+    }
+  </div>
+</section>

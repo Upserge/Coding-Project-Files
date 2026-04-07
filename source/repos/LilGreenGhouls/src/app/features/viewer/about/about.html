@@ -1,35 +1,38 @@
 <section class="mx-auto max-w-5xl px-6 py-12">
-  <h1 class="mb-4 text-center font-display text-5xl text-ghost-white">About Us</h1>
-  <p class="mx-auto mb-12 max-w-2xl text-center text-mist/70">
+  <h1 class="gradient-text fade-in-up mb-4 text-center font-display text-5xl">About Us</h1>
+  <p class="fade-in-up delay-200 mx-auto mb-12 max-w-2xl text-center text-mist/70">
     Two curious souls on a mission to explore the unknown and document what goes bump in the night.
   </p>
 
   <!-- Team Grid -->
   <div class="mb-16 grid gap-8 md:grid-cols-2">
     <!-- Team Member 1 -->
-    <div class="glass p-8 text-center">
-      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-haunt-purple/20 text-4xl">
+    <div class="gradient-border-hover glass group p-8 text-center transition-all duration-300 hover:scale-[1.02]">
+      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-haunt-purple/20 text-4xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
         🔦
       </div>
-      <h3 class="mb-2 font-display text-2xl text-ghost-white">Jason</h3>
-      <p class="text-sm text-mist/60">Lead Investigator</p>
+      <h3 class="mb-2 font-display text-2xl text-ghost-white transition-colors group-hover:text-ecto-green">Jason</h3>
+      <p class="text-sm tracking-widest text-haunt-purple uppercase">Lead Investigator</p>
       <p class="mt-3 text-mist/70">
         Bumbling fool. Court Jester. Likely haunted.
       </p>
     </div>
 
     <!-- Team Member 2 -->
-    <div class="glass p-8 text-center">
-      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-ecto-green/20 text-4xl">
+    <div class="gradient-border-hover glass group p-8 text-center transition-all duration-300 hover:scale-[1.02]">
+      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-ecto-green/20 text-4xl transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6">
         📸
       </div>
-      <h3 class="mb-2 font-display text-2xl text-ghost-white">Sarah</h3>
-      <p class="text-sm text-mist/60">The Real Lead Investigator</p>
+      <h3 class="mb-2 font-display text-2xl text-ghost-white transition-colors group-hover:text-ecto-green">Sarah</h3>
+      <p class="text-sm tracking-widest text-haunt-purple uppercase">The Real Lead Investigator</p>
       <p class="mt-3 text-mist/70">
         Head Honcho. She says "Jump", I say "On who?"
       </p>
     </div>
   </div>
+
+  <!-- Divider -->
+  <div class="spooky-divider mx-auto mb-16 max-w-md"></div>
 
   <!-- Mission -->
   <div class="glass mb-16 p-8">
@@ -49,8 +52,8 @@
     <h2 class="mb-6 text-center font-display text-3xl text-ghost-white">Our Toolkit 🛠️</h2>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       @for (item of equipment; track item.name) {
-        <div class="glass p-4 text-center">
-          <span class="mb-2 block text-2xl">{{ item.icon }}</span>
+        <div class="gradient-border-hover glass group p-4 text-center transition-all duration-300 hover:scale-105">
+          <span class="mb-2 block text-2xl transition-transform duration-300 group-hover:scale-125 group-hover:drop-shadow-[0_0_8px_rgba(0,255,136,0.5)]">{{ item.icon }}</span>
           <p class="text-sm font-medium text-ghost-white">{{ item.name }}</p>
         </div>
       }

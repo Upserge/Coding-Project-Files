@@ -86,3 +86,162 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-ecto-green);
 }
+
+/* ===== Animated Gradient Text ===== */
+
+.gradient-text {
+  background: linear-gradient(
+    270deg,
+    var(--color-ecto-green),
+    var(--color-haunt-purple),
+    var(--color-candle-glow),
+    var(--color-ecto-green)
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ===== Marquee / Infinite Scroll Ticker ===== */
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 30s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ===== Floating Ghost Particles ===== */
+
+.ghost-particle {
+  position: absolute;
+  font-size: 1.25rem;
+  opacity: 0;
+  animation: ghost-float 12s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ghost-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  15% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.25;
+    transform: translateY(-120px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-250px) scale(0.6);
+  }
+}
+
+/* ===== Pulse Glow for CTAs ===== */
+
+.pulse-glow {
+  animation: pulse-green 3s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3), 0 0 30px rgba(0, 255, 136, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 255, 136, 0.5), 0 0 50px rgba(0, 255, 136, 0.2);
+  }
+}
+
+/* ===== Staggered Fade-In ===== */
+
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fade-in-up 0.8s ease forwards;
+}
+
+@keyframes fade-in-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-700 { animation-delay: 0.7s; }
+
+/* ===== Gradient Border Hover (for cards) ===== */
+
+.gradient-border-hover {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-border-hover::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--color-ecto-green), var(--color-haunt-purple), var(--color-candle-glow));
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: -1;
+}
+
+.gradient-border-hover:hover::before {
+  opacity: 1;
+}
+
+/* ===== Shimmer Loading Skeleton ===== */
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(26, 26, 46, 0.6) 25%,
+    rgba(123, 47, 247, 0.15) 50%,
+    rgba(26, 26, 46, 0.6) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== Atmospheric Divider ===== */
+
+.spooky-divider {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-haunt-purple),
+    var(--color-ecto-green),
+    var(--color-haunt-purple),
+    transparent
+  );
+  opacity: 0.4;
+}
