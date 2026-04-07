@@ -8,15 +8,15 @@ import { Component } from '@angular/core';
 })
 export class LocationMarqueeComponent {
   readonly locations = [
-    { icon: '🏚️', name: 'Eastern State Penitentiary' },
-    { icon: '🏰', name: 'Tower of London' },
-    { icon: '👻', name: 'Gettysburg Battlefield' },
-    { icon: '🕯️', name: 'Winchester Mystery House' },
-    { icon: '⚰️', name: 'St. Augustine Lighthouse' },
-    { icon: '🦇', name: 'Bran Castle' },
-    { icon: '🔦', name: 'Waverly Hills Sanatorium' },
-    { icon: '💀', name: 'Catacombs of Paris' },
-    { icon: '🕸️', name: 'Myrtles Plantation' },
-    { icon: '🌙', name: 'Alcatraz Island' },
+    { icon: '🏚️', name: 'Our own fuckin house' },
+    { icon: '🏰', name: 'The Queen Mary' },
+    { icon: '👻', name: 'Solvang' },
+    { icon: '🕯️', name: 'Winchester Mystery House: SOON' },
+    { icon: '⚰️', name: 'Some random Insane Asylum in Kentucky: SOON' },
+    { icon: '🦇', name: 'Charleston, South Carolina ig: SOON' },
+    { icon: '🔦', name: 'Alcatraz: SOON' },
+    { icon: '💀', name: 'Crescent Hotel, also Arkansas: SOON' },
+    { icon: '🕸️', name: 'Pismo Beach' },
+    { icon: '🌙', name: 'Angel Island' },
   ];
 }
