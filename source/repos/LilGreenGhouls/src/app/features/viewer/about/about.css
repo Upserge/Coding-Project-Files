@@ -1,3 +1,213 @@
 :host {
   display: block;
 }
+
+/* ===== Candlelit Séance Page Backdrop ===== */
+
+.seance-backdrop {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 170, 0, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 70%, rgba(123, 47, 247, 0.05) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 60%, rgba(255, 170, 0, 0.03) 0%, transparent 40%),
+    linear-gradient(180deg, var(--color-void) 0%, #110e1a 30%, var(--color-shadow) 100%);
+}
+
+/* ===== Candle Glow Spots ===== */
+
+.candle-glow {
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(50px);
+  will-change: opacity;
+}
+
+.candle-glow-1 {
+  top: 10%;
+  left: 5%;
+  background: radial-gradient(circle, rgba(255, 170, 0, 0.2) 0%, rgba(255, 170, 0, 0.05) 50%, transparent 75%);
+  animation: candle-flicker 3s ease-in-out infinite alternate;
+}
+
+.candle-glow-2 {
+  top: 15%;
+  right: 8%;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.15) 0%, rgba(0, 255, 136, 0.04) 50%, transparent 75%);
+  animation: candle-flicker 4s ease-in-out 1s infinite alternate;
+}
+
+.candle-glow-3 {
+  bottom: 30%;
+  left: 10%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 170, 0, 0.15) 0%, rgba(255, 170, 0, 0.04) 50%, transparent 75%);
+  animation: candle-flicker 3.5s ease-in-out 0.5s infinite alternate;
+}
+
+.candle-glow-4 {
+  bottom: 20%;
+  right: 5%;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(123, 47, 247, 0.12) 0%, rgba(123, 47, 247, 0.03) 50%, transparent 75%);
+  animation: candle-flicker 4.5s ease-in-out 2s infinite alternate;
+}
+
+@keyframes candle-flicker {
+  0%   { opacity: 0.4; transform: scale(1); }
+  25%  { opacity: 0.7; transform: scale(1.05); }
+  50%  { opacity: 0.35; transform: scale(0.95); }
+  75%  { opacity: 0.8; transform: scale(1.02); }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+
+/* ===== Floating Smoke Particles ===== */
+
+.smoke-particle {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  animation: smoke-rise 16s ease-in-out infinite;
+}
+
+@keyframes smoke-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  10% {
+    opacity: 0.75;
+  }
+  40% {
+    opacity: 0.5;
+  }
+  70% {
+    opacity: 0.6;
+    transform: translateY(-140px) translateX(15px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-260px) translateX(-10px) scale(0.5);
+  }
+}
+
+/* ===== Séance Circle (behind team cards) ===== */
+
+.seance-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.25;
+  background: conic-gradient(
+    from 0deg,
+    rgba(123, 47, 247, 0.15),
+    rgba(0, 255, 136, 0.1),
+    rgba(255, 170, 0, 0.08),
+    rgba(123, 47, 247, 0.15),
+    rgba(0, 255, 136, 0.1),
+    rgba(255, 170, 0, 0.08),
+    rgba(123, 47, 247, 0.15)
+  );
+  filter: blur(30px);
+  animation: seance-rotate 30s linear infinite;
+}
+
+@keyframes seance-rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ===== Holographic Card ===== */
+
+.holo-card-wrapper {
+  perspective: 800px;
+}
+
+.holo-card {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  overflow: hidden;
+  border: 1px solid rgba(123, 47, 247, 0.3);
+  border-radius: 1rem;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 46, 0.85) 0%,
+    rgba(22, 33, 62, 0.9) 50%,
+    rgba(26, 26, 46, 0.85) 100%
+  );
+}
+
+/* Holographic rainbow overlay */
+.holo-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    var(--shine-angle, 135deg),
+    transparent 0%,
+    rgba(0, 255, 136, 0.08) 20%,
+    rgba(123, 47, 247, 0.12) 35%,
+    rgba(255, 170, 0, 0.10) 50%,
+    rgba(0, 255, 136, 0.08) 65%,
+    rgba(123, 47, 247, 0.12) 80%,
+    transparent 100%
+  );
+  opacity: var(--holo-opacity, 0);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Shine / light reflection spot */
+.holo-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--shine-x, 50%) var(--shine-y, 50%),
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.06) 30%,
+    transparent 60%
+  );
+  opacity: var(--holo-opacity, 0);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+
+/* Hover glow */
+.holo-card:hover {
+  box-shadow:
+    0 0 20px rgba(0, 255, 136, 0.15),
+    0 0 40px rgba(123, 47, 247, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Iridescent border on hover */
+.holo-card-wrapper:hover .holo-card {
+  border-color: rgba(0, 255, 136, 0.35);
+}
+
+/* Card content sits above overlays */
+.holo-card > .holo-content {
+  position: relative;
+  z-index: 3;
+}

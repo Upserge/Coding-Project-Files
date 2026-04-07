@@ -19,7 +19,7 @@
     <!-- Header -->
     <header class="mb-8">
       <!-- Tags -->
-      @if (p.tags.length) {
+      @if (p.tags?.length) {
         <div class="mb-3 flex flex-wrap gap-2">
           @for (tag of p.tags; track tag) {
             <span class="rounded-full bg-haunt-purple/20 px-3 py-1 text-xs text-haunt-purple">{{ tag }}</span>
@@ -41,13 +41,13 @@
     <div class="prose-content mb-12" [innerHTML]="p.content"></div>
 
     <!-- YouTube Embeds -->
-    @if (p.youtubeEmbeds.length) {
+    @if (p.youtubeEmbeds?.length) {
       <section class="mb-12">
         <h2 class="mb-4 font-display text-2xl text-ghost-white">Video Evidence 📹</h2>
         <div class="grid gap-4 md:grid-cols-2">
           @for (videoId of p.youtubeEmbeds; track videoId) {
             <div class="aspect-video overflow-hidden rounded-xl">
-              <iframe [src]="'https://www.youtube.com/embed/' + videoId"
+              <iframe [src]="'https://www.youtube.com/embed/' + videoId | safeResourceUrl"
                       class="h-full w-full" frameborder="0" allowfullscreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
               </iframe>
@@ -58,22 +58,26 @@
     }
 
     <!-- Media Gallery -->
-    @if (p.mediaUrls.length) {
+    @if (p.mediaUrls?.length) {
       <section class="mb-12">
         <h2 class="mb-4 font-display text-2xl text-ghost-white">Photo Evidence 📸</h2>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          @for (url of p.mediaUrls; track url) {
-            <div class="overflow-hidden rounded-xl">
+          @for (url of p.mediaUrls; track url; let i = $index) {
+            <div class="cursor-pointer overflow-hidden rounded-xl" (click)="openLightbox(i)">
               <img [src]="url" alt="Evidence photo"
                    class="w-full object-cover transition-transform duration-300 hover:scale-105" />
             </div>
           }
         </div>
       </section>
+
+      @if (lightboxOpen()) {
+        <app-image-lightbox [images]="p.mediaUrls" (closed)="closeLightbox()" />
+      }
     }
 
     <!-- External Links -->
-    @if (p.externalLinks.length) {
+    @if (p.externalLinks?.length) {
       <section class="mb-12">
         <h2 class="mb-4 font-display text-2xl text-ghost-white">Related Links 🔗</h2>
         <div class="flex flex-col gap-2">
@@ -86,6 +90,14 @@
         </div>
       </section>
     }
+
+    <!-- Social Share -->
+    <section class="mb-12 rounded-xl border border-mist/10 bg-shadow/50 p-6">
+      <app-social-share
+        [title]="p.title"
+        [url]="shareUrl()"
+        [excerpt]="p.excerpt" />
+    </section>
 
     <!-- Subscribe -->
     <section class="py-8">

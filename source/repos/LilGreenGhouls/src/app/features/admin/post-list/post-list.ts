@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { PostsService } from '../../../core/services/posts.service';
 import { Post } from '../../../core/models/post.model';
+import { Timestamp } from 'firebase/firestore';
 
 @Component({
   selector: 'app-post-list',
@@ -29,9 +30,13 @@ export class PostListComponent implements OnInit {
 
   async toggleStatus(post: Post): Promise<void> {
     const newStatus = post.status === 'published' ? 'draft' : 'published';
-    await this.postsService.update(post.id!, { status: newStatus });
+    const update: Partial<Post> = { status: newStatus };
+    if (newStatus === 'published' && !post.publishedAt) {
+      update.publishedAt = Timestamp.now();
+    }
+    await this.postsService.update(post.id!, update);
     this.posts.update(list =>
-      list.map(p => p.id === post.id ? { ...p, status: newStatus } : p)
+      list.map(p => p.id === post.id ? { ...p, ...update } : p)
     );
   }
 }

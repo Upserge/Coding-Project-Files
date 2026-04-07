@@ -1,14 +1,66 @@
 <div class="glass mx-auto max-w-md p-8 text-center">
   <span class="mb-3 block text-3xl">👻</span>
   <h3 class="mb-1 font-display text-2xl text-ghost-white">Stay Haunted</h3>
-  <p class="mb-6 text-sm text-mist/50">We'll only email you when something truly spooky happens. No séance required.</p>
+  <p class="mb-6 text-sm text-mist/50">Subscribe and get notified when something truly spooky happens. No séance required.</p>
 
   @switch (status()) {
     @case ('success') {
       <div class="fade-in-up rounded-xl border border-ecto-green/30 bg-ecto-green/10 p-6">
         <span class="mb-2 block text-3xl">🎉</span>
         <p class="font-display text-lg text-ecto-green">You're in the circle!</p>
-        <p class="mt-1 text-sm text-mist/60">Watch your inbox for spooky dispatches.</p>
+        @if (notificationsEnabled()) {
+          <p class="mt-1 text-sm text-mist/60">Push notifications enabled — we'll ping you when new adventures drop.</p>
+        } @else {
+          <p class="mt-1 text-sm text-mist/60">You're subscribed! Enable browser notifications next time for instant alerts.</p>
+        }
+
+        @if (!showPreferences()) {
+          <button (click)="togglePreferences()"
+                  class="mt-4 rounded-lg border border-haunt-purple/30 px-4 py-2 text-sm text-haunt-purple transition-colors hover:bg-haunt-purple/10">
+            ⚙️ Customize Notifications
+          </button>
+        }
+
+        @if (showPreferences()) {
+          <div class="mt-4 rounded-xl border border-haunt-purple/20 bg-void/50 p-4 text-left">
+            <p class="mb-3 font-display text-sm text-ghost-white">Notification Frequency</p>
+            <div class="mb-4 flex flex-col gap-2">
+              @for (option of [['every-post', 'Every new post'], ['weekly-digest', 'Weekly digest'], ['monthly-digest', 'Monthly digest']]; track option[0]) {
+                <label class="flex cursor-pointer items-center gap-2 text-sm text-mist/80">
+                  <input type="radio" name="frequency" [value]="option[0]"
+                         [checked]="frequency() === option[0]"
+                         (change)="frequency.set($any($event.target).value)"
+                         class="accent-ecto-green" />
+                  {{ option[1] }}
+                </label>
+              }
+            </div>
+
+            <p class="mb-3 font-display text-sm text-ghost-white">Categories of Interest</p>
+            <div class="mb-4 flex flex-wrap gap-2">
+              @for (cat of availableCategories; track cat) {
+                <button (click)="toggleCategory(cat)" type="button"
+                        [class]="selectedCategories().includes(cat)
+                          ? 'border-ecto-green bg-ecto-green/20 text-ecto-green'
+                          : 'border-haunt-purple/30 text-mist/60 hover:border-haunt-purple'"
+                        class="rounded-full border px-3 py-1 text-xs transition-colors">
+                  {{ cat }}
+                </button>
+              }
+            </div>
+
+            <div class="flex gap-2">
+              <button (click)="savePreferences()"
+                      class="rounded-lg bg-ecto-green px-4 py-2 text-sm font-semibold text-void transition-all hover:bg-candle-glow">
+                Save Preferences
+              </button>
+              <button (click)="togglePreferences()"
+                      class="rounded-lg border border-haunt-purple/30 px-4 py-2 text-sm text-mist/60 transition-colors hover:bg-haunt-purple/10">
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
       </div>
     }
     @case ('error') {
@@ -29,7 +81,7 @@
           }
         </button>
       </form>
-      <p class="mt-3 text-xs text-mist/30">No spam. Unsubscribe anytime. We pinky-promise.</p>
+      <p class="mt-3 text-xs text-mist/30">We'll ask to send you push notifications. No spam. Unsubscribe anytime.</p>
     }
   }
 </div>

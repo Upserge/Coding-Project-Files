@@ -1,33 +1,80 @@
-<section class="mx-auto max-w-7xl px-6 py-12">
-  <h1 class="mb-2 text-center font-display text-5xl text-ghost-white">Adventures</h1>
-  <p class="mb-8 text-center text-mist/60">Browse our paranormal encounters</p>
+<!-- Evidence Board Backdrop -->
+<div class="evidence-backdrop relative min-h-screen overflow-hidden">
+  <!-- Corkboard texture overlay -->
+  <div class="cork-texture"></div>
+
+  <!-- Scan-line sweep -->
+  <div class="scan-line"></div>
+
+  <!-- Floating evidence particles -->
+  <span class="evidence-particle left-[6%] top-[12%]" style="animation-delay: 0s">📌</span>
+  <span class="evidence-particle left-[88%] top-[22%]" style="animation-delay: 3.5s">🗂️</span>
+  <span class="evidence-particle left-[20%] top-[50%]" style="animation-delay: 7s">📎</span>
+  <span class="evidence-particle left-[72%] top-[65%]" style="animation-delay: 2s">📌</span>
+  <span class="evidence-particle left-[42%] top-[82%]" style="animation-delay: 5.5s">🗂️</span>
+  <span class="evidence-particle left-[90%] top-[48%]" style="animation-delay: 9s">📎</span>
+
+  <!-- Header Banner -->
+  <header class="evidence-header relative px-6 pb-10 pt-14">
+    <div class="relative z-10 mx-auto max-w-7xl text-center">
+      <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-blood-red/40 bg-blood-red/10 px-4 py-1.5 text-xs tracking-widest text-blood-red uppercase">
+        <span class="status-blink inline-block h-2 w-2 rounded-full bg-blood-red"></span>
+        Case Board — Active
+      </div>
+      <h1 appAos class="mb-2 font-display text-5xl text-ghost-white md:text-6xl">
+        Adventures
+      </h1>
+      <p appAos aosDelay="delay-200" class="mx-auto max-w-lg text-mist/60">
+        Every case pinned to the board — follow the red yarn and see where it leads
+      </p>
+    </div>
+  </header>
 
   <!-- Tag Filter -->
   @if (allTags().length) {
-    <div class="mb-8 flex flex-wrap justify-center gap-2">
-      <button (click)="filterByTag(null)"
-              [class]="selectedTag() === null ? 'bg-ecto-green text-void' : 'bg-haunt-purple/20 text-haunt-purple'"
-              class="rounded-full px-4 py-1.5 text-sm transition-colors hover:bg-ecto-green hover:text-void">
-        All
-      </button>
-      @for (tag of allTags(); track tag) {
-        <button (click)="filterByTag(tag)"
-                [class]="selectedTag() === tag ? 'bg-ecto-green text-void' : 'bg-haunt-purple/20 text-haunt-purple'"
-                class="rounded-full px-4 py-1.5 text-sm transition-colors hover:bg-ecto-green hover:text-void">
-          {{ tag }}
+    <nav class="relative z-10 mb-10 px-6">
+      <div class="mx-auto flex max-w-7xl flex-wrap justify-center gap-2">
+        <button (click)="filterByTag(null)"
+                [class]="selectedTag() === null ? 'bg-blood-red text-ghost-white shadow-[0_0_12px_rgba(255,68,68,0.3)]' : 'bg-haunt-purple/20 text-mist/70'"
+                class="rounded-full px-4 py-1.5 text-sm transition-all duration-300 hover:bg-blood-red hover:text-ghost-white hover:shadow-[0_0_12px_rgba(255,68,68,0.3)]">
+          All
         </button>
-      }
-    </div>
+        @for (tag of allTags(); track tag) {
+          <button (click)="filterByTag(tag)"
+                  [class]="selectedTag() === tag ? 'bg-blood-red text-ghost-white shadow-[0_0_12px_rgba(255,68,68,0.3)]' : 'bg-haunt-purple/20 text-mist/70'"
+                  class="rounded-full px-4 py-1.5 text-sm transition-all duration-300 hover:bg-blood-red hover:text-ghost-white hover:shadow-[0_0_12px_rgba(255,68,68,0.3)]">
+            {{ tag }}
+          </button>
+        }
+      </div>
+    </nav>
   }
 
-  <!-- Posts Grid -->
-  @if (filteredPosts.length) {
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      @for (post of filteredPosts; track post.id) {
-        <app-post-card [post]="post" />
-      }
-    </div>
-  } @else {
-    <p class="py-16 text-center text-mist/50">No adventures found in this dimension... yet. 🔮</p>
-  }
-</section>
+  <!-- Posts — Scattered Evidence Board -->
+  <section class="relative z-10 mx-auto max-w-7xl px-6 pb-16">
+    @if (filteredPosts.length) {
+      <!-- SVG yarn overlay connecting pins in chronological order -->
+      <svg class="yarn-svg" [attr.viewBox]="'0 0 1280 ' + boardHeight()">
+        @for (line of yarnLines(); track $index) {
+          <line [attr.x1]="line.x1" [attr.y1]="line.y1"
+                [attr.x2]="line.x2" [attr.y2]="line.y2"
+                class="yarn-path" />
+        }
+      </svg>
+
+      <div class="scatter-board" [style.height.px]="boardHeight()">
+        @for (post of filteredPosts; track post.id; let i = $index) {
+          <div class="pinned-card"
+               [style.left.%]="cardPositions()[i]?.left"
+               [style.top.px]="cardPositions()[i]?.top"
+               [style.--card-rotation]="cardPositions()[i]?.rotation">
+            <div class="pushpin"></div>
+            <app-post-card [post]="post" />
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="py-16 text-center text-mist/50">No cases on the board yet... the investigation continues. 🔮</p>
+    }
+  </section>
+</div>

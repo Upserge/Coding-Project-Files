@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user } from '@angular/fire/auth';
 import { Firestore, doc, getDoc, setDoc, Timestamp } from '@angular/fire/firestore';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -21,6 +21,16 @@ export class AuthService {
 
   /** Whether any user is currently signed in */
   readonly isSignedIn = computed(() => !!this.firebaseUser());
+
+  constructor() {
+    // Auto-hydrate appUser when Firebase restores the session on page refresh
+    effect(() => {
+      const fbUser = this.firebaseUser();
+      if (fbUser && !this.appUser()) {
+        this.loadUserProfile(fbUser.uid);
+      }
+    });
+  }
 
   private resolveRole(email: string): 'admin' | 'viewer' {
     return environment.adminEmails.includes(email) ? 'admin' : 'viewer';

@@ -9,9 +9,14 @@ import {
   query,
   where,
   orderBy,
+  updateDoc,
   Timestamp,
 } from '@angular/fire/firestore';
 import { Subscriber } from '../models/subscriber.model';
+import {
+  SubscriberPreferences,
+  DEFAULT_SUBSCRIBER_PREFERENCES,
+} from '../models/subscriber-preferences.model';
 
 @Injectable({ providedIn: 'root' })
 export class SubscribersService {
@@ -34,6 +39,7 @@ export class SubscribersService {
       uid: uid ?? null,
       subscribedAt: Timestamp.now(),
       active: true,
+      preferences: { ...DEFAULT_SUBSCRIBER_PREFERENCES },
     });
   }
 
@@ -58,5 +64,21 @@ export class SubscribersService {
   async remove(id: string): Promise<void> {
     const docRef = doc(this.firestore, this.collectionName, id);
     await deleteDoc(docRef);
+  }
+
+  async updatePreferences(id: string, preferences: Partial<SubscriberPreferences>): Promise<void> {
+    const docRef = doc(this.firestore, this.collectionName, id);
+    await updateDoc(docRef, { preferences });
+  }
+
+  async findByEmail(email: string): Promise<Subscriber | null> {
+    const q = query(
+      collection(this.firestore, this.collectionName),
+      where('email', '==', email),
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    const d = snap.docs[0];
+    return { id: d.id, ...d.data() } as Subscriber;
   }
 }

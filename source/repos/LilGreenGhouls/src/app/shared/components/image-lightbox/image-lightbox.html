@@ -1,0 +1,36 @@
+<div class="lightbox-backdrop fixed inset-0 z-50 flex items-center justify-center bg-void/95 backdrop-blur-sm"
+     (click)="onBackdropClick($event)"
+     (keydown)="onKeydown($event)"
+     tabindex="0">
+
+  <!-- Close button -->
+  <button (click)="close()"
+          class="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-shadow/80 text-xl text-ghost-white transition-colors hover:bg-blood-red hover:text-white">
+    ✕
+  </button>
+
+  <!-- Counter -->
+  <div class="absolute top-4 left-1/2 -translate-x-1/2 rounded-full bg-shadow/80 px-4 py-1.5 text-sm text-mist/70">
+    {{ counter() }}
+  </div>
+
+  <!-- Previous -->
+  @if (hasPrev()) {
+    <button (click)="prev()"
+            class="absolute left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-shadow/80 text-2xl text-ghost-white transition-colors hover:bg-haunt-purple">
+      ‹
+    </button>
+  }
+
+  <!-- Image -->
+  <img [src]="currentImage()" alt="Lightbox image"
+       class="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
+
+  <!-- Next -->
+  @if (hasNext()) {
+    <button (click)="next()"
+            class="absolute right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-shadow/80 text-2xl text-ghost-white transition-colors hover:bg-haunt-purple">
+      ›
+    </button>
+  }
+</div>

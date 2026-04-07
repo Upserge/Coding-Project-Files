@@ -13,7 +13,7 @@
 
   <div class="p-5">
     <!-- Tags -->
-    @if (post().tags.length) {
+    @if (post().tags?.length) {
       <div class="mb-2 flex flex-wrap gap-2">
         @for (tag of post().tags; track tag) {
           <span class="rounded-full border border-haunt-purple/30 bg-haunt-purple/10 px-2.5 py-0.5 text-xs text-haunt-purple transition-colors group-hover:border-ecto-green/30 group-hover:text-ecto-green">

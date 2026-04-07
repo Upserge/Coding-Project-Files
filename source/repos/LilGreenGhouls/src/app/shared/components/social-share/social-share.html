@@ -1,0 +1,31 @@
+<div class="flex flex-wrap items-center gap-3">
+  <span class="text-sm text-mist/60">Share this encounter:</span>
+
+  <a [href]="twitterUrl" target="_blank" rel="noopener noreferrer"
+     class="inline-flex items-center gap-1.5 rounded-full bg-shadow px-4 py-2 text-sm text-mist transition-all hover:bg-haunt-purple hover:text-ghost-white"
+     aria-label="Share on Twitter">
+    𝕏 Twitter
+  </a>
+
+  <a [href]="facebookUrl" target="_blank" rel="noopener noreferrer"
+     class="inline-flex items-center gap-1.5 rounded-full bg-shadow px-4 py-2 text-sm text-mist transition-all hover:bg-[#1877f2] hover:text-ghost-white"
+     aria-label="Share on Facebook">
+    📘 Facebook
+  </a>
+
+  <a [href]="redditUrl" target="_blank" rel="noopener noreferrer"
+     class="inline-flex items-center gap-1.5 rounded-full bg-shadow px-4 py-2 text-sm text-mist transition-all hover:bg-[#ff4500] hover:text-ghost-white"
+     aria-label="Share on Reddit">
+    🔴 Reddit
+  </a>
+
+  <button (click)="copyLink()" type="button"
+          class="inline-flex items-center gap-1.5 rounded-full bg-shadow px-4 py-2 text-sm text-mist transition-all hover:bg-ecto-green hover:text-void"
+          [attr.aria-label]="copied() ? 'Link copied' : 'Copy link'">
+    @if (copied()) {
+      ✅ Copied!
+    } @else {
+      🔗 Copy Link
+    }
+  </button>
+</div>

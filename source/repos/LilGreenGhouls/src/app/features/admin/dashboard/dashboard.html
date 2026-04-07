@@ -1,35 +1,99 @@
-<div>
-  <h1 class="mb-8 font-display text-4xl text-ghost-white">Dashboard</h1>
+@if (loading()) {
+  <div class="flex items-center justify-center py-20">
+    <p class="font-display text-xl text-mist/60">Loading dashboard…</p>
+  </div>
+} @else if (analytics(); as data) {
+  <div>
+    <h1 class="mb-6 font-display text-3xl text-ghost-white">Dashboard</h1>
 
-  <!-- Stats Grid -->
-  <div class="mb-12 grid gap-6 md:grid-cols-3">
-    <div class="glass p-6">
-      <p class="text-sm text-mist/60">Published Posts</p>
-      <p class="font-display text-4xl text-ecto-green">{{ publishedCount() }}</p>
+    <!-- Stats Cards -->
+    <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="glass rounded-xl p-6">
+        <p class="text-sm text-mist/60">Published Posts</p>
+        <p class="font-display text-3xl text-ecto-green">{{ data.publishedCount }}</p>
+      </div>
+      <div class="glass rounded-xl p-6">
+        <p class="text-sm text-mist/60">Drafts</p>
+        <p class="font-display text-3xl text-candle-glow">{{ data.draftCount }}</p>
+      </div>
+      <div class="glass rounded-xl p-6">
+        <p class="text-sm text-mist/60">Subscribers</p>
+        <p class="font-display text-3xl text-haunt-purple">{{ data.subscriberCount }}</p>
+      </div>
+      <div class="glass rounded-xl p-6">
+        <p class="text-sm text-mist/60">Push Tokens</p>
+        <p class="font-display text-3xl text-ghost-white">{{ data.fcmTokenCount }}</p>
+      </div>
     </div>
-    <div class="glass p-6">
-      <p class="text-sm text-mist/60">Drafts</p>
-      <p class="font-display text-4xl text-candle-glow">{{ draftCount() }}</p>
+
+    <!-- This Month -->
+    <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="glass rounded-xl p-6">
+        <p class="text-sm text-mist/60">Posts This Month</p>
+        <p class="font-display text-2xl text-ecto-green">{{ data.postsThisMonth }}</p>
+      </div>
+      <div class="glass rounded-xl p-6">
+        <p class="text-sm text-mist/60">New Subscribers This Month</p>
+        <p class="font-display text-2xl text-haunt-purple">{{ data.subscribersThisMonth }}</p>
+      </div>
     </div>
-    <div class="glass p-6">
-      <p class="text-sm text-mist/60">Subscribers</p>
-      <p class="font-display text-4xl text-haunt-purple">{{ subscriberCount() }}</p>
+
+    <!-- Recent Posts -->
+    <div class="mb-8">
+      <h2 class="mb-4 font-display text-xl text-ghost-white">Recent Posts</h2>
+      @if (data.recentPosts.length) {
+        <div class="overflow-x-auto rounded-xl border border-haunt-purple/20">
+          <table class="w-full text-left">
+            <thead class="border-b border-haunt-purple/20 bg-shadow">
+              <tr>
+                <th class="px-4 py-3 text-sm font-medium text-mist/60">Title</th>
+                <th class="px-4 py-3 text-sm font-medium text-mist/60">Published</th>
+                <th class="px-4 py-3 text-sm font-medium text-mist/60">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (post of data.recentPosts; track post.id) {
+                <tr class="border-b border-haunt-purple/10 transition-colors hover:bg-phantom/30">
+                  <td class="px-4 py-3 text-ghost-white">{{ post.title }}</td>
+                  <td class="px-4 py-3 text-sm text-mist/50">
+                    {{ post.publishedAt?.toDate() | date:'mediumDate' }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <a [routerLink]="['/admin/posts', post.id, 'edit']"
+                       class="rounded-lg bg-haunt-purple/20 px-3 py-1 text-sm text-haunt-purple no-underline hover:bg-haunt-purple hover:text-ghost-white">
+                      Edit
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="glass rounded-xl p-8 text-center">
+          <p class="text-mist/60">No published posts yet.</p>
+        </div>
+      }
+    </div>
+
+    <!-- Quick Links -->
+    <div class="flex gap-4">
+      <a routerLink="/admin/posts/new"
+         class="glow-green rounded-lg bg-ecto-green px-4 py-2 text-sm font-semibold text-void no-underline hover:bg-candle-glow">
+        ✍️ New Post
+      </a>
+      <a routerLink="/admin/posts"
+         class="rounded-lg bg-haunt-purple/20 px-4 py-2 text-sm font-semibold text-haunt-purple no-underline hover:bg-haunt-purple hover:text-ghost-white">
+        📝 Manage Posts
+      </a>
+      <a routerLink="/admin/subscribers"
+         class="rounded-lg bg-haunt-purple/20 px-4 py-2 text-sm font-semibold text-haunt-purple no-underline hover:bg-haunt-purple hover:text-ghost-white">
+        📬 View Subscribers
+      </a>
     </div>
   </div>
-
-  <!-- Quick Actions -->
-  <div class="flex gap-4">
-    <a routerLink="/admin/posts/new"
-       class="glow-green rounded-lg bg-ecto-green px-6 py-3 font-semibold text-void no-underline transition-all hover:bg-candle-glow">
-      ✍️ New Post
-    </a>
-    <a routerLink="/admin/posts"
-       class="rounded-lg border border-haunt-purple px-6 py-3 text-haunt-purple no-underline transition-all hover:bg-haunt-purple hover:text-ghost-white">
-      📝 Manage Posts
-    </a>
-    <a routerLink="/admin/subscribers"
-       class="rounded-lg border border-mist/30 px-6 py-3 text-mist no-underline transition-all hover:bg-mist/10">
-      📬 View Subscribers
-    </a>
+} @else {
+  <div class="flex items-center justify-center py-20">
+    <p class="font-display text-xl text-mist/60">Failed to load dashboard data.</p>
   </div>
-</div>
+}

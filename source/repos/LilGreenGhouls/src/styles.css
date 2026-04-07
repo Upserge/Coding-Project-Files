@@ -245,3 +245,16 @@
   );
   opacity: 0.4;
 }
+
+/* ===== AOS (Animate on Scroll) ===== */
+
+.aos-init {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.aos-init.aos-animate {
+  opacity: 1;
+  transform: translateY(0);
+}

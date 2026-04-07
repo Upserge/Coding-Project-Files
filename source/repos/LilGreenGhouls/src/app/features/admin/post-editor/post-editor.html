@@ -36,8 +36,14 @@
       <label class="mb-1 block text-sm text-mist/60">Cover Image</label>
       <input type="file" accept="image/*" (change)="onCoverImageUpload($event)"
              class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple" />
-      @if (coverImageUrl) {
-        <img [src]="coverImageUrl" alt="Cover preview" class="mt-2 h-32 rounded-lg object-cover" />
+      @if (uploadingCover()) {
+        <div class="mt-2 flex items-center gap-2 text-sm text-candle-glow">
+          <div class="h-4 w-4 animate-spin rounded-full border-2 border-candle-glow border-t-transparent"></div>
+          Uploading cover image… {{ coverUploadProgress() }}%
+        </div>
+      }
+      @if (coverImageUrl()) {
+        <img [src]="coverImageUrl()" alt="Cover preview" class="mt-2 h-32 rounded-lg object-cover" />
       }
     </div>
 
@@ -46,6 +52,12 @@
       <label class="mb-1 block text-sm text-mist/60">Additional Photos/Media</label>
       <input type="file" accept="image/*,video/*" multiple (change)="onMediaUpload($event)"
              class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple" />
+      @if (uploadingMedia()) {
+        <div class="mt-2 flex items-center gap-2 text-sm text-candle-glow">
+          <div class="h-4 w-4 animate-spin rounded-full border-2 border-candle-glow border-t-transparent"></div>
+          Uploading media… {{ mediaUploadProgress() }}%
+        </div>
+      }
       @if (mediaUrls().length) {
         <div class="mt-2 flex flex-wrap gap-2">
           @for (url of mediaUrls(); track url; let i = $index) {
@@ -121,6 +133,13 @@
              placeholder="EVP, haunted-house, apparition" />
     </div>
 
+    <!-- Upload Error -->
+    @if (uploadError()) {
+      <div class="rounded-lg border border-blood-red/40 bg-blood-red/10 px-4 py-3 text-sm text-blood-red">
+        ⚠ {{ uploadError() }}
+      </div>
+    }
+
     <!-- Status & Submit -->
     <div class="flex items-center justify-between border-t border-haunt-purple/20 pt-6">
       <div class="flex items-center gap-4">
@@ -134,10 +153,33 @@
         </label>
       </div>
 
-      <button type="submit" [disabled]="saving()"
-              class="glow-green rounded-lg bg-ecto-green px-8 py-3 font-semibold text-void transition-all hover:bg-candle-glow disabled:opacity-50">
-        @if (saving()) { Saving... } @else if (isEditing()) { Update Post } @else { Create Post }
-      </button>
+      <div class="flex items-center gap-3">
+        <button type="submit" [disabled]="saving() || uploading()"
+                class="glow-green rounded-lg bg-ecto-green px-8 py-3 font-semibold text-void transition-all hover:bg-candle-glow disabled:opacity-50">
+          @if (uploading()) { Uploading... } @else if (saving()) { Saving... } @else if (isEditing()) { Update Post } @else { Create Post }
+        </button>
+      </div>
     </div>
   </form>
+
+  <!-- Notify Subscribers (shown after publishing) -->
+  @if (isEditing() && status === 'published' && !saving()) {
+    <div class="mt-6 flex items-center gap-4 border-t border-haunt-purple/20 pt-6">
+      <button (click)="notifySubscribers()" [disabled]="notifying()"
+              class="rounded-lg bg-haunt-purple px-6 py-3 font-semibold text-ghost-white transition-all hover:bg-haunt-purple/80 disabled:opacity-50">
+        @if (notifying()) {
+          <span class="inline-block animate-spin">🔔</span> Sending...
+        } @else {
+          🔔 Notify Subscribers
+        }
+      </button>
+      <button (click)="goToPostList()"
+              class="rounded-lg border border-mist/30 px-6 py-3 text-sm text-mist transition-all hover:bg-mist/10">
+        ← Back to Posts
+      </button>
+      @if (notifyResult()) {
+        <span class="text-sm text-ecto-green">{{ notifyResult() }}</span>
+      }
+    </div>
+  }
 </div>

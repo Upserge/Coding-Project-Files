@@ -5,18 +5,155 @@
 .hero-section {
   background: radial-gradient(ellipse at center bottom, rgba(123, 47, 247, 0.15) 0%, transparent 70%),
               linear-gradient(180deg, var(--color-void) 0%, var(--color-shadow) 100%);
+  background-attachment: fixed;
+  background-size: cover;
 }
 
+/* Parallax floating particles layer */
+.hero-section .ghost-particle {
+  will-change: transform;
+}
+
+/* ===== Film Grain Texture ===== */
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  animation: grain-shift 0.5s steps(4) infinite;
+}
+
+@keyframes grain-shift {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-2px, 3px); }
+  50%  { transform: translate(3px, -1px); }
+  75%  { transform: translate(-3px, -2px); }
+  100% { transform: translate(1px, 2px); }
+}
+
+/* ===== Pulsing Radial Glow ===== */
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 60% 50% at 50% 60%,
+    rgba(0, 255, 136, 0.08) 0%,
+    rgba(123, 47, 247, 0.05) 40%,
+    transparent 70%
+  );
+  animation: hero-pulse 6s ease-in-out infinite alternate;
+}
+
+@keyframes hero-pulse {
+  0%   { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 1;   transform: scale(1.08); }
+}
+
+/* ===== Fog Layers ===== */
 .fog-layer {
   position: absolute;
   inset: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(224,224,224,0.03)" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,213.3C672,224,768,224,864,197.3C960,171,1056,117,1152,112C1248,107,1344,149,1392,170.7L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"/></svg>') no-repeat bottom;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(224,224,224,0.06)" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,213.3C672,224,768,224,864,197.3C960,171,1056,117,1152,112C1248,107,1344,149,1392,170.7L1440,192L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"/></svg>') no-repeat bottom;
   background-size: cover;
-  opacity: 0.5;
+  background-attachment: fixed;
+  opacity: 0.8;
   animation: drift 20s ease-in-out infinite alternate;
+  z-index: 1;
+}
+
+.fog-layer-2 {
+  position: absolute;
+  inset: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(123,47,247,0.08)" d="M0,160L60,170.7C120,181,240,203,360,197.3C480,192,600,160,720,154.7C840,149,960,171,1080,186.7C1200,203,1320,213,1380,218.7L1440,224L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"/></svg>') no-repeat bottom;
+  background-size: cover;
+  opacity: 0.85;
+  animation: drift-reverse 25s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 1;
 }
 
 @keyframes drift {
-  0% { transform: translateX(-20px); }
+  0%   { transform: translateX(-20px); }
   100% { transform: translateX(20px); }
+}
+
+@keyframes drift-reverse {
+  0%   { transform: translateX(30px) scaleX(1.1); }
+  100% { transform: translateX(-30px) scaleX(1.1); }
+}
+
+/* ===== Bokeh Orbs ===== */
+.bokeh-orb {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  filter: blur(35px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  animation: bokeh-drift 16s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.bokeh-green {
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.5) 0%, rgba(0, 255, 136, 0.15) 60%, transparent 85%);
+  width: 220px;
+  height: 220px;
+}
+
+.bokeh-purple {
+  background: radial-gradient(circle, rgba(123, 47, 247, 0.45) 0%, rgba(123, 47, 247, 0.12) 60%, transparent 85%);
+  width: 250px;
+  height: 250px;
+}
+
+.bokeh-amber {
+  background: radial-gradient(circle, rgba(255, 183, 77, 0.4) 0%, rgba(255, 183, 77, 0.1) 60%, transparent 85%);
+  width: 180px;
+  height: 180px;
+}
+
+@keyframes bokeh-drift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.8);
+  }
+  10% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate(40px, -60px) scale(1.2);
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-20px, 30px) scale(0.9);
+  }
+}
+
+/* ===== Parallax scroll layer ===== */
+@supports (background-attachment: fixed) {
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 50% 120%,
+      rgba(0, 255, 136, 0.06) 0%,
+      transparent 50%
+    );
+    background-attachment: fixed;
+    pointer-events: none;
+    z-index: 0;
+  }
 }

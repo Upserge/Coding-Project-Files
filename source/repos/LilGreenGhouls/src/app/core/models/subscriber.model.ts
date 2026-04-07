@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import { SubscriberPreferences } from './subscriber-preferences.model';
 
 export interface Subscriber {
   id?: string;
@@ -7,4 +8,5 @@ export interface Subscriber {
   subscribedAt: Timestamp;
   uid: string | null;
   active: boolean;
+  preferences?: SubscriberPreferences;
 }

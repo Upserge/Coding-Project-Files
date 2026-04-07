@@ -1,3 +1,201 @@
 :host {
   display: block;
 }
+
+/* ===== Evidence Board Page Backdrop ===== */
+
+.evidence-backdrop {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(139, 90, 43, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(123, 47, 247, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, #0f0c18 0%, #1a1424 40%, var(--color-shadow) 100%);
+}
+
+/* ===== Cork Texture Overlay ===== */
+
+.cork-texture {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle, rgba(139, 90, 43, 0.25) 1px, transparent 1px),
+    radial-gradient(circle, rgba(101, 67, 33, 0.12) 1px, transparent 1px);
+  background-size: 32px 32px, 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+/* ===== Scan-Line Sweep ===== */
+
+.scan-line {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 2px;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 68, 68, 0.3) 20%,
+    rgba(255, 68, 68, 0.6) 50%,
+    rgba(255, 68, 68, 0.3) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.2), 0 0 60px rgba(255, 68, 68, 0.08);
+  animation: scan-sweep 10s ease-in-out infinite;
+}
+
+@keyframes scan-sweep {
+  0%   { top: -2px;  opacity: 0; }
+  5%   { opacity: 0.8; }
+  95%  { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ===== Evidence Header ===== */
+
+.evidence-header {
+  background:
+    linear-gradient(180deg, rgba(139, 90, 43, 0.04) 0%, transparent 100%);
+}
+
+/* ===== Status Blink (red for case board) ===== */
+
+.status-blink {
+  animation: status-flicker 2s ease-in-out infinite;
+}
+
+@keyframes status-flicker {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(255, 68, 68, 0.6); }
+  50%      { opacity: 0.3; box-shadow: 0 0 2px rgba(255, 68, 68, 0.2); }
+}
+
+/* ===== Floating Evidence Particles ===== */
+
+.evidence-particle {
+  position: absolute;
+  font-size: 0.875rem;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  animation: evidence-drift 14s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(139, 90, 43, 0.3));
+}
+
+@keyframes evidence-drift {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  12% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.25;
+    transform: translateY(-100px) translateX(20px) scale(1);
+  }
+  88% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-200px) translateX(-10px) scale(0.7);
+  }
+}
+
+/* ===== Scatter Board Container ===== */
+
+.scatter-board {
+  position: relative;
+  width: 100%;
+}
+
+/* ===== SVG Yarn Overlay ===== */
+
+.yarn-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  overflow: visible;
+}
+
+.yarn-path {
+  stroke: rgba(204, 41, 41, 0.55);
+  stroke-width: 2;
+  stroke-linecap: round;
+  fill: none;
+  filter: drop-shadow(0 1px 3px rgba(204, 41, 41, 0.25));
+}
+
+/* ===== Pinned Evidence Cards ===== */
+
+.pinned-card {
+  position: absolute;
+  width: 36%;
+  transform: rotate(var(--card-rotation, 0deg));
+  transition: transform 0.4s ease, box-shadow 0.4s ease, z-index 0s;
+}
+
+.pinned-card:hover {
+  transform: rotate(0deg) scale(1.04);
+  z-index: 20;
+}
+
+/* ===== Red Pushpin ===== */
+
+.pushpin {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  z-index: 25;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff6b6b, #cc2929 60%, #8b1a1a);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+/* Pin needle point */
+.pushpin::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 6px;
+  background: linear-gradient(180deg, #888, #555);
+  border-radius: 0 0 1px 1px;
+}
+
+/* ===== Responsive: stack on mobile ===== */
+@media (max-width: 639px) {
+  .scatter-board {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    height: auto !important;
+  }
+
+  .pinned-card {
+    position: relative !important;
+    width: 100% !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+
+  .yarn-svg {
+    display: none;
+  }
+}

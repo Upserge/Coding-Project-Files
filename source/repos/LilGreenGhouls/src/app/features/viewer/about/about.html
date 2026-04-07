@@ -1,65 +1,118 @@
-<section class="mx-auto max-w-5xl px-6 py-12">
-  <h1 class="gradient-text fade-in-up mb-4 text-center font-display text-5xl">About Us</h1>
-  <p class="fade-in-up delay-200 mx-auto mb-12 max-w-2xl text-center text-mist/70">
-    Two curious souls on a mission to explore the unknown and document what goes bump in the night.
-  </p>
+<!-- Candlelit Séance Backdrop -->
+<div class="seance-backdrop relative min-h-screen overflow-hidden">
+  <!-- Candle glow spots -->
+  <div class="candle-glow candle-glow-1"></div>
+  <div class="candle-glow candle-glow-2"></div>
+  <div class="candle-glow candle-glow-3"></div>
+  <div class="candle-glow candle-glow-4"></div>
 
-  <!-- Team Grid -->
-  <div class="mb-16 grid gap-8 md:grid-cols-2">
-    <!-- Team Member 1 -->
-    <div class="gradient-border-hover glass group p-8 text-center transition-all duration-300 hover:scale-[1.02]">
-      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-haunt-purple/20 text-4xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
-        🔦
-      </div>
-      <h3 class="mb-2 font-display text-2xl text-ghost-white transition-colors group-hover:text-ecto-green">Jason</h3>
-      <p class="text-sm tracking-widest text-haunt-purple uppercase">Lead Investigator</p>
-      <p class="mt-3 text-mist/70">
-        Bumbling fool. Court Jester. Likely haunted.
+  <!-- Floating smoke/candle particles (dense field) -->
+  <span class="smoke-particle left-[12%] top-[20%] text-sm" style="animation-delay: 0s">🕯️</span>
+  <span class="smoke-particle left-[80%] top-[15%] text-lg" style="animation-delay: 4s">✨</span>
+  <span class="smoke-particle left-[50%] top-[60%] text-base" style="animation-delay: 8s">🕯️</span>
+  <span class="smoke-particle left-[25%] top-[75%] text-lg" style="animation-delay: 2.5s">✨</span>
+  <span class="smoke-particle left-[88%] top-[55%] text-sm" style="animation-delay: 6s">🕯️</span>
+  <span class="smoke-particle left-[65%] top-[85%] text-base" style="animation-delay: 10s">✨</span>
+  <span class="smoke-particle left-[5%] top-[45%] text-base" style="animation-delay: 1.5s">🕯️</span>
+  <span class="smoke-particle left-[38%] top-[10%] text-sm" style="animation-delay: 5s">✨</span>
+  <span class="smoke-particle left-[72%] top-[40%] text-lg" style="animation-delay: 3s">🕯️</span>
+  <span class="smoke-particle left-[15%] top-[90%] text-base" style="animation-delay: 7.5s">✨</span>
+  <span class="smoke-particle left-[92%] top-[30%] text-sm" style="animation-delay: 9.5s">🕯️</span>
+  <span class="smoke-particle left-[55%] top-[25%] text-lg" style="animation-delay: 11s">✨</span>
+  <span class="smoke-particle left-[35%] top-[50%] text-sm" style="animation-delay: 0.8s">🕯️</span>
+  <span class="smoke-particle left-[78%] top-[72%] text-base" style="animation-delay: 6.5s">✨</span>
+
+  <!-- Page Header -->
+  <header class="relative px-6 pb-8 pt-14">
+    <div class="relative z-10 mx-auto max-w-5xl text-center">
+      <h1 class="gradient-text fade-in-up mb-4 font-display text-5xl md:text-6xl">About Us</h1>
+      <p class="fade-in-up delay-200 mx-auto mb-4 max-w-2xl text-mist/70">
+        Two curious souls on a mission to explore the unknown and document what goes bump in the night.
       </p>
     </div>
+  </header>
 
-    <!-- Team Member 2 -->
-    <div class="gradient-border-hover glass group p-8 text-center transition-all duration-300 hover:scale-[1.02]">
-      <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-ecto-green/20 text-4xl transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6">
-        📸
+  <!-- Team Grid — Séance Circle Accent Behind -->
+  <section class="relative px-6 pb-16">
+    <!-- Séance circle glow (positioned behind team cards) -->
+    <div class="seance-circle"></div>
+
+    <div class="relative z-10 mx-auto max-w-5xl">
+      <div class="mb-16 grid gap-8 md:grid-cols-2">
+        <!-- Team Member 1 -->
+        <div class="holo-card-wrapper">
+          <div class="holo-card group p-8 text-center"
+               (mousemove)="onCardMouseMove($event)"
+               (mouseleave)="onCardMouseLeave($event)">
+            <div class="holo-content">
+              <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-haunt-purple/20 text-4xl transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+                🔦
+              </div>
+              <h3 class="mb-2 font-display text-2xl text-ghost-white transition-colors group-hover:text-ecto-green">Jason</h3>
+              <p class="text-sm tracking-widest text-ghost-white/80 uppercase">Lead Investigator</p>
+              <p class="mt-3 text-mist/70">
+                Bumbling fool. Court Jester. Likely haunted.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Member 2 -->
+        <div class="holo-card-wrapper">
+          <div class="holo-card group p-8 text-center"
+               (mousemove)="onCardMouseMove($event)"
+               (mouseleave)="onCardMouseLeave($event)">
+            <div class="holo-content">
+              <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-ecto-green/20 text-4xl transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6">
+                📸
+              </div>
+              <h3 class="mb-2 font-display text-2xl text-ghost-white transition-colors group-hover:text-ecto-green">Sarah</h3>
+              <p class="text-sm tracking-widest text-ghost-white/80 uppercase">The Real Lead Investigator</p>
+              <p class="mt-3 text-mist/70">
+                Head Honcho. She says "Jump", I say "On who?"
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-      <h3 class="mb-2 font-display text-2xl text-ghost-white transition-colors group-hover:text-ecto-green">Sarah</h3>
-      <p class="text-sm tracking-widest text-haunt-purple uppercase">The Real Lead Investigator</p>
-      <p class="mt-3 text-mist/70">
-        Head Honcho. She says "Jump", I say "On who?"
-      </p>
     </div>
-  </div>
+  </section>
 
   <!-- Divider -->
-  <div class="spooky-divider mx-auto mb-16 max-w-md"></div>
+  <div class="spooky-divider relative z-10 mx-auto mb-16 max-w-md"></div>
 
   <!-- Mission -->
-  <div class="glass mb-16 p-8">
-    <h2 class="mb-4 font-display text-3xl text-ghost-white">Our Mission 🎯</h2>
-    <p class="mb-4 text-mist/70">
-      We're not trying to prove or disprove anything. We're just two ghouls who find the paranormal
-      fascinating and want to share our experiences with the people we care about.
-    </p>
-    <p class="text-mist/70">
-      Every adventure is documented here — the creepy, the unexplainable, and sometimes the
-      hilariously mundane. We bring cameras, audio recorders, and open minds to every investigation.
-    </p>
-  </div>
+  <section class="relative z-10 mx-auto max-w-5xl px-6">
+    <div appAos class="glass mb-16 p-8">
+      <h2 class="mb-4 font-display text-3xl text-ghost-white">Our Mission 🎯</h2>
+      <p class="mb-4 text-mist/70">
+        We're not trying to prove or disprove anything. We're just two ghouls who find the paranormal
+        fascinating and want to share our experiences with the people we care about.
+      </p>
+      <p class="text-mist/70">
+        Every adventure is documented here — the creepy, the unexplainable, and sometimes the
+        hilariously mundane. We bring cameras, audio recorders, and open minds to every investigation.
+      </p>
+    </div>
+  </section>
 
   <!-- Equipment -->
-  <div class="mb-16">
-    <h2 class="mb-6 text-center font-display text-3xl text-ghost-white">Our Toolkit 🛠️</h2>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      @for (item of equipment; track item.name) {
-        <div class="gradient-border-hover glass group p-4 text-center transition-all duration-300 hover:scale-105">
-          <span class="mb-2 block text-2xl transition-transform duration-300 group-hover:scale-125 group-hover:drop-shadow-[0_0_8px_rgba(0,255,136,0.5)]">{{ item.icon }}</span>
-          <p class="text-sm font-medium text-ghost-white">{{ item.name }}</p>
-        </div>
-      }
+  <section class="relative z-10 mx-auto max-w-5xl px-6">
+    <div appAos aosDelay="delay-200" class="mb-16">
+      <h2 class="mb-6 text-center font-display text-3xl text-ghost-white">Our Toolkit 🛠️</h2>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        @for (item of equipment; track item.name) {
+          <div class="gradient-border-hover glass group p-4 text-center transition-all duration-300 hover:scale-105">
+            <span class="mb-2 block text-2xl transition-transform duration-300 group-hover:scale-125 group-hover:drop-shadow-[0_0_8px_rgba(0,255,136,0.5)]">{{ item.icon }}</span>
+            <p class="text-sm font-medium text-ghost-white">{{ item.name }}</p>
+          </div>
+        }
+      </div>
     </div>
-  </div>
+  </section>
 
   <!-- Subscribe -->
-  <app-subscribe-form />
-</section>
+  <section class="relative z-10 mx-auto max-w-5xl px-6 pb-16">
+    <app-subscribe-form />
+  </section>
+</div>
