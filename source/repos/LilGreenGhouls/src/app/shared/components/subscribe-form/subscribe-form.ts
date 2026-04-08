@@ -19,8 +19,9 @@ export class SubscribeFormComponent {
   private pushService = inject(PushNotificationService);
 
   protected email = '';
-  protected status = signal<'idle' | 'loading' | 'success' | 'error'>('idle');
+  protected status = signal<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle');
   protected notificationsEnabled = signal(false);
+  protected pushDenied = signal(false);
   protected showPreferences = signal(false);
   protected subscriberId = signal<string | null>(null);
 
@@ -33,10 +34,16 @@ export class SubscribeFormComponent {
     if (!this.email.trim()) return;
 
     this.status.set('loading');
+    let result: 'created' | 'duplicate';
     try {
-      await this.subscribersService.addSubscriber(this.email.trim());
+      result = await this.subscribersService.addSubscriber(this.email.trim());
     } catch {
       this.status.set('error');
+      return;
+    }
+
+    if (result === 'duplicate') {
+      this.status.set('duplicate');
       return;
     }
 
@@ -44,9 +51,13 @@ export class SubscribeFormComponent {
     try {
       const token = await this.pushService.requestPermissionAndSaveToken(this.email.trim());
       this.notificationsEnabled.set(!!token);
+      if (!token) {
+        this.pushDenied.set(true);
+      }
     } catch {
       // FCM may fail (e.g., no VAPID key, denied permissions) — that's OK
       this.notificationsEnabled.set(false);
+      this.pushDenied.set(true);
     }
 
     try {
@@ -60,6 +71,12 @@ export class SubscribeFormComponent {
 
     this.status.set('success');
     this.email = '';
+  }
+
+  protected resetForm(): void {
+    this.status.set('idle');
+    this.email = '';
+    this.pushDenied.set(false);
   }
 
   togglePreferences(): void {

@@ -490,8 +490,8 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 ---
 
 ## 14. Misc bug fixes & TODOs
-- [ ] TODO: create error message for subscribe modal to let users know if their email is already registered or if push permission was denied
-- [ ] TODO: add loading state to subscribe button while processing subscription
+- [x] TODO: create error message for subscribe modal to let users know if their email is already registered or if push permission was denied
+- [x] TODO: add loading state to subscribe button while processing subscription
 - [ ] TODO: add "last updated" timestamp to post detail page, showing how long ago the post was published/updated
 - [ ] TODO: implement error handling for failed FCM push notifications
 - [ ] TODO: add support for infinite scroll to adventures page in order to future-proof for large amounts of posts

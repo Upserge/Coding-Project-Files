@@ -23,14 +23,14 @@ export class SubscribersService {
   private firestore = inject(Firestore);
   private readonly collectionName = 'subscribers';
 
-  async addSubscriber(email: string, displayName?: string, uid?: string): Promise<void> {
+  async addSubscriber(email: string, displayName?: string, uid?: string): Promise<'created' | 'duplicate'> {
     // Check if email already exists
     const q = query(
       collection(this.firestore, this.collectionName),
       where('email', '==', email),
     );
     const existing = await getDocs(q);
-    if (!existing.empty) return; // Already subscribed
+    if (!existing.empty) return 'duplicate';
 
     const colRef = collection(this.firestore, this.collectionName);
     await addDoc(colRef, {
@@ -41,6 +41,7 @@ export class SubscribersService {
       active: true,
       preferences: { ...DEFAULT_SUBSCRIBER_PREFERENCES },
     });
+    return 'created';
   }
 
   async getAll(): Promise<Subscriber[]> {
