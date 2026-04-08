@@ -1,0 +1,55 @@
+<div>
+  <h1 class="mb-6 font-display text-3xl text-ghost-white">Comment Moderation</h1>
+
+  @if (comments().length) {
+    <div class="mb-4 text-sm text-mist/60">
+      {{ comments().length }} pending comment(s)
+    </div>
+
+    <div class="overflow-x-auto rounded-xl border border-haunt-purple/20">
+      <table class="w-full text-left">
+        <thead class="border-b border-haunt-purple/20 bg-shadow">
+          <tr>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Author</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Comment</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Date</th>
+            <th class="px-4 py-3 text-sm font-medium text-mist/60">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (comment of comments(); track comment.id) {
+            <tr class="border-b border-haunt-purple/10 transition-colors hover:bg-phantom/30">
+              <td class="px-4 py-3">
+                <p class="text-ghost-white">{{ comment.authorName }}</p>
+                <p class="text-xs text-mist/40">{{ comment.authorEmail }}</p>
+              </td>
+              <td class="max-w-md px-4 py-3 text-sm text-mist/70">
+                <p class="line-clamp-3 whitespace-pre-line">{{ comment.content }}</p>
+              </td>
+              <td class="px-4 py-3 text-sm text-mist/50">
+                {{ comment.createdAt.toDate() | date:'medium' }}
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex gap-2">
+                  <button (click)="approve(comment)"
+                          class="rounded-lg bg-ecto-green/20 px-3 py-1 text-sm text-ecto-green hover:bg-ecto-green hover:text-void">
+                    Approve
+                  </button>
+                  <button (click)="reject(comment)"
+                          class="rounded-lg bg-blood-red/20 px-3 py-1 text-sm text-blood-red hover:bg-blood-red hover:text-ghost-white">
+                    Reject
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="glass p-12 text-center">
+      <p class="mb-4 font-display text-2xl text-ghost-white">No pending comments 👻</p>
+      <p class="text-mist/60">All caught up! Check back later for new comments to review.</p>
+    </div>
+  }
+</div>

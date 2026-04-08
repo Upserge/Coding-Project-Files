@@ -23,6 +23,13 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+
+      // Comments subcollection
+      match /comments/{commentId} {
+        allow read: if resource.data.status == 'approved';
+        allow create: if request.resource.data.status == 'pending';
+        allow read, update, delete: if isAdmin();
+      }
     }
 
     // Subscribers collection

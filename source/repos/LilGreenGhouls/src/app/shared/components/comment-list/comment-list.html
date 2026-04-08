@@ -1,0 +1,26 @@
+@if (loading()) {
+  <div class="flex justify-center py-8">
+    <div class="h-8 w-8 animate-spin rounded-full border-4 border-haunt-purple border-t-ecto-green"></div>
+  </div>
+} @else if (comments().length) {
+  <div class="space-y-4">
+    <h3 class="font-display text-xl text-ghost-white">Comments ({{ comments().length }})</h3>
+
+    @for (comment of comments(); track comment.id) {
+      <div class="glass rounded-xl p-4">
+        <div class="mb-2 flex items-center gap-3">
+          <div class="flex h-9 w-9 items-center justify-center rounded-full bg-haunt-purple/20 text-sm font-semibold text-haunt-purple">
+            {{ comment.authorName.charAt(0).toUpperCase() }}
+          </div>
+          <div>
+            <p class="text-sm font-medium text-ghost-white">{{ comment.authorName }}</p>
+            <p class="text-xs text-mist/40">{{ comment.createdAt.toDate() | date:'mediumDate' }}</p>
+          </div>
+        </div>
+        <p class="whitespace-pre-line text-sm leading-relaxed text-mist/80">{{ comment.content }}</p>
+      </div>
+    }
+  </div>
+} @else {
+  <p class="py-4 text-center text-sm text-mist/40">No comments yet — be the first to share your thoughts! 👻</p>
+}

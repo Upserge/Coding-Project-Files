@@ -1,10 +1,11 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SubscribeFormComponent } from '../subscribe-form/subscribe-form';
 
 @Component({
   selector: 'app-footer',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, SubscribeFormComponent],
   templateUrl: './footer.html',
   styleUrl: './footer.css',
 })

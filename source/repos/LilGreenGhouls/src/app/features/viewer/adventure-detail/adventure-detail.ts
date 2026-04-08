@@ -2,16 +2,17 @@ import { Component, inject, OnInit, signal, viewChild, computed } from '@angular
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe, DOCUMENT } from '@angular/common';
 import { PostsService } from '../../../core/services/posts.service';
-import { SubscribeFormComponent } from '../../../shared/components/subscribe-form/subscribe-form';
 import { ImageLightboxComponent } from '../../../shared/components/image-lightbox/image-lightbox';
 import { SocialShareComponent } from '../../../shared/components/social-share/social-share';
+import { CommentFormComponent } from '../../../shared/components/comment-form/comment-form';
+import { CommentListComponent } from '../../../shared/components/comment-list/comment-list';
 import { SafeResourceUrlPipe } from '../../../shared/pipes/safe-resource-url.pipe';
 import { Post } from '../../../core/models/post.model';
 
 @Component({
   selector: 'app-adventure-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, SubscribeFormComponent, ImageLightboxComponent, SocialShareComponent, SafeResourceUrlPipe],
+  imports: [RouterLink, DatePipe, ImageLightboxComponent, SocialShareComponent, CommentFormComponent, CommentListComponent, SafeResourceUrlPipe],
   templateUrl: './adventure-detail.html',
   styleUrl: './adventure-detail.css',
 })
@@ -32,6 +33,7 @@ export class AdventureDetailComponent implements OnInit {
   });
 
   private lightbox = viewChild(ImageLightboxComponent);
+  private commentList = viewChild(CommentListComponent);
 
   async ngOnInit(): Promise<void> {
     const slug = this.route.snapshot.paramMap.get('slug');
@@ -50,5 +52,9 @@ export class AdventureDetailComponent implements OnInit {
 
   closeLightbox(): void {
     this.lightboxOpen.set(false);
+  }
+
+  onCommentSubmitted(): void {
+    this.commentList()?.loadComments();
   }
 }

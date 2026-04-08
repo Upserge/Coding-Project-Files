@@ -1,0 +1,48 @@
+@if (submitted()) {
+  <div class="glass rounded-xl p-6 text-center">
+    <p class="mb-2 font-display text-xl text-ecto-green">Comment submitted! 👻</p>
+    <p class="text-sm text-mist/60">Your comment is awaiting moderation and will appear once approved.</p>
+  </div>
+} @else {
+  <form (ngSubmit)="submit()" class="glass rounded-xl p-6">
+    <h3 class="mb-4 font-display text-xl text-ghost-white">Leave a Comment</h3>
+
+    @if (error()) {
+      <p class="mb-4 rounded-lg bg-blood-red/10 px-4 py-2 text-sm text-blood-red">{{ error() }}</p>
+    }
+
+    <div class="mb-4 grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="commentName" class="mb-1 block text-sm text-mist/60">Name</label>
+        <input id="commentName" type="text" [ngModel]="authorName()" (ngModelChange)="authorName.set($event)"
+               name="authorName" placeholder="Your name"
+               class="w-full rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-ghost-white placeholder-mist/30 outline-none transition-colors focus:border-ecto-green" />
+      </div>
+      <div>
+        <label for="commentEmail" class="mb-1 block text-sm text-mist/60">Email</label>
+        <input id="commentEmail" type="email" [ngModel]="authorEmail()" (ngModelChange)="authorEmail.set($event)"
+               name="authorEmail" placeholder="your@email.com"
+               class="w-full rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-ghost-white placeholder-mist/30 outline-none transition-colors focus:border-ecto-green" />
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label for="commentContent" class="mb-1 block text-sm text-mist/60">Comment</label>
+      <textarea id="commentContent" [ngModel]="content()" (ngModelChange)="content.set($event)"
+                name="content" rows="4" placeholder="Share your thoughts on this adventure..."
+                class="w-full resize-none rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-ghost-white placeholder-mist/30 outline-none transition-colors focus:border-ecto-green"></textarea>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <p class="text-xs text-mist/40">Comments are moderated before appearing.</p>
+      <button type="submit" [disabled]="submitting()"
+              class="glow-green rounded-lg bg-ecto-green px-6 py-2 text-sm font-semibold text-void transition-all hover:bg-candle-glow disabled:opacity-50 disabled:cursor-not-allowed">
+        @if (submitting()) {
+          Submitting...
+        } @else {
+          Post Comment
+        }
+      </button>
+    </div>
+  </form>
+}

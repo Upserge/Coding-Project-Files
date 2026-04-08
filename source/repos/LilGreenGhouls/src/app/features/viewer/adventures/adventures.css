@@ -14,7 +14,7 @@
 /* ===== Cork Texture Overlay ===== */
 
 .cork-texture {
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
@@ -29,7 +29,7 @@
 /* ===== Scan-Line Sweep ===== */
 
 .scan-line {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   height: 2px;

@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
-import { SubscribeFormComponent } from '../../../shared/components/subscribe-form/subscribe-form';
 import { AosDirective } from '../../../shared/directives/aos.directive';
 
 @Component({
   selector: 'app-about',
   standalone: true,
-  imports: [SubscribeFormComponent, AosDirective],
+  imports: [AosDirective],
   templateUrl: './about.html',
   styleUrl: './about.css',
 })

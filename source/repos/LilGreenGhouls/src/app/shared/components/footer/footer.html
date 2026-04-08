@@ -1,7 +1,7 @@
 <footer class="mt-auto border-t border-haunt-purple/20 bg-shadow px-6 py-12">
   <div class="mx-auto max-w-7xl">
     <!-- Top row: brand + nav columns -->
-    <div class="grid gap-8 md:grid-cols-3">
+    <div class="grid gap-8 md:grid-cols-4">
       <!-- Brand -->
       <div>
         <p class="font-display text-2xl text-ghost-white">👻 Lil Green Ghouls</p>
@@ -18,6 +18,12 @@
           <a routerLink="/adventures" class="text-mist/60 no-underline transition-colors hover:text-ecto-green">Adventures</a>
           <a routerLink="/about" class="text-mist/60 no-underline transition-colors hover:text-ecto-green">About Us</a>
         </div>
+      </div>
+
+      <!-- Subscribe -->
+      <div>
+        <p class="mb-3 text-xs tracking-widest text-haunt-purple uppercase">Stay in the Loop</p>
+        <app-subscribe-form />
       </div>
 
       <!-- Vibes -->

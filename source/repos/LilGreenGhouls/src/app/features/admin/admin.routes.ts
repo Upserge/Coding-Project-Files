@@ -21,4 +21,8 @@ export const adminRoutes: Routes = [
     path: 'subscribers',
     loadComponent: () => import('./subscriber-list/subscriber-list').then(m => m.SubscriberListComponent),
   },
+  {
+    path: 'comments',
+    loadComponent: () => import('./comment-moderation/comment-moderation').then(m => m.CommentModerationComponent),
+  },
 ];

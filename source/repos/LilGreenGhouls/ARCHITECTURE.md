@@ -486,3 +486,13 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 4. **Business Logic in Services** — Components are thin presentation layers; services handle Firebase interactions and data transformation.
 5. **Signals over RxJS where possible** — Use Angular signals for local state; RxJS for Firestore real-time streams.
 6. **Progressive Enhancement** — Site works without JS for basic content (SSR), enhances with animations and interactivity.
+
+---
+
+## 14. Misc bug fixes & TODOs
+- [ ] TODO: create error message for subscribe modal to let users know if their email is already registered or if push permission was denied
+- [ ] TODO: add loading state to subscribe button while processing subscription
+- [ ] TODO: add "last updated" timestamp to post detail page, showing how long ago the post was published/updated
+- [ ] TODO: implement error handling for failed FCM push notifications
+- [ ] TODO: add support for infinite scroll to adventures page in order to future-proof for large amounts of posts
+- [ ] TODO: create unit testing for services and critical components (e.g. PostEditorComponent, SubscribeFormComponent)
