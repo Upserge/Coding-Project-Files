@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { PostsService } from '../../../core/services/posts.service';
 import { MediaService } from '../../../core/services/media.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { PushNotificationService } from '../../../core/services/push-notification.service';
+import { PushNotificationService, FcmError } from '../../../core/services/push-notification.service';
 import { Post } from '../../../core/models/post.model';
 import { Timestamp } from 'firebase/firestore';
 
@@ -199,8 +199,12 @@ export class PostEditorComponent implements OnInit {
       this.notifyResult.set(count > 0
         ? `🔔 Notification queued for ${count} subscriber(s)!`
         : 'No subscribers with push tokens found.');
-    } catch {
-      this.notifyResult.set('Failed to queue notification.');
+    } catch (error: unknown) {
+      if (error instanceof FcmError) {
+        this.notifyResult.set(`❌ ${error.message}`);
+      } else {
+        this.notifyResult.set('❌ Failed to queue notification — an unexpected error occurred.');
+      }
     }
     this.notifying.set(false);
   }

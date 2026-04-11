@@ -24,13 +24,17 @@ export class SubscribersService {
   private readonly collectionName = 'subscribers';
 
   async addSubscriber(email: string, displayName?: string, uid?: string): Promise<'created' | 'duplicate'> {
-    // Check if email already exists
-    const q = query(
-      collection(this.firestore, this.collectionName),
-      where('email', '==', email),
-    );
-    const existing = await getDocs(q);
-    if (!existing.empty) return 'duplicate';
+    // Check if email already exists (best-effort — read may fail for unauthenticated users)
+    try {
+      const q = query(
+        collection(this.firestore, this.collectionName),
+        where('email', '==', email),
+      );
+      const existing = await getDocs(q);
+      if (!existing.empty) return 'duplicate';
+    } catch {
+      // Non-admin users lack read permission on subscribers — skip duplicate check
+    }
 
     const colRef = collection(this.firestore, this.collectionName);
     await addDoc(colRef, {

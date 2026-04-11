@@ -177,8 +177,8 @@
               class="rounded-lg border border-mist/30 px-6 py-3 text-sm text-mist transition-all hover:bg-mist/10">
         ← Back to Posts
       </button>
-      @if (notifyResult()) {
-        <span class="text-sm text-ecto-green">{{ notifyResult() }}</span>
+      @if (notifyResult(); as result) {
+        <span [class]="result.startsWith('❌') ? 'text-sm text-blood-red' : 'text-sm text-ecto-green'">{{ result }}</span>
       }
     </div>
   }

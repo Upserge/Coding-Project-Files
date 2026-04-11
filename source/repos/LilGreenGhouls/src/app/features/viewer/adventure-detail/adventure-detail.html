@@ -34,6 +34,9 @@
         @if (p.publishedAt) {
         <span>{{ p.publishedAt.toDate() | date:'longDate' }}</span>
         }
+        @if (lastUpdatedAgo(); as ago) {
+        <span class="text-mist/40">· Updated {{ ago }}</span>
+        }
       </div>
     </header>
 

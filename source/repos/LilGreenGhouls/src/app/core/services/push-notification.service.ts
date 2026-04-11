@@ -29,6 +29,16 @@ export interface NotificationRequest {
   createdAt: Timestamp;
 }
 
+export class FcmError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+  ) {
+    super(message);
+    this.name = 'FcmError';
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class PushNotificationService {
   private firestore = inject(Firestore);
@@ -103,18 +113,41 @@ export class PushNotificationService {
    * Returns the number of FCM tokens that the notification targets.
    */
   async sendToAllSubscribers(title: string, body: string, link: string): Promise<number> {
-    const tokens = await this.getAllTokens();
+    let tokens: string[];
+    try {
+      tokens = await this.getAllTokens();
+    } catch (error: unknown) {
+      throw new FcmError(
+        'Failed to retrieve subscriber tokens. Check Firestore permissions.',
+        'fcm/token-retrieval-failed',
+      );
+    }
+
     if (tokens.length === 0) return 0;
 
-    // Write a notification request to Firestore for backend processing
-    await addDoc(collection(this.firestore, this.notificationsCollection), {
-      title,
-      body,
-      link,
-      status: 'pending',
-      tokenCount: tokens.length,
-      createdAt: Timestamp.now(),
-    } satisfies NotificationRequest);
+    try {
+      // Write a notification request to Firestore for backend processing
+      await addDoc(collection(this.firestore, this.notificationsCollection), {
+        title,
+        body,
+        link,
+        status: 'pending',
+        tokenCount: tokens.length,
+        createdAt: Timestamp.now(),
+      } satisfies NotificationRequest);
+    } catch (error: unknown) {
+      const code = (error as { code?: string })?.code ?? 'unknown';
+      if (code === 'permission-denied') {
+        throw new FcmError(
+          'Permission denied writing notification request. Verify admin authentication.',
+          'fcm/permission-denied',
+        );
+      }
+      throw new FcmError(
+        'Failed to queue notification request to Firestore.',
+        'fcm/queue-failed',
+      );
+    }
 
     return tokens.length;
   }
