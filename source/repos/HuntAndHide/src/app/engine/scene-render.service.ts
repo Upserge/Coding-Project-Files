@@ -10,7 +10,7 @@ import {
   HUNTER_POUNCE_DURATION_S,
 } from '../models/player.model';
 
-import { ANIMAL_COLORS, BELLY_COLORS, HUNTER_BODY_COLOR, HIDER_BODY_COLOR } from './mesh/animal-palettes';
+import { ANIMAL_COLORS, BELLY_COLORS } from './mesh/animal-palettes';
 import { buildNameSprite, applyRimLighting, updateRimLighting } from './mesh/mesh-helpers';
 
 import { buildHunterMesh } from './mesh/hunter-mesh.builder';

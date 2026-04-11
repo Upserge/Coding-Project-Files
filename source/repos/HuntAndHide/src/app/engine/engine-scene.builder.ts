@@ -113,6 +113,7 @@ function placeObstacle(
       alignToSlope: shouldAlignObstacleToSlope(obs.type),
       clearance: getObstacleClearance(obs.type) + obs.position.y,
       sampleRadius: getObstacleSampleRadius(obs.type),
+      useFooting: shouldUseFooting(obs.type),
     },
   );
   group.renderOrder = 2;
@@ -149,6 +150,10 @@ function getObstacleSampleRadius(type: ObstacleType): number | undefined {
 
 function isVehicle(type: ObstacleType): boolean {
   return type === 'sedan';
+}
+
+function shouldUseFooting(type: ObstacleType): boolean {
+  return type !== 'leaf_pile' && type !== 'hole';
 }
 
 // ── Decorations ─────────────────────────────────────────────
