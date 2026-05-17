@@ -1,7 +1,7 @@
 /**
  * Animation state machine for procedural character animations.
  *
- * This model is designed to be compatible with a future AnimationMixer upgrade (Option B).
+ * This model is designed to be compatible with a future AnimationMixer upgrade
  * Each AnimationState maps 1:1 to a potential AnimationClip name,
  * so migrating from procedural → keyframe clips only requires
  * swapping the tick implementation in the animation service.
