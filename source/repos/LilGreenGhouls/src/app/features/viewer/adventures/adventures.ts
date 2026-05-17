@@ -13,6 +13,7 @@ interface CardPosition {
 interface YarnLine {
   x1: number; y1: number;
   x2: number; y2: number;
+  pathD?: string; // SVG path data for curved line
 }
 
 @Component({
@@ -32,7 +33,7 @@ export class AdventuresComponent implements OnInit {
   protected error = signal<string | null>(null);
 
   private static readonly CARD_HEIGHT = 380;
-  private static readonly ROW_SPACING = 420;
+  private static readonly ROW_SPACING = 450;
 
   /** Seeded pseudo-random so positions are stable across re-renders */
   private seededRandom(seed: number): number {
@@ -48,16 +49,17 @@ export class AdventuresComponent implements OnInit {
       const col = i % 2;
 
       // Zigzag: even rows go left-right, odd rows go right-left
+      // With 28% width cards: left col at 5%, right col at 62% (10% gap in middle)
       const baseLeft = row % 2 === 0
-        ? (col === 0 ? 5 : 52)
-        : (col === 0 ? 52 : 5);
+        ? (col === 0 ? 5 : 42)
+        : (col === 0 ? 42 : 5);
 
       const offsetX = (this.seededRandom(i * 7 + 3) - 0.5) * 14;
       const offsetY = (this.seededRandom(i * 13 + 7) - 0.5) * 40;
       const rotation = ((this.seededRandom(i * 17 + 11) - 0.5) * 5).toFixed(1) + 'deg';
 
       return {
-        left: Math.max(2, Math.min(62, baseLeft + offsetX)),
+        left: Math.max(2, Math.min(68, baseLeft + offsetX)),
         top: row * AdventuresComponent.ROW_SPACING + offsetY + 20,
         rotation,
       };
@@ -76,15 +78,27 @@ export class AdventuresComponent implements OnInit {
     if (positions.length < 2) return [];
 
     const boardWidth = 1280;
-    const cardWidth = boardWidth * 0.33;
+    const cardWidth = boardWidth * 0.28;
 
     return positions.slice(1).map((pos, i) => {
       const prev = positions[i];
+
+      // Connect at the pushpin center (which is 10px ABOVE the card top)
+      const x1 = (prev.left / 100) * boardWidth + cardWidth / 2;
+      const y1 = prev.top - 10;
+      const x2 = (pos.left / 100) * boardWidth + cardWidth / 2;
+      const y2 = pos.top - 10;
+
+      // Create a quadratic Bezier curve for droopy yarn
+      // Control point is halfway horizontally, but droops down vertically
+      const controlX = (x1 + x2) / 2;
+      const controlY = (y1 + y2) / 2 + Math.abs(x2 - x1) * 0.15; // Droop proportional to horizontal distance
+
+      const pathD = `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`;
+
       return {
-        x1: (prev.left / 100) * boardWidth + cardWidth / 2,
-        y1: prev.top + 10,
-        x2: (pos.left / 100) * boardWidth + cardWidth / 2,
-        y2: pos.top + 10,
+        x1, y1, x2, y2,
+        pathD,
       };
     });
   });

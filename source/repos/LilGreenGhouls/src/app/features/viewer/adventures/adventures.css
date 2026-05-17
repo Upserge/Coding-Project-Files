@@ -137,7 +137,7 @@
 
 .pinned-card {
   position: absolute;
-  width: 36%;
+  width: 28%;
   transform: rotate(var(--card-rotation, 0deg));
   transition: transform 0.4s ease, box-shadow 0.4s ease, z-index 0s;
 }
