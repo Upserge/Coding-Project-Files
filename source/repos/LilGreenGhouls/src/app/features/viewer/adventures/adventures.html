@@ -52,16 +52,15 @@
 
   <!-- Posts — Scattered Evidence Board -->
   <section class="relative z-10 mx-auto max-w-7xl px-6 pb-16">
-    @if (filteredPosts.length) {
-      <!-- SVG yarn overlay connecting pins in chronological order -->
-      <svg class="yarn-svg" [attr.viewBox]="'0 0 1280 ' + boardHeight()">
-        @for (line of yarnLines(); track $index) {
-          <path [attr.d]="line.pathD" class="yarn-path" />
-        }
-      </svg>
-
+    @if (filteredPosts().length) {
       <div class="scatter-board" [style.height.px]="boardHeight()">
-        @for (post of filteredPosts; track post.id; let i = $index) {
+        <svg class="yarn-svg" [attr.viewBox]="'0 0 1280 ' + boardHeight()">
+          @for (line of yarnLines(); track $index) {
+            <path [attr.d]="line.pathD" class="yarn-path" />
+          }
+        </svg>
+
+        @for (post of filteredPosts(); track post.id; let i = $index) {
           <div class="pinned-card"
                [style.left.%]="cardPositions()[i]?.left"
                [style.top.px]="cardPositions()[i]?.top"

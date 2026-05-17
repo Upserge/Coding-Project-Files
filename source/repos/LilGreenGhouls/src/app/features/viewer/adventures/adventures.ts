@@ -11,10 +11,14 @@ interface CardPosition {
 }
 
 interface YarnLine {
-  x1: number; y1: number;
-  x2: number; y2: number;
-  pathD?: string; // SVG path data for curved line
+  pathD: string;
 }
+
+const YARN_VIEWBOX_WIDTH = 1280;
+/** Approximate card height for rotation pivot (pin position is fixed from card top) */
+const CARD_HEIGHT_ESTIMATE = 380;
+/** Needle tip offset from card top — matches .pin-yarn-anchor { top: 16px } */
+const PIN_TIP_OFFSET_Y = 16;
 
 @Component({
   selector: 'app-adventures',
@@ -32,7 +36,6 @@ export class AdventuresComponent implements OnInit {
   protected loading = signal(true);
   protected error = signal<string | null>(null);
 
-  private static readonly CARD_HEIGHT = 380;
   private static readonly ROW_SPACING = 450;
 
   /** Seeded pseudo-random so positions are stable across re-renders */
@@ -41,9 +44,16 @@ export class AdventuresComponent implements OnInit {
     return x - Math.floor(x);
   }
 
+  readonly filteredPosts = computed(() => {
+    const tag = this.selectedTag();
+    const posts = this.posts();
+    if (!tag) return posts;
+    return posts.filter(p => p.tags.includes(tag));
+  });
+
   /** Computed card positions: zigzag rows with random offsets */
   readonly cardPositions = computed<CardPosition[]>(() => {
-    const posts = this.filteredPosts;
+    const posts = this.filteredPosts();
     return posts.map((_, i) => {
       const row = Math.floor(i / 2);
       const col = i % 2;
@@ -68,42 +78,49 @@ export class AdventuresComponent implements OnInit {
 
   /** Board height based on number of rows */
   readonly boardHeight = computed(() => {
-    const rowCount = Math.ceil(this.filteredPosts.length / 2);
+    const rowCount = Math.ceil(this.filteredPosts().length / 2);
     return Math.max(400, rowCount * AdventuresComponent.ROW_SPACING + 60);
   });
 
-  /** SVG yarn lines connecting sequential card pushpins */
+  /** SVG yarn connecting pin needle tips in post order */
   readonly yarnLines = computed<YarnLine[]>(() => {
     const positions = this.cardPositions();
     if (positions.length < 2) return [];
 
-    const boardWidth = 1280;
-    const cardWidth = boardWidth * 0.28;
+    const cardWidth = YARN_VIEWBOX_WIDTH * 0.28;
+    const pinPoints = positions.map(pos => this.pinTipPosition(pos, cardWidth));
 
-    return positions.slice(1).map((pos, i) => {
-      const prev = positions[i];
-
-      // Connect at the pushpin center inside the card pinhead
-      const pinCenterY = 1;
-      const x1 = (prev.left / 100) * boardWidth + cardWidth / 2;
-      const y1 = prev.top + pinCenterY;
-      const x2 = (pos.left / 100) * boardWidth + cardWidth / 2;
-      const y2 = pos.top + pinCenterY;
-
-      // Create a droopy yarn curve using a cubic Bezier
-      const sag = Math.max(40, Math.abs(x2 - x1) * 0.14) + 10;
-      const controlX1 = x1 + (x2 - x1) * 0.28;
-      const controlY1 = Math.max(y1, y2) + sag;
-      const controlX2 = x1 + (x2 - x1) * 0.72;
-      const controlY2 = Math.max(y1, y2) + sag;
-      const pathD = `M ${x1} ${y1} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${x2} ${y2}`;
-
-      return {
-        x1, y1, x2, y2,
-        pathD,
-      };
-    });
+    return pinPoints.slice(1).map((end, i) => ({
+      pathD: this.buildYarnPath(pinPoints[i], end),
+    }));
   });
+
+  /** Pin needle tip in viewBox coords, accounting for card rotation */
+  private pinTipPosition(
+    pos: CardPosition,
+    cardWidth: number,
+  ): { x: number; y: number } {
+    const rotRad = (parseFloat(pos.rotation) * Math.PI) / 180;
+    const cx = (pos.left / 100) * YARN_VIEWBOX_WIDTH + cardWidth / 2;
+    const cy = pos.top + CARD_HEIGHT_ESTIMATE / 2;
+    const dy = PIN_TIP_OFFSET_Y - CARD_HEIGHT_ESTIMATE / 2;
+
+    return {
+      x: cx - dy * Math.sin(rotRad),
+      y: cy + dy * Math.cos(rotRad),
+    };
+  }
+
+  /** Slight sag between pins so the yarn reads like real string */
+  private buildYarnPath(
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+  ): string {
+    const sag = Math.min(48, Math.abs(end.y - start.y) * 0.12 + 16);
+    const c1y = start.y + sag;
+    const c2y = end.y - sag;
+    return `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} C ${start.x.toFixed(1)} ${c1y.toFixed(1)}, ${end.x.toFixed(1)} ${c2y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+  }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -123,11 +140,5 @@ export class AdventuresComponent implements OnInit {
 
   filterByTag(tag: string | null): void {
     this.selectedTag.set(tag);
-  }
-
-  get filteredPosts(): Post[] {
-    const tag = this.selectedTag();
-    if (!tag) return this.posts();
-    return this.posts().filter(p => p.tags.includes(tag));
   }
 }
