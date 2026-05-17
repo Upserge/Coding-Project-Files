@@ -496,3 +496,4 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 - [x] TODO: implement error handling for failed FCM push notifications
 - [ ] TODO: add support for infinite scroll to adventures page in order to future-proof for large amounts of posts
 - [ ] TODO: create unit testing for services and critical components (e.g. PostEditorComponent, SubscribeFormComponent)
+- [ ] TODO: Fix bug that stops Admin users from successfully uploading audio media files when editing or creating a new post.

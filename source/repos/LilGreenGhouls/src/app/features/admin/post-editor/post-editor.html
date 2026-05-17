@@ -50,7 +50,7 @@
     <!-- Additional Media -->
     <div>
       <label class="mb-1 block text-sm text-mist/60">Additional Photos/Media</label>
-      <input type="file" accept="image/*,video/*" multiple (change)="onMediaUpload($event)"
+      <input type="file" accept="image/*,video/*,audio/*" multiple (change)="onMediaUpload($event)"
              class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple" />
       @if (uploadingMedia()) {
         <div class="mt-2 flex items-center gap-2 text-sm text-candle-glow">
