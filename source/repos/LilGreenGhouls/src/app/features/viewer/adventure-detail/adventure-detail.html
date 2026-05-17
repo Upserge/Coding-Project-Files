@@ -62,20 +62,47 @@
 
     <!-- Media Gallery -->
     @if (p.mediaUrls?.length) {
+
+    <!-- Audio Evidence -->
+    @if (audioUrls().length) {
     <section class="mb-12">
-      <h2 class="mb-4 font-display text-2xl text-ghost-white">Photo Evidence 📸</h2>
+      <h2 class="mb-4 font-display text-2xl text-ghost-white">Audio Evidence 🔊</h2>
+      <div class="space-y-3">
+        @for (url of audioUrls(); track url) {
+        <div class="rounded-xl bg-haunt-purple/20 p-4">
+          <audio [src]="url" controls class="w-full"></audio>
+        </div>
+        }
+      </div>
+    </section>
+    }
+
+    <!-- Image/Video Gallery -->
+    @if (imageVideoUrls().length) {
+    <section class="mb-12">
+      <h2 class="mb-4 font-display text-2xl text-ghost-white">Media Evidence 📸</h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @for (url of p.mediaUrls; track url; let i = $index) {
-        <div class="cursor-pointer overflow-hidden rounded-xl" (click)="openLightbox(i)">
-          <img [src]="url" alt="Evidence photo"
-               class="w-full object-cover transition-transform duration-300 hover:scale-105" />
+        @for (url of imageVideoUrls(); track url; let i = $index) {
+        <div class="cursor-pointer overflow-hidden rounded-xl group" (click)="openLightbox(i)">
+          @if (isVideoFile(url)) {
+            <div class="relative w-full aspect-video bg-haunt-purple/20 flex items-center justify-center">
+              <video [src]="url" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"></video>
+              <div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                <span class="text-4xl">▶</span>
+              </div>
+            </div>
+          } @else {
+            <img [src]="url" alt="Evidence photo"
+                 class="w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+          }
         </div>
         }
       </div>
     </section>
 
     @if (lightboxOpen()) {
-    <app-image-lightbox [images]="p.mediaUrls" (closed)="closeLightbox()" />
+    <app-image-lightbox [images]="imageVideoUrls()" (closed)="closeLightbox()" />
+    }
     }
     }
 

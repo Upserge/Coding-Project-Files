@@ -32,6 +32,18 @@ export class AdventureDetailComponent implements OnInit {
     return `${origin}/adventures/${p.slug}`;
   });
 
+  protected imageVideoUrls = computed(() => {
+    const p = this.post();
+    if (!p?.mediaUrls) return [];
+    return p.mediaUrls.filter(url => this.getMediaType(url) !== 'audio');
+  });
+
+  protected audioUrls = computed(() => {
+    const p = this.post();
+    if (!p?.mediaUrls) return [];
+    return p.mediaUrls.filter(url => this.getMediaType(url) === 'audio');
+  });
+
   protected lastUpdatedAgo = computed(() => {
     const p = this.post();
     if (!p?.updatedAt) return null;
@@ -84,5 +96,28 @@ export class AdventureDetailComponent implements OnInit {
     if (hours > 0) return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
     if (minutes > 0) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
     return 'just now';
+  }
+
+  private getMediaType(url: string): 'image' | 'video' | 'audio' {
+    // Extract the file extension from the URL (before query params)
+    const urlWithoutParams = url.split('?')[0];
+    const ext = urlWithoutParams.split('.').pop()?.toLowerCase() || '';
+
+    // Audio extensions
+    if (/^(mp3|wav|m4a|aac|ogg|wma|flac)$/.test(ext)) {
+      return 'audio';
+    }
+
+    // Video extensions
+    if (/^(mp4|webm|ogg|mkv|avi|mov|wmv|flv|m4v)$/.test(ext)) {
+      return 'video';
+    }
+
+    // Default to image
+    return 'image';
+  }
+
+  protected isVideoFile(url: string): boolean {
+    return this.getMediaType(url) === 'video';
   }
 }

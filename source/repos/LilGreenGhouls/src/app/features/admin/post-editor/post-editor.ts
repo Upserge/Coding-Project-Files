@@ -148,40 +148,48 @@ export class PostEditorComponent implements OnInit {
   async savePost(): Promise<void> {
     this.saving.set(true);
     this.notifyResult.set(null);
-    const user = this.authService.appUser();
-    const tags = this.tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
-    const slug = this.generateSlug(this.title);
+    this.uploadError.set(null);
+    try {
+      const user = this.authService.appUser();
+      const tags = this.tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      const slug = this.generateSlug(this.title);
 
-    const postData: Omit<Post, 'id'> = {
-      title: this.title,
-      slug,
-      excerpt: this.excerpt,
-      content: this.content,
-      coverImageUrl: this.coverImageUrl(),
-      mediaUrls: this.mediaUrls(),
-      youtubeEmbeds: this.youtubeEmbeds(),
-      externalLinks: this.externalLinks(),
-      tags,
-      status: this.status,
-      authorUid: user?.uid ?? '',
-      authorName: user?.displayName ?? 'Unknown',
-      publishedAt: this.status === 'published' ? Timestamp.now() : null,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    };
+      const postData: Omit<Post, 'id'> = {
+        title: this.title,
+        slug,
+        excerpt: this.excerpt,
+        content: this.content,
+        coverImageUrl: this.coverImageUrl(),
+        mediaUrls: this.mediaUrls(),
+        youtubeEmbeds: this.youtubeEmbeds(),
+        externalLinks: this.externalLinks(),
+        tags,
+        status: this.status,
+        authorUid: user?.uid ?? '',
+        authorName: user?.displayName ?? 'Unknown',
+        publishedAt: this.status === 'published' ? Timestamp.now() : null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
 
-    if (this.isEditing() && this.postId()) {
-      await this.postsService.update(this.postId()!, postData);
-    } else {
-      const newId = await this.postsService.create(postData);
-      this.postId.set(newId);
-      this.isEditing.set(true);
-    }
+      if (this.isEditing() && this.postId()) {
+        await this.postsService.update(this.postId()!, postData);
+      } else {
+        const newId = await this.postsService.create(postData);
+        this.postId.set(newId);
+        this.isEditing.set(true);
+      }
 
-    this.saving.set(false);
+      this.saving.set(false);
 
-    if (this.status !== 'published') {
-      await this.router.navigate(['/admin/posts']);
+      if (this.status !== 'published') {
+        await this.router.navigate(['/admin/posts']);
+      }
+    } catch (error) {
+      this.saving.set(false);
+      const msg = error instanceof Error ? error.message : 'Failed to save post';
+      this.uploadError.set(msg);
+      console.error('Save post failed:', error);
     }
   }
 
@@ -225,5 +233,29 @@ export class PostEditorComponent implements OnInit {
     if (match) return match[1];
     if (/^[\w-]{11}$/.test(input)) return input;
     return null;
+  }
+
+  protected getMediaType(url: string): 'image' | 'video' | 'audio' {
+    // Extract the file extension from the URL (before query params)
+    const urlWithoutParams = url.split('?')[0];
+    const ext = urlWithoutParams.split('.').pop()?.toLowerCase() || '';
+
+    // Audio extensions
+    if (/^(mp3|wav|m4a|aac|ogg|wma|flac)$/.test(ext)) {
+      return 'audio';
+    }
+
+    // Video extensions
+    if (/^(mp4|webm|ogg|mkv|avi|mov|wmv|flv|m4v)$/.test(ext)) {
+      return 'video';
+    }
+
+    // Default to image for image extensions or unknown types
+    if (/^(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(ext)) {
+      return 'image';
+    }
+
+    // Default to image if we can't determine
+    return 'image';
   }
 }

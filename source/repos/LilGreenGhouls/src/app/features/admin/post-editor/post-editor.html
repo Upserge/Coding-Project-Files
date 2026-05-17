@@ -62,7 +62,23 @@
         <div class="mt-2 flex flex-wrap gap-2">
           @for (url of mediaUrls(); track url; let i = $index) {
             <div class="group relative">
-              <img [src]="url" alt="Media" class="h-20 w-20 rounded-lg object-cover" />
+              @switch (getMediaType(url)) {
+                @case ('image') {
+                  <img [src]="url" alt="Media" class="h-20 w-20 rounded-lg object-cover" />
+                }
+                @case ('video') {
+                  <div class="relative h-20 w-20 rounded-lg bg-haunt-purple/20 flex items-center justify-center">
+                    <video [src]="url" class="h-20 w-20 rounded-lg object-cover"></video>
+                    <span class="absolute text-xl">▶</span>
+                  </div>
+                }
+                @case ('audio') {
+                  <div class="relative h-20 w-20 rounded-lg bg-haunt-purple/20 flex flex-col items-center justify-center gap-1">
+                    <span class="text-lg">🔊</span>
+                    <span class="text-xs text-mist text-center px-1">Audio</span>
+                  </div>
+                }
+              }
               <button type="button" (click)="removeMediaUrl(i)"
                       class="absolute -right-1 -top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-blood-red text-xs text-white group-hover:flex">
                 ×

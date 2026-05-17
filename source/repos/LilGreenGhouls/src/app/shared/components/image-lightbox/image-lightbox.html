@@ -22,9 +22,14 @@
     </button>
   }
 
-  <!-- Image -->
-  <img [src]="currentImage()" alt="Lightbox image"
-       class="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
+  <!-- Image/Video Display -->
+  @if (isVideo()) {
+    <video [src]="currentImage()" controls 
+           class="max-h-[85vh] max-w-[90vw] rounded-xl shadow-2xl"></video>
+  } @else {
+    <img [src]="currentImage()" alt="Lightbox image"
+         class="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl" />
+  }
 
   <!-- Next -->
   @if (hasNext()) {

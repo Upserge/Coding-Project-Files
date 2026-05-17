@@ -17,6 +17,8 @@ export class ImageLightboxComponent {
   protected hasPrev = computed(() => this.currentIndex() > 0);
   protected counter = computed(() => `${this.currentIndex() + 1} / ${this.images().length}`);
 
+  protected isVideo = computed(() => this.isVideoFile(this.currentImage()));
+
   open(index: number): void {
     this.currentIndex.set(index);
   }
@@ -49,5 +51,11 @@ export class ImageLightboxComponent {
       case 'ArrowRight': this.next(); break;
       case 'ArrowLeft': this.prev(); break;
     }
+  }
+
+  private isVideoFile(url: string): boolean {
+    const urlWithoutParams = url.split('?')[0];
+    const ext = urlWithoutParams.split('.').pop()?.toLowerCase() || '';
+    return /^(mp4|webm|mkv|avi|mov|wmv|flv|m4v|ogg)$/.test(ext);
   }
 }
