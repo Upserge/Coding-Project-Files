@@ -126,12 +126,14 @@
 }
 
 .yarn-path {
-  stroke: rgba(204, 41, 41, 0.55);
-  stroke-width: 2;
+  stroke: #ff5a5a;
+  stroke-width: 3;
   stroke-linecap: round;
+  stroke-linejoin: round;
   fill: none;
-  filter: drop-shadow(0 1px 3px rgba(204, 41, 41, 0.25));
+  filter: drop-shadow(0 2px 6px rgba(255, 72, 72, 0.25));
 }
+
 
 /* ===== Pinned Evidence Cards ===== */
 

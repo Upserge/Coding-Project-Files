@@ -83,18 +83,20 @@ export class AdventuresComponent implements OnInit {
     return positions.slice(1).map((pos, i) => {
       const prev = positions[i];
 
-      // Connect at the pushpin center (which is 10px ABOVE the card top)
+      // Connect at the pushpin center inside the card pinhead
+      const pinCenterY = 1;
       const x1 = (prev.left / 100) * boardWidth + cardWidth / 2;
-      const y1 = prev.top - 10;
+      const y1 = prev.top + pinCenterY;
       const x2 = (pos.left / 100) * boardWidth + cardWidth / 2;
-      const y2 = pos.top - 10;
+      const y2 = pos.top + pinCenterY;
 
-      // Create a quadratic Bezier curve for droopy yarn
-      // Control point is halfway horizontally, but droops down vertically
-      const controlX = (x1 + x2) / 2;
-      const controlY = (y1 + y2) / 2 + Math.abs(x2 - x1) * 0.15; // Droop proportional to horizontal distance
-
-      const pathD = `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`;
+      // Create a droopy yarn curve using a cubic Bezier
+      const sag = Math.max(40, Math.abs(x2 - x1) * 0.14) + 10;
+      const controlX1 = x1 + (x2 - x1) * 0.28;
+      const controlY1 = Math.max(y1, y2) + sag;
+      const controlX2 = x1 + (x2 - x1) * 0.72;
+      const controlY2 = Math.max(y1, y2) + sag;
+      const pathD = `M ${x1} ${y1} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${x2} ${y2}`;
 
       return {
         x1, y1, x2, y2,
