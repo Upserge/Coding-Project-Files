@@ -1,0 +1,112 @@
+<div class="space-y-4">
+  <div>
+    <label class="mb-1 block text-sm text-mist/60">Additional Photos, Video &amp; Audio</label>
+    <p class="mb-2 text-xs text-mist/40">
+      Add titles and captions for each file. Audio clips can include a cover image shown while they play.
+    </p>
+    <input
+      type="file"
+      accept="image/*,video/*,audio/*"
+      multiple
+      (change)="onMediaFilesSelected($event)"
+      [disabled]="uploading()"
+      class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple disabled:opacity-50"
+    />
+  </div>
+
+  @if (uploading()) {
+    <div class="flex items-center gap-2 text-sm text-candle-glow">
+      <div class="h-4 w-4 animate-spin rounded-full border-2 border-candle-glow border-t-transparent"></div>
+      Uploading… {{ uploadProgress() }}%
+    </div>
+  }
+
+  @if (mediaItems().length) {
+    <div class="space-y-4">
+      @for (item of mediaItems(); track item.url; let i = $index) {
+        <article class="rounded-xl border border-haunt-purple/30 bg-phantom/40 p-4">
+          <div class="flex flex-wrap gap-4">
+            <div class="relative shrink-0">
+              @if (isAudioItem(item)) {
+                <div class="flex h-24 w-24 flex-col items-center justify-center gap-1 overflow-hidden rounded-lg bg-haunt-purple/20">
+                  @if (item.coverImageUrl) {
+                    <img [src]="item.coverImageUrl" alt="Audio cover" class="h-full w-full object-cover" />
+                  } @else {
+                    <span class="text-2xl">🔊</span>
+                    <span class="text-xs text-mist/60">Audio</span>
+                  }
+                </div>
+              }
+              @if (isVideoItem(item)) {
+                <div class="relative h-24 w-24 overflow-hidden rounded-lg bg-haunt-purple/20">
+                  <video [src]="item.url" class="h-24 w-24 object-cover"></video>
+                  <span class="absolute inset-0 flex items-center justify-center bg-black/30 text-xl">▶</span>
+                </div>
+              }
+              @if (!isAudioItem(item) && !isVideoItem(item)) {
+                <img [src]="item.url" alt="Media preview" class="h-24 w-24 rounded-lg object-cover" />
+              }
+              <button
+                type="button"
+                (click)="removeItem(i)"
+                class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-blood-red text-xs text-white"
+                aria-label="Remove media"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="min-w-[12rem] flex-1 space-y-3">
+              <div>
+                <label class="mb-1 block text-xs text-mist/50">Title</label>
+                <input
+                  type="text"
+                  [ngModel]="item.title"
+                  (ngModelChange)="updateTitle(i, $event)"
+                  name="media-title-{{ i }}"
+                  class="w-full rounded-lg border border-haunt-purple/30 bg-void px-3 py-2 text-sm text-mist outline-none focus:border-ecto-green"
+                  placeholder="e.g. EVP Recording #2"
+                />
+              </div>
+              <div>
+                <label class="mb-1 block text-xs text-mist/50">Caption</label>
+                <input
+                  type="text"
+                  [ngModel]="item.caption"
+                  (ngModelChange)="updateCaption(i, $event)"
+                  name="media-caption-{{ i }}"
+                  class="w-full rounded-lg border border-haunt-purple/30 bg-void px-3 py-2 text-sm text-mist outline-none focus:border-ecto-green"
+                  placeholder="Short description for viewers"
+                />
+              </div>
+
+              @if (isAudioItem(item)) {
+                <div class="space-y-2">
+                  <label class="mb-1 block text-xs text-mist/50">Cover image (shown while audio plays)</label>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      (change)="onAudioCoverSelected($event, i)"
+                      [disabled]="uploading()"
+                      class="text-xs text-mist file:mr-2 file:rounded file:border-0 file:bg-haunt-purple/20 file:px-3 file:py-1 file:text-xs file:text-haunt-purple disabled:opacity-50"
+                    />
+                    @if (item.coverImageUrl) {
+                      <button
+                        type="button"
+                        (click)="removeAudioCover(i)"
+                        class="text-xs text-blood-red hover:underline"
+                      >
+                        Remove cover
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

@@ -23,12 +23,11 @@
                 placeholder="A brief summary for preview cards..."></textarea>
     </div>
 
-    <!-- Content (plain textarea for MVP — Quill integration in Phase 2) -->
+    <!-- Rich text content -->
     <div>
-      <label class="mb-1 block text-sm text-mist/60">Content (HTML supported)</label>
-      <textarea [(ngModel)]="content" name="content" rows="15"
-                class="w-full rounded-lg border border-haunt-purple/30 bg-void px-4 py-3 font-mono text-sm text-mist outline-none focus:border-ecto-green"
-                placeholder="Write your adventure here... HTML tags are supported."></textarea>
+      <label class="mb-1 block text-sm text-mist/60">Content</label>
+      <p class="mb-2 text-xs text-mist/40">Format text with headings, bold, underline, lists, links, and more.</p>
+      <app-rich-text-editor [(value)]="content" />
     </div>
 
     <!-- Cover Image -->
@@ -47,47 +46,10 @@
       }
     </div>
 
-    <!-- Additional Media -->
-    <div>
-      <label class="mb-1 block text-sm text-mist/60">Additional Photos/Media</label>
-      <input type="file" accept="image/*,video/*,audio/*" multiple (change)="onMediaUpload($event)"
-             class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple" />
-      @if (uploadingMedia()) {
-        <div class="mt-2 flex items-center gap-2 text-sm text-candle-glow">
-          <div class="h-4 w-4 animate-spin rounded-full border-2 border-candle-glow border-t-transparent"></div>
-          Uploading media… {{ mediaUploadProgress() }}%
-        </div>
-      }
-      @if (mediaUrls().length) {
-        <div class="mt-2 flex flex-wrap gap-2">
-          @for (url of mediaUrls(); track url; let i = $index) {
-            <div class="group relative">
-              @switch (getMediaType(url)) {
-                @case ('image') {
-                  <img [src]="url" alt="Media" class="h-20 w-20 rounded-lg object-cover" />
-                }
-                @case ('video') {
-                  <div class="relative h-20 w-20 rounded-lg bg-haunt-purple/20 flex items-center justify-center">
-                    <video [src]="url" class="h-20 w-20 rounded-lg object-cover"></video>
-                    <span class="absolute text-xl">▶</span>
-                  </div>
-                }
-                @case ('audio') {
-                  <div class="relative h-20 w-20 rounded-lg bg-haunt-purple/20 flex flex-col items-center justify-center gap-1">
-                    <span class="text-lg">🔊</span>
-                    <span class="text-xs text-mist text-center px-1">Audio</span>
-                  </div>
-                }
-              }
-              <button type="button" (click)="removeMediaUrl(i)"
-                      class="absolute -right-1 -top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-blood-red text-xs text-white group-hover:flex">
-                ×
-              </button>
-            </div>
-          }
-        </div>
-      }
-    </div>
+    <app-post-media-manager
+      [(mediaItems)]="mediaItems"
+      [(uploadError)]="uploadError"
+    />
 
     <!-- YouTube Embeds -->
     <div>

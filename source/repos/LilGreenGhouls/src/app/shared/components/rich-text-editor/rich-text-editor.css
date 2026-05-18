@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+.rich-text-editor {
+  display: block;
+}
+
+:host ::ng-deep .ql-toolbar.ql-snow {
+  background: var(--color-phantom);
+  border-color: rgba(123, 47, 247, 0.3);
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+:host ::ng-deep .ql-container.ql-snow {
+  background: var(--color-void);
+  border-color: rgba(123, 47, 247, 0.3);
+  border-radius: 0 0 0.5rem 0.5rem;
+  min-height: 280px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+:host ::ng-deep .ql-editor {
+  color: var(--color-mist);
+  min-height: 280px;
+}
+
+:host ::ng-deep .ql-editor.ql-blank::before {
+  color: rgba(224, 224, 224, 0.4);
+  font-style: normal;
+}
+
+:host ::ng-deep .ql-snow .ql-stroke {
+  stroke: var(--color-mist);
+}
+
+:host ::ng-deep .ql-snow .ql-fill {
+  fill: var(--color-mist);
+}
+
+:host ::ng-deep .ql-snow .ql-picker-label {
+  color: var(--color-mist);
+}
+
+:host ::ng-deep .ql-snow .ql-picker-options {
+  background: var(--color-shadow);
+}
+
+:host ::ng-deep .ql-snow.ql-toolbar button:hover,
+:host ::ng-deep .ql-snow .ql-toolbar button:hover,
+:host ::ng-deep .ql-snow.ql-toolbar button.ql-active,
+:host ::ng-deep .ql-snow .ql-toolbar button.ql-active {
+  color: var(--color-ecto-green);
+}
+
+:host ::ng-deep .ql-snow.ql-toolbar button:hover .ql-stroke,
+:host ::ng-deep .ql-snow .ql-toolbar button:hover .ql-stroke,
+:host ::ng-deep .ql-snow.ql-toolbar button.ql-active .ql-stroke,
+:host ::ng-deep .ql-snow .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--color-ecto-green);
+}

@@ -8,6 +8,9 @@ import { CommentFormComponent } from '../../../shared/components/comment-form/co
 import { CommentListComponent } from '../../../shared/components/comment-list/comment-list';
 import { SafeResourceUrlPipe } from '../../../shared/pipes/safe-resource-url.pipe';
 import { Post } from '../../../core/models/post.model';
+import { PostMediaItem } from '../../../core/models/post-media.model';
+import { partitionMediaItems, resolvePostMedia } from '../../../core/utils/post-media.util';
+import { isVideoUrl } from '../../../core/utils/media-type.util';
 
 @Component({
   selector: 'app-adventure-detail',
@@ -32,24 +35,25 @@ export class AdventureDetailComponent implements OnInit {
     return `${origin}/adventures/${p.slug}`;
   });
 
-  protected imageVideoUrls = computed(() => {
+  protected mediaItems = computed(() => {
     const p = this.post();
-    if (!p?.mediaUrls) return [];
-    return p.mediaUrls.filter(url => this.getMediaType(url) !== 'audio');
+    if (!p) return [];
+    return resolvePostMedia(p);
   });
 
-  protected audioUrls = computed(() => {
-    const p = this.post();
-    if (!p?.mediaUrls) return [];
-    return p.mediaUrls.filter(url => this.getMediaType(url) === 'audio');
-  });
+  protected audioItems = computed(() => partitionMediaItems(this.mediaItems()).audioItems);
+
+  protected galleryItems = computed(() => partitionMediaItems(this.mediaItems()).galleryItems);
+
+  protected galleryUrls = computed(() => this.galleryItems().map(item => item.url));
+
+  protected hasMedia = computed(() => this.mediaItems().length > 0);
 
   protected lastUpdatedAgo = computed(() => {
     const p = this.post();
     if (!p?.updatedAt) return null;
     const updatedDate = p.updatedAt.toDate();
     const publishedDate = p.publishedAt?.toDate();
-    // Only show "updated" if the post was updated after being published
     if (publishedDate && updatedDate.getTime() - publishedDate.getTime() < 60_000) return null;
     return this.getTimeAgo(updatedDate);
   });
@@ -59,16 +63,17 @@ export class AdventureDetailComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const slug = this.route.snapshot.paramMap.get('slug');
-    if (slug) {
-      const post = await this.postsService.getBySlug(slug);
-      this.post.set(post);
+    if (!slug) {
+      this.loading.set(false);
+      return;
     }
+    const post = await this.postsService.getBySlug(slug);
+    this.post.set(post);
     this.loading.set(false);
   }
 
   openLightbox(index: number): void {
     this.lightboxOpen.set(true);
-    // Allow the component to render before calling open
     setTimeout(() => this.lightbox()?.open(index));
   }
 
@@ -80,9 +85,22 @@ export class AdventureDetailComponent implements OnInit {
     this.commentList()?.loadComments();
   }
 
+  protected isVideoItem(item: PostMediaItem): boolean {
+    return item.type === 'video' || isVideoUrl(item.url);
+  }
+
+  protected displayTitle(item: PostMediaItem): string | null {
+    const title = item.title?.trim();
+    return title || null;
+  }
+
+  protected displayCaption(item: PostMediaItem): string | null {
+    const caption = item.caption?.trim();
+    return caption || null;
+  }
+
   private getTimeAgo(date: Date): string {
-    const now = Date.now();
-    const diffMs = now - date.getTime();
+    const diffMs = Date.now() - date.getTime();
     const seconds = Math.floor(diffMs / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -90,34 +108,19 @@ export class AdventureDetailComponent implements OnInit {
     const weeks = Math.floor(days / 7);
     const months = Math.floor(days / 30);
 
-    if (months > 0) return months === 1 ? '1 month ago' : `${months} months ago`;
-    if (weeks > 0) return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
-    if (days > 0) return days === 1 ? '1 day ago' : `${days} days ago`;
-    if (hours > 0) return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-    if (minutes > 0) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+    const thresholds: [number, string, string][] = [
+      [months, 'month', 'months'],
+      [weeks, 'week', 'weeks'],
+      [days, 'day', 'days'],
+      [hours, 'hour', 'hours'],
+      [minutes, 'minute', 'minutes'],
+    ];
+
+    for (const [value, singular, plural] of thresholds) {
+      if (value <= 0) continue;
+      return value === 1 ? `1 ${singular} ago` : `${value} ${plural} ago`;
+    }
+
     return 'just now';
-  }
-
-  private getMediaType(url: string): 'image' | 'video' | 'audio' {
-    // Extract the file extension from the URL (before query params)
-    const urlWithoutParams = url.split('?')[0];
-    const ext = urlWithoutParams.split('.').pop()?.toLowerCase() || '';
-
-    // Audio extensions
-    if (/^(mp3|wav|m4a|aac|ogg|wma|flac)$/.test(ext)) {
-      return 'audio';
-    }
-
-    // Video extensions
-    if (/^(mp4|webm|ogg|mkv|avi|mov|wmv|flv|m4v)$/.test(ext)) {
-      return 'video';
-    }
-
-    // Default to image
-    return 'image';
-  }
-
-  protected isVideoFile(url: string): boolean {
-    return this.getMediaType(url) === 'video';
   }
 }

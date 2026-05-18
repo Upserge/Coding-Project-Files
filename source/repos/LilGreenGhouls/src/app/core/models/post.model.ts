@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import { PostMediaItem } from './post-media.model';
 
 export interface Post {
   id?: string;
@@ -7,7 +8,9 @@ export interface Post {
   excerpt: string;
   content: string;
   coverImageUrl: string;
+  /** @deprecated Use mediaItems — kept for legacy Firestore documents */
   mediaUrls: string[];
+  mediaItems?: PostMediaItem[];
   youtubeEmbeds: string[];
   externalLinks: ExternalLink[];
   tags: string[];

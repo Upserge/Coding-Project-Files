@@ -19,7 +19,7 @@
     <!-- Header -->
     <header class="mb-8">
       <!-- Tags -->
-      @if (p.tags?.length) {
+      @if (p.tags.length) {
       <div class="mb-3 flex flex-wrap gap-2">
         @for (tag of p.tags; track tag) {
         <span class="rounded-full bg-haunt-purple/20 px-3 py-1 text-xs text-haunt-purple">{{ tag }}</span>
@@ -44,7 +44,7 @@
     <div class="prose-content mb-12" [innerHTML]="p.content"></div>
 
     <!-- YouTube Embeds -->
-    @if (p.youtubeEmbeds?.length) {
+    @if (p.youtubeEmbeds.length) {
     <section class="mb-12">
       <h2 class="mb-4 font-display text-2xl text-ghost-white">Video Evidence 📹</h2>
       <div class="grid gap-4 md:grid-cols-2">
@@ -61,53 +61,72 @@
     }
 
     <!-- Media Gallery -->
-    @if (p.mediaUrls?.length) {
+    @if (hasMedia()) {
 
     <!-- Audio Evidence -->
-    @if (audioUrls().length) {
+    @if (audioItems().length) {
     <section class="mb-12">
       <h2 class="mb-4 font-display text-2xl text-ghost-white">Audio Evidence 🔊</h2>
-      <div class="space-y-3">
-        @for (url of audioUrls(); track url) {
-        <div class="rounded-xl bg-haunt-purple/20 p-4">
-          <audio [src]="url" controls class="w-full"></audio>
-        </div>
+      <div class="space-y-6">
+        @for (item of audioItems(); track item.url) {
+        <article class="overflow-hidden rounded-xl border border-haunt-purple/30 bg-haunt-purple/10">
+          @if (item.coverImageUrl) {
+          <img [src]="item.coverImageUrl" [alt]="displayTitle(item) ?? 'Audio cover'" class="h-48 w-full object-cover" />
+          }
+          <div class="space-y-2 p-4">
+            @if (displayTitle(item); as title) {
+            <h3 class="font-display text-lg text-ghost-white">{{ title }}</h3>
+            }
+            @if (displayCaption(item); as caption) {
+            <p class="text-sm text-mist/70">{{ caption }}</p>
+            }
+            <audio [src]="item.url" controls class="w-full"></audio>
+          </div>
+        </article>
         }
       </div>
     </section>
     }
 
     <!-- Image/Video Gallery -->
-    @if (imageVideoUrls().length) {
+    @if (galleryItems().length) {
     <section class="mb-12">
       <h2 class="mb-4 font-display text-2xl text-ghost-white">Media Evidence 📸</h2>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @for (url of imageVideoUrls(); track url; let i = $index) {
-        <div class="cursor-pointer overflow-hidden rounded-xl group" (click)="openLightbox(i)">
-          @if (isVideoFile(url)) {
-            <div class="relative w-full aspect-video bg-haunt-purple/20 flex items-center justify-center">
-              <video [src]="url" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"></video>
-              <div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
-                <span class="text-4xl">▶</span>
+      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        @for (item of galleryItems(); track item.url; let i = $index) {
+        <figure class="space-y-2">
+          <div class="group cursor-pointer overflow-hidden rounded-xl" (click)="openLightbox(i)">
+            @if (isVideoItem(item)) {
+              <div class="relative aspect-video w-full bg-haunt-purple/20">
+                <video [src]="item.url" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"></video>
+                <div class="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/10">
+                  <span class="text-4xl">▶</span>
+                </div>
               </div>
-            </div>
-          } @else {
-            <img [src]="url" alt="Evidence photo"
-                 class="w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            } @else {
+              <img [src]="item.url" [alt]="displayTitle(item) ?? 'Evidence photo'"
+                   class="w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            }
+          </div>
+          @if (displayTitle(item); as title) {
+          <figcaption class="font-display text-base text-ghost-white">{{ title }}</figcaption>
           }
-        </div>
+          @if (displayCaption(item); as caption) {
+          <p class="text-sm text-mist/60">{{ caption }}</p>
+          }
+        </figure>
         }
       </div>
     </section>
 
     @if (lightboxOpen()) {
-    <app-image-lightbox [images]="imageVideoUrls()" (closed)="closeLightbox()" />
+    <app-image-lightbox [images]="galleryUrls()" (closed)="closeLightbox()" />
     }
     }
     }
 
     <!-- External Links -->
-    @if (p.externalLinks?.length) {
+    @if (p.externalLinks.length) {
     <section class="mb-12">
       <h2 class="mb-4 font-display text-2xl text-ghost-white">Related Links 🔗</h2>
       <div class="flex flex-col gap-2">
@@ -137,7 +156,7 @@
       <app-comment-form [postId]="p.id!" (commentSubmitted)="onCommentSubmitted()" />
     </section>
 
-    </article>
+  </article>
 } @else {
   <div class="flex min-h-[60vh] flex-col items-center justify-center gap-4">
     <p class="font-display text-4xl text-ghost-white">404 — Ghost Not Found 👻</p>

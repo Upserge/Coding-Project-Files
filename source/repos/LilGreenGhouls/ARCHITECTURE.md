@@ -15,22 +15,25 @@ push notifications so they never miss a new post.
 
 ## 2. Tech Stack & Rationale
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| **Framework** | Angular 20 (standalone components, signals) | Already scaffolded; latest features like `@let`, signal-based inputs, and built-in control flow (`@if`, `@for`) |
-| **Styling** | Tailwind CSS v4 | Utility-first, dark-mode-first design; great for rapid theming without heavy CSS files |
-| **UI Components** | Angular CDK (overlay, a11y, drag-drop) | Lightweight headless primitives — no opinionated styling to fight against our custom theme |
-| **Rich Text Editor** | Quill via `ngx-quill` | Mature WYSIWYG editor with image/video embed support; outputs HTML or Delta for Firestore storage |
-| **Animations** | Custom AOS directive (IntersectionObserver) + CSS keyframes | Scroll-triggered reveals via lightweight attribute directive (`appAos`); no third-party AOS library needed. CSS for fog/particle ambient effects |
-| **Fonts** | Google Fonts — *Creepster* (display), *Inter* (body) | Creepster gives spooky character to headings; Inter is clean and highly readable for body text |
-| **Auth** | Firebase Authentication (Google provider) | Zero-password UX; admin whitelist checked against Firestore |
-| **Database** | Cloud Firestore | Real-time listeners, offline support, scales to zero cost for small audiences |
-| **File Storage** | Firebase Cloud Storage | Direct image/video uploads from the admin editor with security rules |
-| **Hosting** | Firebase Hosting | One-command deploy, free SSL, CDN, custom domain support |
-| **SSR** | Angular SSR (already scaffolded) | SEO for public pages; faster first paint for viewers |
-| **Push Notifications** | Firebase Cloud Messaging (FCM) | Browser push notifications on Spark (free) plan; admin triggers send from post editor. Service worker handles background delivery. Future-ready for mobile app conversion |
+
+| Layer                  | Technology                                                  | Why                                                                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**          | Angular 20 (standalone components, signals)                 | Already scaffolded; latest features like `@let`, signal-based inputs, and built-in control flow (`@if`, `@for`)                                                           |
+| **Styling**            | Tailwind CSS v4                                             | Utility-first, dark-mode-first design; great for rapid theming without heavy CSS files                                                                                    |
+| **UI Components**      | Angular CDK (overlay, a11y, drag-drop)                      | Lightweight headless primitives — no opinionated styling to fight against our custom theme                                                                                |
+| **Rich Text Editor**   | Quill via `ngx-quill`                                       | Mature WYSIWYG editor with image/video embed support; outputs HTML or Delta for Firestore storage                                                                         |
+| **Animations**         | Custom AOS directive (IntersectionObserver) + CSS keyframes | Scroll-triggered reveals via lightweight attribute directive (`appAos`); no third-party AOS library needed. CSS for fog/particle ambient effects                          |
+| **Fonts**              | Google Fonts — *Creepster* (display), *Inter* (body)        | Creepster gives spooky character to headings; Inter is clean and highly readable for body text                                                                            |
+| **Auth**               | Firebase Authentication (Google provider)                   | Zero-password UX; admin whitelist checked against Firestore                                                                                                               |
+| **Database**           | Cloud Firestore                                             | Real-time listeners, offline support, scales to zero cost for small audiences                                                                                             |
+| **File Storage**       | Firebase Cloud Storage                                      | Direct image/video uploads from the admin editor with security rules                                                                                                      |
+| **Hosting**            | Firebase Hosting                                            | One-command deploy, free SSL, CDN, custom domain support                                                                                                                  |
+| **SSR**                | Angular SSR (already scaffolded)                            | SEO for public pages; faster first paint for viewers                                                                                                                      |
+| **Push Notifications** | Firebase Cloud Messaging (FCM)                              | Browser push notifications on Spark (free) plan; admin triggers send from post editor. Service worker handles background delivery. Future-ready for mobile app conversion |
+
 
 ### Modern UI Techniques Being Used
+
 - **Glassmorphism** — frosted-glass card overlays for post cards and modals
 - **Dark mode first** — deep purple/charcoal base with misty green and ghostly white accents
 - **Scroll-driven animations** — AOS reveals, parallax hero sections
@@ -41,7 +44,7 @@ push notifications so they never miss a new post.
 - **Infinite-scroll marquee** — horizontally scrolling location ticker (à la Railway/CandyCode logo bars); CSS `marquee-scroll` keyframe, pauses on hover
 - **Floating ghost particles** — ambient emoji particles (`ghost-particle` utility) with staggered `animation-delay` drift upward through hero and CTA sections
 - **Pulse-glow CTAs** — primary buttons softly pulse their glow shadow to draw attention (`pulse-glow` utility)
-- **Staggered fade-in** — content fades in sequentially using `.fade-in-up` + `.delay-*` classes for a cinematic reveal
+- **Staggered fade-in** — content fades in sequentially using `.fade-in-up` + `.delay-`* classes for a cinematic reveal
 - **Gradient-border hover cards** — post cards & team cards show a multi-color gradient border on hover via `::before` pseudo-element (`gradient-border-hover` utility)
 - **Shimmer skeleton placeholders** — animated gradient shimmer on cards missing cover images (`shimmer` utility)
 - **Atmospheric section dividers** — translucent gradient horizontal rules (`spooky-divider` utility) replace hard borders between content sections
@@ -74,6 +77,7 @@ push notifications so they never miss a new post.
 ## 4. Firestore Collections Schema
 
 ### `users`
+
 ```
 users/{uid}
 ├── displayName: string
@@ -85,6 +89,7 @@ users/{uid}
 ```
 
 ### `posts`
+
 ```
 posts/{postId}
 ├── title: string
@@ -105,6 +110,7 @@ posts/{postId}
 ```
 
 ### `subscribers`
+
 ```
 subscribers/{subId}
 ├── email: string
@@ -120,6 +126,7 @@ subscribers/{subId}
 ```
 
 ### `fcmTokens`
+
 ```
 fcmTokens/{tokenId}
 ├── token: string              // FCM registration token
@@ -129,6 +136,7 @@ fcmTokens/{tokenId}
 ```
 
 ### `site-config` (singleton)
+
 ```
 site-config/main
 ├── siteName: string
@@ -218,18 +226,20 @@ src/
 
 ## 6. Route Map
 
-| Route | Component | Guard | Description |
-|-------|-----------|-------|-------------|
-| `/` | `HomeComponent` | — | Landing page |
-| `/adventures` | `AdventuresComponent` | — | All published posts |
-| `/adventures/:slug` | `AdventureDetailComponent` | — | Single post view |
-| `/about` | `AboutComponent` | — | Team & mission |
-| `/admin` | `DashboardComponent` | `adminGuard` | Admin stats |
-| `/admin/posts` | `PostListComponent` | `adminGuard` | Manage posts |
-| `/admin/posts/new` | `PostEditorComponent` | `adminGuard` | Create post |
-| `/admin/posts/:id/edit` | `PostEditorComponent` | `adminGuard` | Edit post |
-| `/admin/subscribers` | `SubscriberListComponent` | `adminGuard` | View subscribers |
-| `**` | `NotFoundComponent` | — | 404 page |
+
+| Route                   | Component                  | Guard        | Description         |
+| ----------------------- | -------------------------- | ------------ | ------------------- |
+| `/`                     | `HomeComponent`            | —            | Landing page        |
+| `/adventures`           | `AdventuresComponent`      | —            | All published posts |
+| `/adventures/:slug`     | `AdventureDetailComponent` | —            | Single post view    |
+| `/about`                | `AboutComponent`           | —            | Team & mission      |
+| `/admin`                | `DashboardComponent`       | `adminGuard` | Admin stats         |
+| `/admin/posts`          | `PostListComponent`        | `adminGuard` | Manage posts        |
+| `/admin/posts/new`      | `PostEditorComponent`      | `adminGuard` | Create post         |
+| `/admin/posts/:id/edit` | `PostEditorComponent`      | `adminGuard` | Edit post           |
+| `/admin/subscribers`    | `SubscriberListComponent`  | `adminGuard` | View subscribers    |
+| `**`                    | `NotFoundComponent`        | —            | 404 page            |
+
 
 All viewer routes live under a `ViewerShellComponent` (navbar + footer).
 All admin routes live under an `AdminShellComponent` (sidebar + header).
@@ -362,6 +372,7 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 ```
 
 ### firebase.json (target structure)
+
 ```json
 {
   "hosting": {
@@ -386,95 +397,103 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 ## 12. Phase Roadmap
 
 ### Phase 1 — MVP
-- [x] Project scaffold (Angular 20 + SSR)
-- [x] Tailwind CSS v4 integration + dark spooky theme
-- [x] Firebase Auth (Google) + admin guard
-- [x] Firestore services (posts, subscribers)
-- [x] Viewer pages (home, adventures, adventure detail, about)
-- [x] Admin pages (dashboard, post editor with Quill, post management)
-- [x] Subscribe form component
-- [x] Firebase Hosting deployment
+
+- Project scaffold (Angular 20 + SSR)
+- Tailwind CSS v4 integration + dark spooky theme
+- Firebase Auth (Google) + admin guard
+- Firestore services (posts, subscribers)
+- Viewer pages (home, adventures, adventure detail, about)
+- Admin pages (dashboard, post editor with Quill, post management)
+- Subscribe form component
+- Firebase Hosting deployment
 
 ### Phase 2 — Polish & Engagement ✅
-- [x] AOS scroll animations on viewer pages (custom IntersectionObserver directive)
-- [x] Parallax hero effect (background-attachment: fixed + radial glow)
-- [x] Glassmorphism card refinements (gradient-border hover, shimmer placeholders)
-- [x] Fog/particle CSS ambient effects (floating ghost particles in hero & CTA)
-- [x] Skeleton loaders for async content (shimmer utility on post cards)
-- [x] Image lightbox in media gallery (fullscreen overlay, keyboard nav, prev/next)
-- [x] Gradient animated text on hero headings
-- [x] Infinite-scroll location marquee on home page
-- [x] Atmospheric CTA banner in viewer shell
-- [x] Enhanced footer with multi-column layout
-- [x] Staggered fade-in-up entrance animations
-- [x] Pulse-glow CTA buttons
-- [x] Spooky gradient section dividers
-- [x] Holographic investigator cards on About page (3D tilt + rainbow overlay)
-- [x] FCM push notifications (subscribe opt-in + admin-triggered send)
-- [x] Evidence Board backdrop on Adventures page (corkboard + pushpin + red yarn + card rotation)
-- [x] Candlelit Séance backdrop on About page (candle flicker + séance circle + smoke particles)
-- [x] Cinematic hero on Home page (bokeh orbs + grain + pulsing glow + dual fog)
+
+- AOS scroll animations on viewer pages (custom IntersectionObserver directive)
+- Parallax hero effect (background-attachment: fixed + radial glow)
+- Glassmorphism card refinements (gradient-border hover, shimmer placeholders)
+- Fog/particle CSS ambient effects (floating ghost particles in hero & CTA)
+- Skeleton loaders for async content (shimmer utility on post cards)
+- Image lightbox in media gallery (fullscreen overlay, keyboard nav, prev/next)
+- Gradient animated text on hero headings
+- Infinite-scroll location marquee on home page
+- Atmospheric CTA banner in viewer shell
+- Enhanced footer with multi-column layout
+- Staggered fade-in-up entrance animations
+- Pulse-glow CTA buttons
+- Spooky gradient section dividers
+- Holographic investigator cards on About page (3D tilt + rainbow overlay)
+- FCM push notifications (subscribe opt-in + admin-triggered send)
+- Evidence Board backdrop on Adventures page (corkboard + pushpin + red yarn + card rotation)
+- Candlelit Séance backdrop on About page (candle flicker + séance circle + smoke particles)
+- Cinematic hero on Home page (bokeh orbs + grain + pulsing glow + dual fog)
 
 ### Phase 3 — Notifications & Growth (current focus)
-- [x] FCM push notification service (PushNotificationService)
-- [x] Service worker for background notifications (firebase-messaging-sw.js)
-- [x] Admin "Notify Subscribers" button in post editor
-- [ ] VAPID key + server key configuration (Firebase Console → Cloud Messaging)
-- [x] Social share buttons on posts
-- [x] Basic analytics dashboard for admins
-- [x] Subscriber preferences (notification frequency, categories)
-- [ ] Mobile app conversion (Angular → Capacitor/Ionic for native push)
+
+- FCM push notification service (PushNotificationService)
+- Service worker for background notifications (firebase-messaging-sw.js)
+- Admin "Notify Subscribers" button in post editor
+- VAPID key + server key configuration (Firebase Console → Cloud Messaging)
+- Social share buttons on posts
+- Basic analytics dashboard for admins
+- Subscriber preferences (notification frequency, categories)
+- Mobile app conversion (Angular → Capacitor/Ionic for native push)
 
 ### Phase 4 — Community (current focus)
 
 #### 4a. Viewer Comments on Posts (Moderated)
-- [ ] Create `Comment` model: `{ id, postId, authorName, authorEmail, avatarUrl?, content, status: 'pending'|'approved'|'rejected', createdAt }`
-- [ ] Create `comments.service.ts` — Firestore CRUD under `posts/{postId}/comments` subcollection
-- [ ] Firestore rules: anyone can create (status forced to 'pending'), public read for 'approved', admin read/write all
-- [ ] Create `CommentFormComponent` — name + email + textarea, submits with status 'pending'
-- [ ] Create `CommentListComponent` — displays approved comments with avatar, name, time-ago, and content
-- [ ] Integrate both into `adventure-detail.html` below the subscribe section
-- [ ] Create `CommentModerationComponent` in admin — table of pending comments with approve/reject actions
-- [ ] Add moderation route `/admin/comments` to admin routes and sidebar nav
-- [ ] Add Firestore composite index: `comments` → `status` ASC + `createdAt` DESC
+
+- Create `Comment` model: `{ id, postId, authorName, authorEmail, avatarUrl?, content, status: 'pending'|'approved'|'rejected', createdAt }`
+- Create `comments.service.ts` — Firestore CRUD under `posts/{postId}/comments` subcollection
+- Firestore rules: anyone can create (status forced to 'pending'), public read for 'approved', admin read/write all
+- Create `CommentFormComponent` — name + email + textarea, submits with status 'pending'
+- Create `CommentListComponent` — displays approved comments with avatar, name, time-ago, and content
+- Integrate both into `adventure-detail.html` below the subscribe section
+- Create `CommentModerationComponent` in admin — table of pending comments with approve/reject actions
+- Add moderation route `/admin/comments` to admin routes and sidebar nav
+- Add Firestore composite index: `comments` → `status` ASC + `createdAt` DESC
 
 #### 4b. "Like" / "That's Creepy" Reaction System
-- [ ] Create `Reaction` model: `{ postId, emoji: '👻'|'😱'|'🔥'|'👍', visitorId, createdAt }`
-- [ ] Create `reactions.service.ts` — Firestore operations under `posts/{postId}/reactions` subcollection
-- [ ] Visitor identity: generate anonymous UUID in localStorage (no auth required)
-- [ ] Firestore rules: create/update if visitorId matches, one reaction per visitorId+postId (use visitorId as doc ID)
-- [ ] Create `ReactionBarComponent` — row of emoji buttons with animated counts, highlights user's current pick
-- [ ] Optimistic UI: update count immediately, revert on Firestore error
-- [ ] Integrate into `adventure-detail.html` above the social share section
-- [ ] Show aggregate reaction counts on `PostCardComponent` (read from a `reactionCounts` map field on the post doc)
-- [ ] Admin dashboard: display total reactions across all posts
+
+- Create `Reaction` model: `{ postId, emoji: '👻'|'😱'|'🔥'|'👍', visitorId, createdAt }`
+- Create `reactions.service.ts` — Firestore operations under `posts/{postId}/reactions` subcollection
+- Visitor identity: generate anonymous UUID in localStorage (no auth required)
+- Firestore rules: create/update if visitorId matches, one reaction per visitorId+postId (use visitorId as doc ID)
+- Create `ReactionBarComponent` — row of emoji buttons with animated counts, highlights user's current pick
+- Optimistic UI: update count immediately, revert on Firestore error
+- Integrate into `adventure-detail.html` above the social share section
+- Show aggregate reaction counts on `PostCardComponent` (read from a `reactionCounts` map field on the post doc)
+- Admin dashboard: display total reactions across all posts
 
 #### 4c. Viewer Photo Submissions
-- [ ] Create `Submission` model: `{ id, postId?, authorName, authorEmail, caption, imageUrls: string[], status: 'pending'|'approved'|'rejected', createdAt }`
-- [ ] Create `submissions.service.ts` — Firestore CRUD for `submissions` collection
-- [ ] Firestore rules: anyone can create (status forced to 'pending'), admin read/write all
-- [ ] Storage rules: allow writes to `submissions/{submissionId}/**` for authenticated or anonymous users (size limit 5MB per file)
-- [ ] Create `PhotoSubmitFormComponent` — name + email + caption + multi-file upload (max 4 images)
-- [ ] Create viewer page `/submit` with the form and guidelines text
-- [ ] Create `SubmissionModerationComponent` in admin — grid of pending submissions with image previews, approve/reject
-- [ ] Approved submissions: admin can attach to an existing post's `mediaUrls` or create a new community post
-- [ ] Add moderation route `/admin/submissions` to admin routes and sidebar nav
+
+- Create `Submission` model: `{ id, postId?, authorName, authorEmail, caption, imageUrls: string[], status: 'pending'|'approved'|'rejected', createdAt }`
+- Create `submissions.service.ts` — Firestore CRUD for `submissions` collection
+- Firestore rules: anyone can create (status forced to 'pending'), admin read/write all
+- Storage rules: allow writes to `submissions/{submissionId}/**` for authenticated or anonymous users (size limit 5MB per file)
+- Create `PhotoSubmitFormComponent` — name + email + caption + multi-file upload (max 4 images)
+- Create viewer page `/submit` with the form and guidelines text
+- Create `SubmissionModerationComponent` in admin — grid of pending submissions with image previews, approve/reject
+- Approved submissions: admin can attach to an existing post's `mediaUrls` or create a new community post
+- Add moderation route `/admin/submissions` to admin routes and sidebar nav
 
 #### 4d. RSS Feed Generation
-- [ ] Create `rss.service.ts` — generates RSS 2.0 XML string from published posts
-- [ ] Create API-like route `/feed` that returns the XML (using Angular SSR route with custom response)
-- [ ] Alternative: generate static `feed.xml` at build time via a build script
-- [ ] Include: title, description, link, pubDate, author, coverImageUrl as enclosure
-- [ ] Add RSS `<link rel="alternate">` tag to `index.html` `<head>`
-- [ ] Add RSS icon/link to footer
+
+- Create `rss.service.ts` — generates RSS 2.0 XML string from published posts
+- Create API-like route `/feed` that returns the XML (using Angular SSR route with custom response)
+- Alternative: generate static `feed.xml` at build time via a build script
+- Include: title, description, link, pubDate, author, coverImageUrl as enclosure
+- Add RSS `<link rel="alternate">` tag to `index.html` `<head>`
+- Add RSS icon/link to footer
 
 #### Phase 4 — FCM Push Notification Delivery (prerequisite)
-- [ ] Upgrade to Firebase Blaze plan (or set up external server)
-- [ ] Create Cloud Function `onNotificationRequestCreated` — triggers on `notificationRequests/{id}` document creation
-- [ ] Function reads all tokens from `fcmTokens` collection
-- [ ] Function sends FCM messages via Firebase Admin SDK (v1 API)
-- [ ] Function updates the notification request doc with `status: 'sent'` and `sentCount`
-- [ ] Function cleans up stale/invalid tokens on `messaging/invalid-registration-token` errors
+
+- Upgrade to Firebase Blaze plan (or set up external server)
+- Create Cloud Function `onNotificationRequestCreated` — triggers on `notificationRequests/{id}` document creation
+- Function reads all tokens from `fcmTokens` collection
+- Function sends FCM messages via Firebase Admin SDK (v1 API)
+- Function updates the notification request doc with `status: 'sent'` and `sentCount`
+- Function cleans up stale/invalid tokens on `messaging/invalid-registration-token` errors
 
 ---
 
@@ -490,10 +509,15 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 ---
 
 ## 14. Misc bug fixes & TODOs
-- [x] TODO: create error message for subscribe modal to let users know if their email is already registered or if push permission was denied
-- [x] TODO: add loading state to subscribe button while processing subscription
-- [x] TODO: add "last updated" timestamp to post detail page, showing how long ago the post was published/updated
-- [x] TODO: implement error handling for failed FCM push notifications
-- [ ] TODO: add support for infinite scroll to adventures page in order to future-proof for large amounts of posts
-- [ ] TODO: create unit testing for services and critical components (e.g. PostEditorComponent, SubscribeFormComponent)
-- [ ] TODO: Fix bug that stops Admin users from successfully uploading audio media files when editing or creating a new post.
+
+- TODO: create error message for subscribe modal to let users know if their email is already registered or if push permission was denied
+- TODO: add loading state to subscribe button while processing subscription
+- TODO: add "last updated" timestamp to post detail page, showing how long ago the post was published/updated
+- TODO: implement error handling for failed FCM push notifications
+- TODO: add support for infinite scroll to adventures page in order to future-proof for large amounts of posts
+- TODO: create unit testing for services and critical components (e.g. PostEditorComponent, SubscribeFormComponent)
+- TODO: Fix bug that stops Admin users from successfully uploading audio media files when editing or creating a new post.
+- ~~TODO: Add ability to format Adventure post text stylistically~~ ✅ Quill rich-text editor in post editor
+- ~~TODO: Add captions/titles for photos and media~~ ✅ `PostMediaItem` with title/caption fields
+- ~~TODO: Add ability to add a photo to sound files~~ ✅ Optional `coverImageUrl` on audio media items
+

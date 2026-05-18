@@ -1,0 +1,9 @@
+<quill-editor
+  class="rich-text-editor"
+  [ngModel]="value()"
+  (ngModelChange)="value.set($event)"
+  [modules]="quillModules"
+  [placeholder]="placeholder()"
+  format="html"
+  theme="snow"
+/>

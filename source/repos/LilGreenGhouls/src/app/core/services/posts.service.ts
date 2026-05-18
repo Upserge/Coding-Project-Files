@@ -15,6 +15,7 @@ import {
   Timestamp,
 } from '@angular/fire/firestore';
 import { Post } from '../models/post.model';
+import { normalizePost } from '../utils/post-media.util';
 
 @Injectable({ providedIn: 'root' })
 export class PostsService {
@@ -45,7 +46,7 @@ export class PostsService {
     const docRef = doc(this.firestore, this.collectionName, id);
     const snap = await getDoc(docRef);
     if (!snap.exists()) return null;
-    return { id: snap.id, ...snap.data() } as Post;
+    return normalizePost({ id: snap.id, ...snap.data() } as Post);
   }
 
   async getBySlug(slug: string): Promise<Post | null> {
@@ -58,7 +59,7 @@ export class PostsService {
     const snap = await getDocs(q);
     if (snap.empty) return null;
     const docSnap = snap.docs[0];
-    return { id: docSnap.id, ...docSnap.data() } as Post;
+    return normalizePost({ id: docSnap.id, ...docSnap.data() } as Post);
   }
 
   async getAllPublished(): Promise<Post[]> {
@@ -68,7 +69,7 @@ export class PostsService {
       orderBy('publishedAt', 'desc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Post);
+    return snap.docs.map(d => normalizePost({ id: d.id, ...d.data() } as Post));
   }
 
   async getRecentPublished(count: number): Promise<Post[]> {
@@ -79,7 +80,7 @@ export class PostsService {
       limit(count),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Post);
+    return snap.docs.map(d => normalizePost({ id: d.id, ...d.data() } as Post));
   }
 
   async getAll(): Promise<Post[]> {
@@ -88,7 +89,7 @@ export class PostsService {
       orderBy('updatedAt', 'desc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Post);
+    return snap.docs.map(d => normalizePost({ id: d.id, ...d.data() } as Post));
   }
 
   async getCountByStatus(status: 'draft' | 'published'): Promise<number> {

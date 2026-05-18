@@ -8,6 +8,7 @@ import { provideMessaging, getMessaging } from '@angular/fire/messaging';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { provideQuillConfig } from 'ngx-quill/config';
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
@@ -21,5 +22,6 @@ export const appConfig: ApplicationConfig = {
     provideFirestore(() => getFirestore()),
     provideStorage(() => getStorage()),
     provideMessaging(() => getMessaging()),
-  ]
+    provideQuillConfig({}),
+  ],
 };

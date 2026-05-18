@@ -15,8 +15,9 @@ export class LocationMarqueeComponent {
     { icon: '⚰️', name: 'Some random Insane Asylum in Kentucky: SOON' },
     { icon: '🦇', name: 'Charleston, South Carolina ig: SOON' },
     { icon: '🔦', name: 'Alcatraz: SOON' },
-    { icon: '💀', name: 'Crescent Hotel, also Arkansas: SOON' },
+    { icon: '💀', name: 'Crescent Hotel, Arkansas: SOON' },
     { icon: '🕸️', name: 'Pismo Beach' },
     { icon: '🌙', name: 'Angel Island' },
+    { icon: '🔮', name: 'Salem, Massachusetts: SOON' },
   ];
 }
