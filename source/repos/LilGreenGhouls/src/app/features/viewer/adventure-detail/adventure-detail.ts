@@ -7,15 +7,16 @@ import { SocialShareComponent } from '../../../shared/components/social-share/so
 import { CommentFormComponent } from '../../../shared/components/comment-form/comment-form';
 import { CommentListComponent } from '../../../shared/components/comment-list/comment-list';
 import { SafeResourceUrlPipe } from '../../../shared/pipes/safe-resource-url.pipe';
+import { PostContentComponent } from '../../../shared/components/post-content/post-content';
 import { Post } from '../../../core/models/post.model';
-import { PostMediaItem } from '../../../core/models/post-media.model';
+import { MediaImageFit, PostMediaItem } from '../../../core/models/post-media.model';
 import { partitionMediaItems, resolvePostMedia } from '../../../core/utils/post-media.util';
 import { isVideoUrl } from '../../../core/utils/media-type.util';
 
 @Component({
   selector: 'app-adventure-detail',
   standalone: true,
-  imports: [RouterLink, DatePipe, ImageLightboxComponent, SocialShareComponent, CommentFormComponent, CommentListComponent, SafeResourceUrlPipe],
+  imports: [RouterLink, DatePipe, ImageLightboxComponent, SocialShareComponent, CommentFormComponent, CommentListComponent, SafeResourceUrlPipe, PostContentComponent],
   templateUrl: './adventure-detail.html',
   styleUrl: './adventure-detail.css',
 })
@@ -27,6 +28,7 @@ export class AdventureDetailComponent implements OnInit {
   protected post = signal<Post | null>(null);
   protected loading = signal(true);
   protected lightboxOpen = signal(false);
+  protected lightboxUrls = signal<string[]>([]);
 
   protected shareUrl = computed(() => {
     const p = this.post();
@@ -49,13 +51,20 @@ export class AdventureDetailComponent implements OnInit {
 
   protected hasMedia = computed(() => this.mediaItems().length > 0);
 
-  protected lastUpdatedAgo = computed(() => {
+  protected postTimeline = computed(() => {
     const p = this.post();
-    if (!p?.updatedAt) return null;
-    const updatedDate = p.updatedAt.toDate();
-    const publishedDate = p.publishedAt?.toDate();
-    if (publishedDate && updatedDate.getTime() - publishedDate.getTime() < 60_000) return null;
-    return this.getTimeAgo(updatedDate);
+    if (!p) return null;
+
+    const publishedAt = p.publishedAt?.toDate();
+    const updatedAt = p.updatedAt?.toDate();
+    const event = this.getTimelineEvent(publishedAt, updatedAt);
+
+    if (!event) return null;
+
+    return {
+      ...event,
+      relative: this.getTimeAgo(event.date),
+    };
   });
 
   private lightbox = viewChild(ImageLightboxComponent);
@@ -72,9 +81,14 @@ export class AdventureDetailComponent implements OnInit {
     this.loading.set(false);
   }
 
-  openLightbox(index: number): void {
+  openLightbox(index: number, urls = this.galleryUrls()): void {
+    this.lightboxUrls.set(urls);
     this.lightboxOpen.set(true);
     setTimeout(() => this.lightbox()?.open(index));
+  }
+
+  openImageLightbox(url: string): void {
+    this.openLightbox(0, [url]);
   }
 
   closeLightbox(): void {
@@ -97,6 +111,34 @@ export class AdventureDetailComponent implements OnInit {
   protected displayCaption(item: PostMediaItem): string | null {
     const caption = item.caption?.trim();
     return caption || null;
+  }
+
+  protected imageFitClass(fit: MediaImageFit | undefined): string {
+    return fit === 'contain' ? 'object-contain bg-void' : 'object-cover';
+  }
+
+  private getTimelineEvent(
+    publishedAt?: Date,
+    updatedAt?: Date,
+  ): { label: 'Published' | 'Updated'; date: Date } | null {
+    if (updatedAt && this.isMeaningfullyUpdated(publishedAt, updatedAt)) {
+      return { label: 'Updated', date: updatedAt };
+    }
+
+    if (publishedAt) {
+      return { label: 'Published', date: publishedAt };
+    }
+
+    if (updatedAt) {
+      return { label: 'Updated', date: updatedAt };
+    }
+
+    return null;
+  }
+
+  private isMeaningfullyUpdated(publishedAt: Date | undefined, updatedAt: Date): boolean {
+    if (!publishedAt) return true;
+    return updatedAt.getTime() - publishedAt.getTime() >= 60_000;
   }
 
   private getTimeAgo(date: Date): string {

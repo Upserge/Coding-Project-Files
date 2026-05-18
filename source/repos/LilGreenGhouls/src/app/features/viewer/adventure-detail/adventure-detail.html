@@ -3,7 +3,7 @@
     <div class="h-12 w-12 animate-spin rounded-full border-4 border-haunt-purple border-t-ecto-green"></div>
   </div>
 } @else if (post(); as p) {
-  <article class="mx-auto max-w-4xl px-6 py-12">
+  <article class="mx-auto min-w-0 max-w-4xl px-6 py-12">
     <!-- Back Link -->
     <a routerLink="/adventures" class="mb-6 inline-block text-sm text-mist/60 hover:text-ecto-green">
       ← Back to Adventures
@@ -11,9 +11,15 @@
 
     <!-- Cover Image -->
     @if (p.coverImageUrl) {
-    <div class="mb-8 overflow-hidden rounded-2xl">
+    <button
+      type="button"
+      (click)="openImageLightbox(p.coverImageUrl)"
+      class="group mb-8 block w-full overflow-hidden rounded-2xl text-left"
+      aria-label="Open cover image full size"
+    >
       <img [src]="p.coverImageUrl" [alt]="p.title" class="w-full object-cover" />
-    </div>
+      <span class="sr-only">Open image full size</span>
+    </button>
     }
 
     <!-- Header -->
@@ -29,19 +35,21 @@
 
       <h1 class="mb-4 font-display text-5xl leading-tight text-ghost-white">{{ p.title }}</h1>
 
-      <div class="flex items-center gap-4 text-sm text-mist/60">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-mist/60">
         <span>By {{ p.authorName }}</span>
         @if (p.publishedAt) {
         <span>{{ p.publishedAt.toDate() | date:'longDate' }}</span>
         }
-        @if (lastUpdatedAgo(); as ago) {
-        <span class="text-mist/40">· Updated {{ ago }}</span>
+        @if (postTimeline(); as timeline) {
+        <span class="text-mist/40" [title]="timeline.date | date:'medium'">
+          · {{ timeline.label }} {{ timeline.relative }}
+        </span>
         }
       </div>
     </header>
 
     <!-- Content -->
-    <div class="prose-content mb-12" [innerHTML]="p.content"></div>
+    <app-post-content class="mb-12 block" [content]="p.content" />
 
     <!-- YouTube Embeds -->
     @if (p.youtubeEmbeds.length) {
@@ -71,7 +79,19 @@
         @for (item of audioItems(); track item.url) {
         <article class="overflow-hidden rounded-xl border border-haunt-purple/30 bg-haunt-purple/10">
           @if (item.coverImageUrl) {
-          <img [src]="item.coverImageUrl" [alt]="displayTitle(item) ?? 'Audio cover'" class="h-48 w-full object-cover" />
+          <button
+            type="button"
+            (click)="openImageLightbox(item.coverImageUrl)"
+            class="group block h-48 w-full cursor-zoom-in overflow-hidden text-left"
+            aria-label="Open audio cover image full size"
+          >
+            <img
+              [src]="item.coverImageUrl"
+              [alt]="displayTitle(item) ?? 'Audio cover'"
+              [class]="'h-full w-full transition-transform duration-300 group-hover:scale-105 ' + imageFitClass(item.coverImageFit)"
+            />
+            <span class="sr-only">Open image full size</span>
+          </button>
           }
           <div class="space-y-2 p-4">
             @if (displayTitle(item); as title) {
@@ -95,7 +115,7 @@
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         @for (item of galleryItems(); track item.url; let i = $index) {
         <figure class="space-y-2">
-          <div class="group cursor-pointer overflow-hidden rounded-xl" (click)="openLightbox(i)">
+          <div class="group aspect-video cursor-pointer overflow-hidden rounded-xl bg-haunt-purple/20" (click)="openLightbox(i)">
             @if (isVideoItem(item)) {
               <div class="relative aspect-video w-full bg-haunt-purple/20">
                 <video [src]="item.url" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"></video>
@@ -105,7 +125,7 @@
               </div>
             } @else {
               <img [src]="item.url" [alt]="displayTitle(item) ?? 'Evidence photo'"
-                   class="w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                   [class]="'h-full w-full transition-transform duration-300 group-hover:scale-105 ' + imageFitClass(item.imageFit)" />
             }
           </div>
           @if (displayTitle(item); as title) {
@@ -119,10 +139,11 @@
       </div>
     </section>
 
+    }
+    }
+
     @if (lightboxOpen()) {
-    <app-image-lightbox [images]="galleryUrls()" (closed)="closeLightbox()" />
-    }
-    }
+    <app-image-lightbox [images]="lightboxUrls()" (closed)="closeLightbox()" />
     }
 
     <!-- External Links -->

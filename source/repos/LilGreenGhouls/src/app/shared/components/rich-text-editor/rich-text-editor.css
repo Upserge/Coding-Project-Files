@@ -24,6 +24,10 @@
 :host ::ng-deep .ql-editor {
   color: var(--color-mist);
   min-height: 280px;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: pre-wrap;
+  text-wrap: pretty;
 }
 
 :host ::ng-deep .ql-editor.ql-blank::before {

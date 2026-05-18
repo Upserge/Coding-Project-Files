@@ -479,21 +479,21 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 
 #### 4d. RSS Feed Generation
 
-- Create `rss.service.ts` — generates RSS 2.0 XML string from published posts
-- Create API-like route `/feed` that returns the XML (using Angular SSR route with custom response)
+- ~~Create `rss.service.ts` — generates RSS 2.0 XML string from published posts~~ ✅
+- ~~Create API-like route `/feed` that returns the XML (using Angular SSR route with custom response)~~ ✅
 - Alternative: generate static `feed.xml` at build time via a build script
-- Include: title, description, link, pubDate, author, coverImageUrl as enclosure
-- Add RSS `<link rel="alternate">` tag to `index.html` `<head>`
-- Add RSS icon/link to footer
+- ~~Include: title, description, link, pubDate, author, coverImageUrl as enclosure~~ ✅
+- ~~Add RSS `<link rel="alternate">` tag to `index.html` `<head>`~~ ✅
+- ~~Add RSS icon/link to footer~~ ✅
 
 #### Phase 4 — FCM Push Notification Delivery (prerequisite)
 
-- Upgrade to Firebase Blaze plan (or set up external server)
-- Create Cloud Function `onNotificationRequestCreated` — triggers on `notificationRequests/{id}` document creation
-- Function reads all tokens from `fcmTokens` collection
-- Function sends FCM messages via Firebase Admin SDK (v1 API)
-- Function updates the notification request doc with `status: 'sent'` and `sentCount`
-- Function cleans up stale/invalid tokens on `messaging/invalid-registration-token` errors
+- ~~Upgrade to Firebase Blaze plan (or set up external server)~~ ✅ Billing enabled for Cloud Functions deployment
+- ~~Create Cloud Function `onNotificationRequestCreated` — triggers on `notificationRequests/{id}` document creation~~ ✅
+- ~~Function reads all tokens from `fcmTokens` collection~~ ✅
+- ~~Function sends FCM messages via Firebase Admin SDK (v1 API)~~ ✅
+- ~~Function updates the notification request doc with `status: 'sent'` and `sentCount`~~ ✅
+- ~~Function cleans up stale/invalid tokens on `messaging/invalid-registration-token` errors~~ ✅
 
 ---
 
@@ -512,12 +512,6 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 
 - TODO: create error message for subscribe modal to let users know if their email is already registered or if push permission was denied
 - TODO: add loading state to subscribe button while processing subscription
-- TODO: add "last updated" timestamp to post detail page, showing how long ago the post was published/updated
-- TODO: implement error handling for failed FCM push notifications
 - TODO: add support for infinite scroll to adventures page in order to future-proof for large amounts of posts
 - TODO: create unit testing for services and critical components (e.g. PostEditorComponent, SubscribeFormComponent)
-- TODO: Fix bug that stops Admin users from successfully uploading audio media files when editing or creating a new post.
-- ~~TODO: Add ability to format Adventure post text stylistically~~ ✅ Quill rich-text editor in post editor
-- ~~TODO: Add captions/titles for photos and media~~ ✅ `PostMediaItem` with title/caption fields
-- ~~TODO: Add ability to add a photo to sound files~~ ✅ Optional `coverImageUrl` on audio media items
-
+- TODO: Add HEIC files to list of supported medias for images or cover photos

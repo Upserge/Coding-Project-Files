@@ -6,8 +6,6 @@ import {
   setDoc,
   addDoc,
   getDocs,
-  query,
-  where,
   Timestamp,
 } from '@angular/fire/firestore';
 import { Messaging, getToken, onMessage } from '@angular/fire/messaging';
@@ -27,6 +25,11 @@ export interface NotificationRequest {
   status: 'pending' | 'sent' | 'failed';
   tokenCount: number;
   createdAt: Timestamp;
+  processedAt?: Timestamp;
+  sentCount?: number;
+  failedCount?: number;
+  invalidTokenCount?: number;
+  errorMessage?: string;
 }
 
 export class FcmError extends Error {
@@ -52,6 +55,11 @@ export class PushNotificationService {
    */
   async requestPermissionAndSaveToken(subscriberEmail?: string): Promise<string | null> {
     try {
+      if (!('Notification' in window)) {
+        console.warn('Browser notifications are not supported.');
+        return null;
+      }
+
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         console.warn('Notification permission denied.');
@@ -133,6 +141,9 @@ export class PushNotificationService {
         link,
         status: 'pending',
         tokenCount: tokens.length,
+        sentCount: 0,
+        failedCount: 0,
+        invalidTokenCount: 0,
         createdAt: Timestamp.now(),
       } satisfies NotificationRequest);
     } catch (error: unknown) {

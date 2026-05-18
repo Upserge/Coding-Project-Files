@@ -31,46 +31,29 @@ export class SubscribeFormComponent {
   protected selectedCategories = signal<string[]>([]);
 
   async subscribe(): Promise<void> {
-    if (!this.email.trim()) return;
-
     this.status.set('loading');
-    let result: 'created' | 'duplicate';
-    try {
-      result = await this.subscribersService.addSubscriber(this.email.trim());
-    } catch {
-      this.status.set('error');
-      return;
-    }
+    this.pushDenied.set(false);
+    this.notificationsEnabled.set(false);
 
-    if (result === 'duplicate') {
-      this.status.set('duplicate');
-      return;
-    }
-
-    // Push notification opt-in is best-effort — don't block subscription on FCM failures
     try {
-      const token = await this.pushService.requestPermissionAndSaveToken(this.email.trim());
+      const email = this.email.trim();
+      const addedSubscriber = await this.addEmailSubscriber(email);
+      if (!addedSubscriber) {
+        return;
+      }
+
+      const token = await this.pushService.requestPermissionAndSaveToken(email || undefined);
       this.notificationsEnabled.set(!!token);
       if (!token) {
         this.pushDenied.set(true);
       }
-    } catch {
-      // FCM may fail (e.g., no VAPID key, denied permissions) — that's OK
-      this.notificationsEnabled.set(false);
-      this.pushDenied.set(true);
-    }
 
-    try {
-      const subscriber = await this.subscribersService.findByEmail(this.email.trim());
-      if (subscriber?.id) {
-        this.subscriberId.set(subscriber.id);
-      }
+      await this.loadSubscriberPreferences(email);
+      this.status.set('success');
+      this.email = '';
     } catch {
-      // Non-critical — preferences panel just won't be available
+      this.status.set('error');
     }
-
-    this.status.set('success');
-    this.email = '';
   }
 
   protected resetForm(): void {
@@ -99,5 +82,36 @@ export class SubscribeFormComponent {
       pushEnabled: this.notificationsEnabled(),
     });
     this.showPreferences.set(false);
+  }
+
+  private async addEmailSubscriber(email: string): Promise<boolean> {
+    if (!email) {
+      return true;
+    }
+
+    const result = await this.subscribersService.addSubscriber(email);
+    if (result !== 'duplicate') {
+      return true;
+    }
+
+    this.status.set('duplicate');
+    return false;
+  }
+
+  private async loadSubscriberPreferences(email: string): Promise<void> {
+    if (!email) {
+      return;
+    }
+
+    try {
+      const subscriber = await this.subscribersService.findByEmail(email);
+      if (!subscriber?.id) {
+        return;
+      }
+
+      this.subscriberId.set(subscriber.id);
+    } catch {
+      // Non-admin users may not be allowed to read subscribers.
+    }
   }
 }

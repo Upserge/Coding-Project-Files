@@ -5,24 +5,36 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import { initializeApp } from 'firebase/app';
+import { collection, getDocs, getFirestore, orderBy, query, where } from 'firebase/firestore/lite';
 import { join } from 'node:path';
+import { Post } from './app/core/models/post.model';
+import { RssService } from './app/core/services/rss.service';
+import { normalizePost } from './app/core/utils/post-media.util';
+import { environment } from './environments/environment';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
+const firebaseApp = initializeApp(environment.firebase);
+const firestore = getFirestore(firebaseApp);
+const rssService = new RssService();
 
-/**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
- *
- * Example:
- * ```ts
- * app.get('/api/{*splat}', (req, res) => {
- *   // Handle API request
- * });
- * ```
- */
+app.get('/feed', async (req, res, next) => {
+  try {
+    const posts = await getPublishedPosts();
+    const xml = rssService.generateFeed(posts, getSiteUrl(req));
+
+    res
+      .status(200)
+      .type('application/rss+xml; charset=utf-8')
+      .set('Cache-Control', 'public, max-age=300, s-maxage=900')
+      .send(xml);
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * Serve static files from /browser
@@ -66,3 +78,20 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
  * Request handler used by the Angular CLI (for dev-server and during build) or Firebase Cloud Functions.
  */
 export const reqHandler = createNodeRequestHandler(app);
+
+async function getPublishedPosts(): Promise<Post[]> {
+  const postsQuery = query(
+    collection(firestore, 'posts'),
+    where('status', '==', 'published'),
+    orderBy('publishedAt', 'desc'),
+  );
+  const snap = await getDocs(postsQuery);
+
+  return snap.docs.map(docSnap => normalizePost({ id: docSnap.id, ...docSnap.data() } as Post));
+}
+
+function getSiteUrl(req: express.Request): string {
+  const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  const protocol = forwardedProto || req.protocol;
+  return `${protocol}://${req.get('host')}`;
+}

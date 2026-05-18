@@ -20,8 +20,6 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || '👻 Lil Green Ghouls';
   const options = {
     body: payload.notification?.body || 'Something spooky just happened!',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
     data: { link: payload.data?.link || '/' },
   };
 

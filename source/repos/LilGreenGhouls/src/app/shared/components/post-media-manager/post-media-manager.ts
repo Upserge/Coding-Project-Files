@@ -1,6 +1,6 @@
 import { Component, inject, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { PostMediaItem } from '../../../core/models/post-media.model';
+import { MediaImageFit, PostMediaItem } from '../../../core/models/post-media.model';
 import { MediaService } from '../../../core/services/media.service';
 import { enrichMediaItem, inferMediaTypeFromFile } from '../../../core/utils/post-media.util';
 import { isVideoUrl } from '../../../core/utils/media-type.util';
@@ -29,6 +29,14 @@ export class PostMediaManagerComponent {
     return item.type === 'audio';
   }
 
+  protected isImageItem(item: PostMediaItem): boolean {
+    return item.type === 'image';
+  }
+
+  protected imageFitClass(fit: MediaImageFit | undefined): string {
+    return fit === 'contain' ? 'object-contain bg-void' : 'object-cover';
+  }
+
   async onMediaFilesSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const files = input.files;
@@ -54,6 +62,7 @@ export class PostMediaManagerComponent {
             type: inferMediaTypeFromFile(file),
             title: '',
             caption: '',
+            imageFit: 'cover',
           }),
         );
       }
@@ -98,6 +107,14 @@ export class PostMediaManagerComponent {
     this.mediaItems.update(items => items.filter((_, i) => i !== index));
   }
 
+  moveItemUp(index: number): void {
+    this.moveItem(index, index - 1);
+  }
+
+  moveItemDown(index: number): void {
+    this.moveItem(index, index + 1);
+  }
+
   removeAudioCover(index: number): void {
     this.updateItem(index, item => ({ ...item, coverImageUrl: '' }));
   }
@@ -108,6 +125,41 @@ export class PostMediaManagerComponent {
 
   updateCaption(index: number, caption: string): void {
     this.updateItem(index, item => ({ ...item, caption }));
+  }
+
+  updateImageFit(index: number, imageFit: string): void {
+    this.updateItem(index, item => ({ ...item, imageFit: this.toMediaImageFit(imageFit) }));
+  }
+
+  updateCoverImageFit(index: number, coverImageFit: string): void {
+    this.updateItem(index, item => ({ ...item, coverImageFit: this.toMediaImageFit(coverImageFit) }));
+  }
+
+  private moveItem(fromIndex: number, toIndex: number): void {
+    this.mediaItems.update(items => {
+      if (!this.isValidMove(items, fromIndex, toIndex)) {
+        return items;
+      }
+
+      const reordered = [...items];
+      const [item] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, item);
+      return reordered;
+    });
+  }
+
+  private isValidMove(items: PostMediaItem[], fromIndex: number, toIndex: number): boolean {
+    return (
+      fromIndex !== toIndex &&
+      fromIndex >= 0 &&
+      toIndex >= 0 &&
+      fromIndex < items.length &&
+      toIndex < items.length
+    );
+  }
+
+  private toMediaImageFit(value: string): MediaImageFit {
+    return value === 'contain' ? 'contain' : 'cover';
   }
 
   private updateItem(

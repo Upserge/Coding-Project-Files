@@ -9,6 +9,7 @@ import { Post } from '../../../core/models/post.model';
 import { PostMediaItem } from '../../../core/models/post-media.model';
 import { RichTextEditorComponent } from '../../../shared/components/rich-text-editor/rich-text-editor';
 import { PostMediaManagerComponent } from '../../../shared/components/post-media-manager/post-media-manager';
+import { normalizePostContentHtml } from '../../../core/utils/post-content.util';
 import { preparePostMediaForSave, resolvePostMedia } from '../../../core/utils/post-media.util';
 import { Timestamp } from 'firebase/firestore';
 
@@ -143,12 +144,14 @@ export class PostEditorComponent implements OnInit {
       const tags = this.tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
       const slug = this.generateSlug(this.title);
       const { mediaItems, mediaUrls } = preparePostMediaForSave(this.mediaItems());
+      const normalizedContent = normalizePostContentHtml(this.content());
+      this.content.set(normalizedContent);
 
       const postData: Omit<Post, 'id'> = {
         title: this.title,
         slug,
         excerpt: this.excerpt,
-        content: this.content(),
+        content: normalizedContent,
         coverImageUrl: this.coverImageUrl(),
         mediaUrls,
         mediaItems,
@@ -187,6 +190,7 @@ export class PostEditorComponent implements OnInit {
   async notifySubscribers(): Promise<void> {
     this.notifying.set(true);
     this.notifyResult.set(null);
+
     try {
       const slug = this.generateSlug(this.title);
       const link = `${window.location.origin}/adventures/${slug}`;
@@ -201,13 +205,10 @@ export class PostEditorComponent implements OnInit {
           : 'No subscribers with push tokens found.',
       );
     } catch (error: unknown) {
-      if (error instanceof FcmError) {
-        this.notifyResult.set(`❌ ${error.message}`);
-        return;
-      }
-      this.notifyResult.set('❌ Failed to queue notification — an unexpected error occurred.');
+      this.setNotificationError(error);
+    } finally {
+      this.notifying.set(false);
     }
-    this.notifying.set(false);
   }
 
   goToPostList(): void {
@@ -226,5 +227,14 @@ export class PostEditorComponent implements OnInit {
     if (match) return match[1];
     if (/^[\w-]{11}$/.test(input)) return input;
     return null;
+  }
+
+  private setNotificationError(error: unknown): void {
+    if (error instanceof FcmError) {
+      this.notifyResult.set(`❌ ${error.message}`);
+      return;
+    }
+
+    this.notifyResult.set('❌ Failed to queue notification — an unexpected error occurred.');
   }
 }

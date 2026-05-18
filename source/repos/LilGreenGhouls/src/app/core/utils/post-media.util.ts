@@ -38,7 +38,9 @@ export function enrichMediaItem(item: PostMediaItem): PostMediaItem {
     type,
     title: item.title ?? '',
     caption: item.caption ?? '',
+    imageFit: item.imageFit ?? 'cover',
     coverImageUrl: type === 'audio' ? item.coverImageUrl ?? '' : undefined,
+    coverImageFit: type === 'audio' ? item.coverImageFit ?? 'cover' : undefined,
   };
 }
 
@@ -49,6 +51,7 @@ export function sanitizeMediaItem(item: PostMediaItem): PostMediaItem {
     type: enriched.type,
     title: enriched.title?.trim() ?? '',
     caption: enriched.caption?.trim() ?? '',
+    imageFit: enriched.imageFit ?? 'cover',
   };
 
   const cover = enriched.coverImageUrl?.trim();
@@ -60,7 +63,11 @@ export function sanitizeMediaItem(item: PostMediaItem): PostMediaItem {
     return sanitized;
   }
 
-  return { ...sanitized, coverImageUrl: cover };
+  return {
+    ...sanitized,
+    coverImageUrl: cover,
+    coverImageFit: enriched.coverImageFit ?? 'cover',
+  };
 }
 
 export function preparePostMediaForSave(items: PostMediaItem[]): {
