@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { QueryProvider } from '@/src/context/QueryProvider';
+import { PushNotificationHandler } from '@/src/components/PushNotificationHandler';
 import { ThemeProvider as AppThemeProvider } from '@/src/theme/ThemeContext';
 
 export { ErrorBoundary } from 'expo-router';
@@ -66,6 +67,7 @@ export default function RootLayout() {
         <AppThemeProvider>
           <AuthProvider>
             <AuthGate>
+              <PushNotificationHandler />
               <RootLayoutNav />
             </AuthGate>
           </AuthProvider>

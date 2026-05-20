@@ -27,20 +27,6 @@ export async function getLandlord(id: string): Promise<Landlord | null> {
   return mapLandlord(snap.id, snap.data());
 }
 
-export async function searchLandlords(searchTerm: string): Promise<Landlord[]> {
-  const term = searchTerm.trim().toLowerCase();
-  if (!term) return [];
-
-  if (!isFirebaseConfigured) {
-    return MOCK_LANDLORDS.filter((l) => l.name.toLowerCase().includes(term));
-  }
-
-  const snap = await getDocs(query(collection(db, 'landlords'), limit(50)));
-  return snap.docs
-    .map((d) => mapLandlord(d.id, d.data()))
-    .filter((l) => l.name.toLowerCase().includes(term));
-}
-
 export async function createLandlord(input: {
   name: string;
   type: LandlordType;

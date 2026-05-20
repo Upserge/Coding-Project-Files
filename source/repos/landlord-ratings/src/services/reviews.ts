@@ -18,6 +18,7 @@ import { sortReviews, type ReviewSort } from '@/src/utils/ratings';
 import { MOCK_REVIEWS } from '@/src/services/mockData';
 import { auth } from '@/src/services/firebase';
 import { containsProfanity } from '@/src/utils/moderation';
+import { bodyHash } from '@/src/utils/bodyHash';
 
 function mapReview(id: string, data: Record<string, unknown>): Review {
   return { id, ...(data as Omit<Review, 'id'>) };
@@ -112,9 +113,7 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
   }
 
   const overall = input.categories.overall;
-  // Publish immediately so reviews appear without waiting on Cloud Functions.
-  // Functions still recalculate aggregates and may reject on future edits.
-  const status = 'published' as const;
+  const status = 'pending' as const;
 
   const payload = {
     userId: user.uid,
@@ -127,6 +126,7 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
     overall,
     categories: input.categories,
     body,
+    bodyHash: bodyHash(body),
     tags: input.tags,
     status,
     createdAt: serverTimestamp(),
@@ -135,7 +135,7 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
 
   if (!isFirebaseConfigured) {
     const review: Review = {
-      id: `review-mock-${Date.now()}`,
+      id: reviewDocId(user.uid, input.propertyId),
       ...payload,
       landlordId: input.landlordId,
       moveOut: input.moveOut,
@@ -174,6 +174,56 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
 
   const snap = await getDoc(ref);
   return mapReview(ref.id, snap.data()!);
+}
+
+/** Poll until Cloud Functions moderate a pending review (or timeout). */
+export async function waitForReviewModeration(
+  reviewId: string,
+  options: { maxAttempts?: number; intervalMs?: number } = {},
+): Promise<Review> {
+  if (!isFirebaseConfigured) {
+    const review = await getReviewById(reviewId);
+    if (!review) throw new Error('Review not found after submission.');
+    if (review.status === 'rejected') {
+      throw new Error(review.rejectionReason ?? 'Review could not be published.');
+    }
+    return review;
+  }
+
+  const maxAttempts = options.maxAttempts ?? 15;
+  const intervalMs = options.intervalMs ?? 600;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const snap = await getDoc(doc(db, 'reviews', reviewId));
+    if (!snap.exists()) {
+      throw new Error('Review not found after submission.');
+    }
+
+    const review = mapReview(reviewId, snap.data()!);
+    if (review.status === 'published') return review;
+    if (review.status === 'rejected') {
+      throw new Error(
+        review.rejectionReason ??
+          'Your review could not be published. Please check our guidelines and try again later.',
+      );
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+
+  throw new Error(
+    'Your review is still being processed. Check Account → My reviews in a moment.',
+  );
+}
+
+export async function getReviewById(reviewId: string): Promise<Review | null> {
+  if (!isFirebaseConfigured) {
+    return MOCK_REVIEWS.find((r) => r.id === reviewId) ?? null;
+  }
+
+  const snap = await getDoc(doc(db, 'reviews', reviewId));
+  if (!snap.exists()) return null;
+  return mapReview(reviewId, snap.data()!);
 }
 
 export async function deleteReview(reviewId: string): Promise<void> {

@@ -26,9 +26,14 @@ import {
 } from '@/src/constants/reviewCategories';
 import { useAuth } from '@/src/context/AuthContext';
 import { createLandlord, findLandlordByName } from '@/src/services/landlords';
-import { getPlaceDetails, searchPlaces } from '@/src/services/places';
+import { getPlaceDetails } from '@/src/services/places';
 import { findPropertyByPlaceId, getProperty, upsertProperty } from '@/src/services/properties';
-import { createReview, userHasReviewForProperty } from '@/src/services/reviews';
+import { useAddressSearch } from '@/src/hooks/useAddressSearch';
+import {
+  createReview,
+  userHasReviewForProperty,
+  waitForReviewModeration,
+} from '@/src/services/reviews';
 import { useTheme } from '@/src/theme/ThemeContext';
 import { HeaderBackButton } from '@/src/components/navigation/HeaderBackButton';
 import {
@@ -103,13 +108,25 @@ export default function NewReviewScreen() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { theme } = useTheme();
-  const { propertyId: initialPropertyId } = useLocalSearchParams<{ propertyId?: string }>();
+  const {
+    propertyId: initialPropertyId,
+    placeId: initialPlaceId,
+    prefilledAddress,
+  } = useLocalSearchParams<{
+    propertyId?: string;
+    placeId?: string;
+    prefilledAddress?: string;
+  }>();
 
-  const [addressQuery, setAddressQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<
-    Array<{ placeId: string; description: string }>
-  >([]);
+  const [addressQuery, setAddressQuery] = useState(prefilledAddress ?? '');
+  const [pendingPlace, setPendingPlace] = useState<{
+    placeId: string;
+    formattedAddress: string;
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [property, setProperty] = useState<Property | null>(null);
+  const { suggestions } = useAddressSearch(addressQuery, property?.formattedAddress);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -142,41 +159,47 @@ export default function NewReviewScreen() {
       if (p) {
         setProperty(p);
         setAddressQuery(p.formattedAddress);
+        setPendingPlace(null);
       }
     });
   }, [initialPropertyId]);
 
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (addressQuery.length < 3 || property?.formattedAddress === addressQuery) {
-        setSuggestions([]);
-        return;
-      }
-      const results = await searchPlaces(addressQuery);
-      setSuggestions(results);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [addressQuery, property?.formattedAddress]);
+    if (initialPropertyId || !initialPlaceId) return;
+    getPlaceDetails(initialPlaceId).then((details) => {
+      if (!details) return;
+      setPendingPlace({
+        placeId: initialPlaceId,
+        formattedAddress: details.formattedAddress,
+        latitude: details.latitude,
+        longitude: details.longitude,
+      });
+      if (!prefilledAddress) setAddressQuery(details.formattedAddress);
+    });
+  }, [initialPlaceId, initialPropertyId, prefilledAddress]);
 
   async function selectPlace(placeId: string, description: string) {
     setAddressQuery(description);
-    setSuggestions([]);
     const details = await getPlaceDetails(placeId);
     if (!details) {
       Alert.alert('Error', 'Could not load address details.');
       return;
     }
 
-    let existing = await findPropertyByPlaceId(placeId);
-    if (!existing) {
-      existing = await upsertProperty({
-        placeId,
-        formattedAddress: details.formattedAddress,
-        latitude: details.latitude,
-        longitude: details.longitude,
-      });
+    const existing = await findPropertyByPlaceId(placeId);
+    if (existing) {
+      setProperty(existing);
+      setPendingPlace(null);
+      return;
     }
-    setProperty(existing);
+
+    setProperty(null);
+    setPendingPlace({
+      placeId,
+      formattedAddress: details.formattedAddress,
+      latitude: details.latitude,
+      longitude: details.longitude,
+    });
   }
 
   function toggleTag(tag: string) {
@@ -190,7 +213,19 @@ export default function NewReviewScreen() {
   }
 
   const onValidSubmit = async (values: ReviewFormValues) => {
-    if (!property) {
+    let activeProperty = property;
+    if (!activeProperty && pendingPlace) {
+      activeProperty = await upsertProperty({
+        placeId: pendingPlace.placeId,
+        formattedAddress: pendingPlace.formattedAddress,
+        latitude: pendingPlace.latitude,
+        longitude: pendingPlace.longitude,
+      });
+      setProperty(activeProperty);
+      setPendingPlace(null);
+    }
+
+    if (!activeProperty) {
       Alert.alert('Property required', 'Select an address from the suggestions list.');
       return;
     }
@@ -201,7 +236,7 @@ export default function NewReviewScreen() {
       return;
     }
 
-    const hasReview = await userHasReviewForProperty(user.uid, property.id);
+    const hasReview = await userHasReviewForProperty(user.uid, activeProperty.id);
     if (hasReview) {
       Alert.alert('Already reviewed', 'You have already reviewed this property.');
       return;
@@ -219,10 +254,10 @@ export default function NewReviewScreen() {
 
       const reviewOverall = values.categories.overall;
 
-      optimisticallyApplyReview(queryClient, property, reviewOverall);
+      optimisticallyApplyReview(queryClient, activeProperty, reviewOverall);
 
-      const review = await createReview({
-        propertyId: property.id,
+      const pending = await createReview({
+        propertyId: activeProperty.id,
         landlordId: landlord.id,
         moveIn: values.moveIn,
         moveOut: values.isCurrent ? undefined : values.moveOut,
@@ -232,12 +267,14 @@ export default function NewReviewScreen() {
         tags: selectedTags,
       });
 
-      seedReviewInCache(queryClient, property.id, review);
-      await syncPropertyStatsFromReviews(queryClient, property.id);
+      const review = await waitForReviewModeration(pending.id);
+
+      seedReviewInCache(queryClient, activeProperty.id, review);
+      await syncPropertyStatsFromReviews(queryClient, activeProperty.id);
 
       await queryClient.invalidateQueries({ queryKey: ['my-reviews'] });
 
-      const propertyId = property.id;
+      const propertyId = activeProperty.id;
       Alert.alert('Review published', 'Thank you for helping other renters!', [
         {
           text: 'OK',
@@ -291,6 +328,7 @@ export default function NewReviewScreen() {
           onChangeText={(t) => {
             setAddressQuery(t);
             setProperty(null);
+            setPendingPlace(null);
           }}
         />
         {suggestions.length > 0 ? (
@@ -307,9 +345,9 @@ export default function NewReviewScreen() {
           </View>
         ) : null}
 
-        {property ? (
+        {property || pendingPlace ? (
           <Text style={[styles.selected, { color: theme.colors.primary }]}>
-            Selected: {property.formattedAddress}
+            Selected: {(property ?? pendingPlace)!.formattedAddress}
           </Text>
         ) : (
           <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>

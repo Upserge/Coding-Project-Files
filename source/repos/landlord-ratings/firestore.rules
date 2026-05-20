@@ -20,7 +20,19 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow update: if isOwner(userId)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['reviewCount'])
+          || request.resource.data.reviewCount == resource.data.reviewCount);
+    }
+
+    match /verifications/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
     }
 
     match /properties/{propertyId} {

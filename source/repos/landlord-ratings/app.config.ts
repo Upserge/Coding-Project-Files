@@ -54,6 +54,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           'RentScore uses your location to show rental properties and reviews near you.',
       },
     ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/images/icon.png',
+        color: '#0f766e',
+      },
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'RentScore needs photo access to upload tenancy verification documents.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

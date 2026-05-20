@@ -26,8 +26,14 @@ export default function PrivacyScreen() {
 
       <Text style={styles.heading}>Verification uploads</Text>
       <Text style={styles.body}>
-        If you choose to upload tenancy verification documents in a future release, files are stored
-        in Firebase Storage with access restricted to your account and moderation staff.
+        If you upload tenancy verification from Account, files are stored in Firebase Storage with
+        access restricted to your account and moderation staff. Uploads are optional.
+      </Text>
+
+      <Text style={styles.heading}>Push notifications</Text>
+      <Text style={styles.body}>
+        If you enable saved property alerts, we store an Expo push token on your profile to notify
+        you when a saved listing receives a new review. You can turn this off anytime in Account.
       </Text>
 
       <Text style={styles.heading}>Contact</Text>

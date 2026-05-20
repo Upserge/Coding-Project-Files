@@ -4,7 +4,7 @@
 
 | Item | Status |
 |------|--------|
-| Expo Router + 5 tabs | ✅ |
+| Expo Router + 4 tabs (Explore map search merged) | ✅ |
 | Firebase Auth (email) + env config | ✅ |
 | Firestore rules, indexes, Storage rules | ✅ |
 | Map tab + location + property pins | ✅ |
@@ -27,24 +27,23 @@
 
 | Item | Status |
 |------|--------|
-| Search tab + min-rating filter | ✅ |
+| Explore: Places address search on map (any address) | ✅ |
 | Geo query “near me” | ✅ |
 | Saved bookmarks | ✅ |
 | Sort reviews (newest / highest / lowest) | ✅ |
 | Map pin clustering (native) | ✅ |
-| Tag filters on search | ✅ |
 | Themed UI + cards/buttons | ✅ |
 | Map refresh after new review | ✅ |
 
-## Phase 4 — Trust & growth ⏳ In progress
+## Phase 4 — Trust & growth ✅ Complete
 
 | Item | Status |
 |------|--------|
 | Report content (text) | ✅ |
 | Map/property cache refresh strategy | ✅ |
-| Rate limits / duplicate detection (Functions) | ⏳ |
-| Push notifications (saved property) | ⏳ |
-| Tenancy verification uploads | ⏳ |
+| Rate limits / duplicate detection (Functions) | ✅ |
+| Push notifications (saved property) | ✅ |
+| Tenancy verification uploads | ✅ |
 
 ## Phase 4b — Review photos (credibility) ⏳ Planned
 
@@ -110,12 +109,25 @@ Ensure functions are deployed:
 npm run firebase:deploy
 ```
 
+### Phase 4 — deploy & test notes
+
+| Feature | Deploy step | How to test |
+|---------|-------------|-------------|
+| Rate limits / moderation | `npm run firebase:deploy` | Submit reviews; 6th in 24h should reject; duplicate body on another property within 7 days rejects |
+| Push (saved property) | Deploy functions + set `EAS_PROJECT_ID` in `.env` | Physical iPhone + Expo Go: Account → enable alerts, save a property, post review from another account |
+| Tenancy verification | Deploy rules + storage | Account → upload image; doc appears in `verifications/{uid}` |
+
+**Windows / Expo Go:** iOS push works on a physical device in Expo Go. Android remote push is **not** available in Expo Go (SDK 53+); use a dev build or test push on iOS. Run `npm install` on each machine after pulling (this PC may not have had `node_modules`).
+
 ---
 
 ## App themes (Account → App theme)
 
-1. **Trust Teal** — clean default  
-2. **Midnight Amber** — dark mode  
-3. **Soft Paper** — warm, review-first  
+1. **Frost Slate** — default; cool glass UI for map search  
+2. **Twilight Glass** — dark indigo glass  
+3. **Clear Sky** — airy blue-white glass  
+4. **Trust Teal** — original teal look  
+5. **Midnight Amber** — dark mode  
+6. **Soft Paper** — warm, review-first  
 
 Choice is saved per device via AsyncStorage.

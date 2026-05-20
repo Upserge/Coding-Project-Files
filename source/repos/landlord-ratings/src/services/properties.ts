@@ -124,17 +124,3 @@ export async function getPropertiesNearby(
 
   return results;
 }
-
-export async function searchProperties(searchTerm: string): Promise<Property[]> {
-  const term = searchTerm.trim().toLowerCase();
-  if (!term) return [];
-
-  if (!isFirebaseConfigured) {
-    return MOCK_PROPERTIES.filter((p) => p.formattedAddress.toLowerCase().includes(term));
-  }
-
-  const snap = await getDocs(query(collection(db, 'properties'), limit(50)));
-  return snap.docs
-    .map((d) => mapProperty(d.id, d.data()))
-    .filter((p) => p.formattedAddress.toLowerCase().includes(term));
-}

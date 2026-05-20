@@ -1,6 +1,9 @@
 import * as admin from 'firebase-admin';
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { bodyHash, findDuplicateReview } from './duplicates';
 import { containsProfanity } from './moderation';
+import { sendExpoPushBatch, type ExpoPushMessage } from './push';
+import { countRecentReports, countRecentReviews, LIMITS } from './rateLimits';
 
 admin.initializeApp();
 
@@ -16,12 +19,15 @@ const CATEGORY_KEYS = [
 type CategoryKey = (typeof CATEGORY_KEYS)[number];
 
 interface ReviewDoc {
+  userId: string;
   propertyId: string;
   landlordId?: string | null;
   status: string;
   overall: number;
   categories: Record<CategoryKey, number>;
   body: string;
+  bodyHash?: string;
+  userDisplayName?: string;
 }
 
 function computeAverages(
@@ -94,6 +100,93 @@ async function recalculateLandlord(landlordId: string) {
   });
 }
 
+async function notifySavedPropertyWatchers(
+  propertyId: string,
+  review: ReviewDoc,
+  reviewId: string,
+) {
+  const db = admin.firestore();
+  const savedSnap = await db
+    .collectionGroup('items')
+    .where('type', '==', 'property')
+    .where('refId', '==', propertyId)
+    .get();
+
+  if (savedSnap.empty) return;
+
+  const watcherIds = new Set<string>();
+  for (const doc of savedSnap.docs) {
+    const userId = doc.ref.parent.parent?.id;
+    if (userId && userId !== review.userId) {
+      watcherIds.add(userId);
+    }
+  }
+
+  if (watcherIds.size === 0) return;
+
+  const propertySnap = await db.collection('properties').doc(propertyId).get();
+  const address =
+    (propertySnap.data()?.formattedAddress as string | undefined) ?? 'A saved property';
+
+  const messages: ExpoPushMessage[] = [];
+
+  await Promise.all(
+    [...watcherIds].map(async (uid) => {
+      const userSnap = await db.collection('users').doc(uid).get();
+      const data = userSnap.data();
+      if (data?.pushNotificationsEnabled === false) return;
+      const token = data?.expoPushToken as string | undefined;
+      if (!token || !token.startsWith('ExponentPushToken')) return;
+
+      messages.push({
+        to: token,
+        title: 'New review on a saved property',
+        body: `${review.userDisplayName ?? 'A renter'} rated ${address}`,
+        data: {
+          propertyId,
+          reviewId,
+          type: 'saved_property_review',
+        },
+        sound: 'default',
+      });
+    }),
+  );
+
+  await sendExpoPushBatch(messages);
+}
+
+async function moderatePendingReview(
+  reviewId: string,
+  after: ReviewDoc,
+): Promise<'published' | 'rejected'> {
+  const db = admin.firestore();
+
+  const recentCount = await countRecentReviews(db, after.userId);
+  if (recentCount > LIMITS.reviewsPerDay) {
+    return 'rejected';
+  }
+
+  const hash = after.bodyHash ?? bodyHash(after.body ?? '');
+  const isDuplicate = await findDuplicateReview(db, after.userId, after.propertyId, hash);
+  if (isDuplicate) {
+    return 'rejected';
+  }
+
+  if (containsProfanity(after.body ?? '')) {
+    return 'rejected';
+  }
+
+  return 'published';
+}
+
+function rejectionReasonForReview(after: ReviewDoc, status: 'published' | 'rejected'): string | null {
+  if (status === 'published') return null;
+  if (containsProfanity(after.body ?? '')) {
+    return 'Your review contains language that violates our community guidelines.';
+  }
+  return 'This review could not be published. You may have reached the daily limit or submitted duplicate content.';
+}
+
 export const onReviewWrite = onDocumentWritten('reviews/{reviewId}', async (event) => {
   const before = event.data?.before?.data() as ReviewDoc | undefined;
   const after = event.data?.after?.data() as ReviewDoc | undefined;
@@ -104,22 +197,33 @@ export const onReviewWrite = onDocumentWritten('reviews/{reviewId}', async (even
   const reviewId = event.params.reviewId;
 
   if (after && after.status === 'pending') {
-    const hasProfanity = containsProfanity(after.body ?? '');
-    const nextStatus = hasProfanity ? 'rejected' : 'published';
+    const nextStatus = await moderatePendingReview(reviewId, after);
+    const reason = rejectionReasonForReview(after, nextStatus);
+
     await db.collection('reviews').doc(reviewId).update({
       status: nextStatus,
+      ...(reason ? { rejectionReason: reason } : { rejectionReason: admin.firestore.FieldValue.delete() }),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
     if (nextStatus === 'published') {
       await Promise.all([
         recalculateProperty(after.propertyId),
         after.landlordId ? recalculateLandlord(after.landlordId) : Promise.resolve(),
+        notifySavedPropertyWatchers(after.propertyId, after, reviewId),
       ]);
     }
     return;
   }
 
-  if (after?.status !== 'published') {
+  const wasPublished = before?.status === 'published';
+  const isPublished = after?.status === 'published';
+
+  if (isPublished && !wasPublished && after) {
+    await notifySavedPropertyWatchers(after.propertyId, after, reviewId);
+  }
+
+  if (!isPublished) {
     return;
   }
 
@@ -135,4 +239,17 @@ export const onReviewWrite = onDocumentWritten('reviews/{reviewId}', async (even
     ...[...propertyIds].map((id) => recalculateProperty(id)),
     ...[...landlordIds].map((id) => recalculateLandlord(id)),
   ]);
+});
+
+export const onReportCreate = onDocumentCreated('reports/{reportId}', async (event) => {
+  const data = event.data?.data();
+  if (!data?.reporterId) return;
+
+  const db = admin.firestore();
+  const count = await countRecentReports(db, data.reporterId as string);
+
+  if (count > LIMITS.reportsPerDay) {
+    await event.data?.ref.delete();
+    console.warn('Report deleted — daily limit exceeded for', data.reporterId);
+  }
 });

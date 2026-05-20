@@ -3,11 +3,104 @@ import type { AppTheme, DesignPresetId } from '@/src/theme/types';
 const baseSpacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 const baseRadius = { sm: 8, md: 12, lg: 16, xl: 24 };
 
+/** Readable secondary copy on light frosted panels. */
+const glassLight = { glassText: '#0f172a', glassTextMuted: '#334155' };
+/** Readable secondary copy on dark frosted panels. */
+const glassDark = { glassText: '#f8fafc', glassTextMuted: '#cbd5e1' };
+
 export const DESIGN_PRESETS: Record<DesignPresetId, AppTheme> = {
+  frostSlate: {
+    id: 'frostSlate',
+    name: 'Frost Slate',
+    tagline: 'Cool glass UI — recommended default',
+    colors: {
+      primary: '#475569',
+      primarySoft: '#e2e8f0',
+      background: '#f1f5f9',
+      backgroundAlt: '#e2e8f0',
+      surface: '#ffffff',
+      surfaceMuted: '#f8fafc',
+      text: '#0f172a',
+      textSecondary: '#64748b',
+      ...glassLight,
+      textOnPrimary: '#ffffff',
+      border: '#cbd5e1',
+      accent: '#2563eb',
+      danger: '#dc2626',
+      headerBg: '#334155',
+      tabBar: '#f8fafc',
+      tabBarBorder: '#cbd5e1',
+      ratingHigh: '#15803d',
+      ratingMid: '#b45309',
+      ratingLow: '#dc2626',
+      ratingNone: '#94a3b8',
+    },
+    radius: baseRadius,
+    spacing: baseSpacing,
+  },
+  twilightGlass: {
+    id: 'twilightGlass',
+    name: 'Twilight Glass',
+    tagline: 'Deep indigo dark mode for map + glass',
+    colors: {
+      primary: '#818cf8',
+      primarySoft: '#312e81',
+      background: '#0f172a',
+      backgroundAlt: '#1e1b4b',
+      surface: '#1e293b',
+      surfaceMuted: '#334155',
+      text: '#f1f5f9',
+      textSecondary: '#94a3b8',
+      ...glassDark,
+      textOnPrimary: '#0f172a',
+      border: '#475569',
+      accent: '#38bdf8',
+      danger: '#f87171',
+      headerBg: '#1e1b4b',
+      tabBar: '#0f172a',
+      tabBarBorder: '#334155',
+      ratingHigh: '#4ade80',
+      ratingMid: '#fbbf24',
+      ratingLow: '#f87171',
+      ratingNone: '#64748b',
+    },
+    radius: baseRadius,
+    spacing: baseSpacing,
+  },
+  clearSky: {
+    id: 'clearSky',
+    name: 'Clear Sky',
+    tagline: 'Airy blue-white — light glass panels',
+    colors: {
+      primary: '#0369a1',
+      primarySoft: '#e0f2fe',
+      background: '#f0f9ff',
+      backgroundAlt: '#e0f2fe',
+      surface: '#ffffff',
+      surfaceMuted: '#f8fafc',
+      text: '#0c4a6e',
+      textSecondary: '#0369a1',
+      glassText: '#082f49',
+      glassTextMuted: '#0c4a6e',
+      textOnPrimary: '#ffffff',
+      border: '#bae6fd',
+      accent: '#7c3aed',
+      danger: '#dc2626',
+      headerBg: '#0284c7',
+      tabBar: '#f0f9ff',
+      tabBarBorder: '#bae6fd',
+      ratingHigh: '#059669',
+      ratingMid: '#d97706',
+      ratingLow: '#dc2626',
+      ratingNone: '#94a3b8',
+    },
+    radius: baseRadius,
+    spacing: baseSpacing,
+  },
   trustTeal: {
     id: 'trustTeal',
     name: 'Trust Teal',
-    tagline: 'Clean and trustworthy — great default',
+    tagline: 'Classic teal — original look',
     colors: {
       primary: '#0d9488',
       primarySoft: '#ccfbf1',
@@ -17,6 +110,7 @@ export const DESIGN_PRESETS: Record<DesignPresetId, AppTheme> = {
       surfaceMuted: '#f8fafc',
       text: '#0f172a',
       textSecondary: '#64748b',
+      ...glassLight,
       textOnPrimary: '#ffffff',
       border: '#e2e8f0',
       accent: '#0284c7',
@@ -45,6 +139,7 @@ export const DESIGN_PRESETS: Record<DesignPresetId, AppTheme> = {
       surfaceMuted: '#334155',
       text: '#f8fafc',
       textSecondary: '#94a3b8',
+      ...glassDark,
       textOnPrimary: '#0f172a',
       border: '#334155',
       accent: '#38bdf8',
@@ -73,6 +168,8 @@ export const DESIGN_PRESETS: Record<DesignPresetId, AppTheme> = {
       surfaceMuted: '#fff7ed',
       text: '#292524',
       textSecondary: '#78716c',
+      glassText: '#292524',
+      glassTextMuted: '#44403c',
       textOnPrimary: '#ffffff',
       border: '#e7e5e4',
       accent: '#0d9488',
@@ -90,6 +187,12 @@ export const DESIGN_PRESETS: Record<DesignPresetId, AppTheme> = {
   },
 };
 
-export const DEFAULT_PRESET_ID: DesignPresetId = 'trustTeal';
+export const DEFAULT_PRESET_ID: DesignPresetId = 'frostSlate';
 
 export const PRESET_LIST = Object.values(DESIGN_PRESETS);
+
+const DARK_GLASS_PRESETS: DesignPresetId[] = ['midnightAmber', 'twilightGlass'];
+
+export function blurTintForPreset(presetId: DesignPresetId): 'light' | 'dark' {
+  return DARK_GLASS_PRESETS.includes(presetId) ? 'dark' : 'light';
+}

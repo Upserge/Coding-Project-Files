@@ -1,4 +1,10 @@
-export type DesignPresetId = 'trustTeal' | 'midnightAmber' | 'softPaper';
+export type DesignPresetId =
+  | 'frostSlate'
+  | 'twilightGlass'
+  | 'clearSky'
+  | 'trustTeal'
+  | 'midnightAmber'
+  | 'softPaper';
 
 export interface AppTheme {
   id: DesignPresetId;
@@ -13,6 +19,9 @@ export interface AppTheme {
     surfaceMuted: string;
     text: string;
     textSecondary: string;
+    /** High-contrast copy on frosted glass overlays. */
+    glassText: string;
+    glassTextMuted: string;
     textOnPrimary: string;
     border: string;
     accent: string;

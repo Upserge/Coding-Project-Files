@@ -17,12 +17,27 @@ export type ReviewCategory = (typeof REVIEW_CATEGORIES)[number];
 
 export type CategoryScores = Record<ReviewCategory, number>;
 
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
+
 export interface AppUser {
   uid: string;
   displayName: string;
   email: string;
   createdAt: Timestamp;
   reviewCount: number;
+  expoPushToken?: string;
+  pushNotificationsEnabled?: boolean;
+}
+
+export interface TenancyVerification {
+  id: string;
+  userId: string;
+  status: VerificationStatus;
+  storagePath: string;
+  downloadUrl?: string;
+  rejectionReason?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface Property {
@@ -62,6 +77,8 @@ export interface Review {
   body: string;
   tags: string[];
   status: ReviewStatus;
+  rejectionReason?: string;
+  bodyHash?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

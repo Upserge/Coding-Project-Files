@@ -6,7 +6,9 @@ import { firebaseEnv } from '@/src/config/env';
 import { ReviewCard } from '@/src/components/ReviewCard';
 import { Button } from '@/src/components/ui/Button';
 import { Card } from '@/src/components/ui/Card';
+import { NotificationSettings } from '@/src/components/settings/NotificationSettings';
 import { ThemePicker } from '@/src/components/settings/ThemePicker';
+import { VerificationUpload } from '@/src/components/settings/VerificationUpload';
 import { deleteReview, getReviewsByUser } from '@/src/services/reviews';
 import type { Review } from '@/src/types';
 import { useTheme } from '@/src/theme/ThemeContext';
@@ -87,6 +89,10 @@ export default function AccountScreen() {
           </Card>
 
           <ThemePicker />
+
+          <NotificationSettings />
+
+          <VerificationUpload />
 
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>My reviews</Text>
         </>
