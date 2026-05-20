@@ -10,6 +10,7 @@ import { collection, getDocs, getFirestore, orderBy, query, where } from 'fireba
 import { join } from 'node:path';
 import { Post } from './app/core/models/post.model';
 import { RssService } from './app/core/services/rss.service';
+import { sortPostsByAdventureDate } from './app/core/utils/post-date.util';
 import { normalizePost } from './app/core/utils/post-media.util';
 import { environment } from './environments/environment';
 
@@ -87,7 +88,9 @@ async function getPublishedPosts(): Promise<Post[]> {
   );
   const snap = await getDocs(postsQuery);
 
-  return snap.docs.map(docSnap => normalizePost({ id: docSnap.id, ...docSnap.data() } as Post));
+  return sortPostsByAdventureDate(
+    snap.docs.map(docSnap => normalizePost({ id: docSnap.id, ...docSnap.data() } as Post)),
+  );
 }
 
 function getSiteUrl(req: express.Request): string {

@@ -34,6 +34,7 @@
     "@angular/ssr": "^20.3.14",
     "express": "^5.1.0",
     "firebase": "^11.10.0",
+    "heic2any": "^0.0.4",
     "ngx-quill": "^28.0.2",
     "quill": "^2.0.3",
     "rxjs": "~7.8.0",

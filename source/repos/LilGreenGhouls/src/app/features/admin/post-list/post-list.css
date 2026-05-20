@@ -1,3 +1,12 @@
 :host {
   display: block;
 }
+
+.status-select {
+  min-width: 7.5rem;
+  cursor: pointer;
+}
+
+.status-select:disabled {
+  cursor: wait;
+}

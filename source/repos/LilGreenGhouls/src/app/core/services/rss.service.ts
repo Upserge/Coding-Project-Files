@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Post } from '../models/post.model';
+import { getPostAdventureDate } from '../utils/post-date.util';
 
 const FEED_TITLE = 'Lil Green Ghouls Adventures';
 const FEED_DESCRIPTION = 'Paranormal encounters, field notes, and spooky adventures from Lil Green Ghouls.';
@@ -64,7 +65,7 @@ ${items}
   }
 
   private getPostDateValue(post: Post): Date {
-    return post.publishedAt?.toDate() ?? post.updatedAt.toDate() ?? post.createdAt.toDate();
+    return getPostAdventureDate(post);
   }
 
   private stripHtml(value: string): string {
@@ -91,6 +92,8 @@ ${items}
     const extension = url.split('?')[0].split('.').pop()?.toLowerCase();
     const mimeTypes: Record<string, string> = {
       gif: 'image/gif',
+      heic: 'image/heic',
+      heif: 'image/heif',
       jpg: 'image/jpeg',
       jpeg: 'image/jpeg',
       png: 'image/png',

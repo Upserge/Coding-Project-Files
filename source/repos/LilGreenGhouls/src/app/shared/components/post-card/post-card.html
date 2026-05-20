@@ -34,9 +34,7 @@
     <!-- Meta -->
     <div class="flex items-center justify-between text-xs text-mist/50">
       <span>{{ post().authorName }}</span>
-      @if (post().publishedAt) {
-        <span>{{ post().publishedAt!.toDate() | date:'mediumDate' }}</span>
-      }
+      <span>{{ adventureDate(post()) | date:'mediumDate' }}</span>
     </div>
 
     <!-- Read more indicator -->

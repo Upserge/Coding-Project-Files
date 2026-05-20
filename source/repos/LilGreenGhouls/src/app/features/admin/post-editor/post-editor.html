@@ -30,10 +30,18 @@
       <app-rich-text-editor [(value)]="content" />
     </div>
 
+    <!-- Adventure date/time -->
+    <div>
+      <label class="mb-1 block text-sm text-mist/60">Adventure date &amp; time</label>
+      <p class="mb-2 text-xs text-mist/40">When the encounter happened. Used to order adventures on the site.</p>
+      <input type="datetime-local" [(ngModel)]="adventureAtInput" name="adventureAt"
+             class="w-full max-w-sm rounded-lg border border-haunt-purple/30 bg-void px-4 py-2 text-mist outline-none focus:border-ecto-green" />
+    </div>
+
     <!-- Cover Image -->
     <div>
       <label class="mb-1 block text-sm text-mist/60">Cover Image</label>
-      <input type="file" accept="image/*" (change)="onCoverImageUpload($event)"
+      <input type="file" [attr.accept]="imageFileAccept" (change)="onCoverImageUpload($event)"
              class="text-sm text-mist file:mr-4 file:rounded-lg file:border-0 file:bg-haunt-purple/20 file:px-4 file:py-2 file:text-sm file:text-haunt-purple" />
       @if (uploadingCover()) {
         <div class="mt-2 flex items-center gap-2 text-sm text-candle-glow">
@@ -42,7 +50,13 @@
         </div>
       }
       @if (coverImageUrl()) {
-        <img [src]="coverImageUrl()" alt="Cover preview" class="mt-2 h-32 rounded-lg object-cover" />
+        <div class="mt-2 flex flex-wrap items-start gap-4">
+          <img [src]="coverImageUrl()" alt="Cover preview" class="h-32 rounded-lg object-cover" />
+          <button type="button" (click)="removeCoverImage()"
+                  class="rounded-lg border border-blood-red/40 px-4 py-2 text-sm text-blood-red transition-colors hover:bg-blood-red/10">
+            Remove cover
+          </button>
+        </div>
       }
     </div>
 

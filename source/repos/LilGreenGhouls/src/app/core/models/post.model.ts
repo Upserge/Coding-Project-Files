@@ -17,6 +17,8 @@ export interface Post {
   status: 'draft' | 'published';
   authorUid: string;
   authorName: string;
+  /** When the adventure occurred (admin-set); used for ordering and display. */
+  adventureAt: Timestamp | null;
   publishedAt: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;

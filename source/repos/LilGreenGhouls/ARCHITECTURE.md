@@ -514,4 +514,6 @@ firebase deploy                   # Deploys hosting + Firestore rules + Storage 
 - TODO: add loading state to subscribe button while processing subscription
 - TODO: add support for infinite scroll to adventures page in order to future-proof for large amounts of posts
 - TODO: create unit testing for services and critical components (e.g. PostEditorComponent, SubscribeFormComponent)
-- TODO: Add HEIC files to list of supported medias for images or cover photos
+- [x] Add HEIC files to list of supported medias for images or cover photos (`IMAGE_FILE_ACCEPT`, client-side HEIC→JPEG via `heic2any` on upload)
+- [x] Give admins ability to set an adventure date/time for a post, and then order the posts by their date/time (`adventureAt` field, `datetime-local` in post editor, `sortPostsByAdventureDate`)
+- [x] Give admins ability to delete the cover image for an Adventure post (`Remove cover` clears `coverImageUrl` without requiring a replacement)

@@ -11,6 +11,7 @@ import { PostContentComponent } from '../../../shared/components/post-content/po
 import { Post } from '../../../core/models/post.model';
 import { MediaImageFit, PostMediaItem } from '../../../core/models/post-media.model';
 import { partitionMediaItems, resolvePostMedia } from '../../../core/utils/post-media.util';
+import { getPostAdventureDate } from '../../../core/utils/post-date.util';
 import { isVideoUrl } from '../../../core/utils/media-type.util';
 
 @Component({
@@ -50,6 +51,11 @@ export class AdventureDetailComponent implements OnInit {
   protected galleryUrls = computed(() => this.galleryItems().map(item => item.url));
 
   protected hasMedia = computed(() => this.mediaItems().length > 0);
+
+  protected adventureDate = computed(() => {
+    const p = this.post();
+    return p ? getPostAdventureDate(p) : null;
+  });
 
   protected postTimeline = computed(() => {
     const p = this.post();

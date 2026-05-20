@@ -9,7 +9,13 @@ import { Post } from '../../../core/models/post.model';
 import { PostMediaItem } from '../../../core/models/post-media.model';
 import { RichTextEditorComponent } from '../../../shared/components/rich-text-editor/rich-text-editor';
 import { PostMediaManagerComponent } from '../../../shared/components/post-media-manager/post-media-manager';
+import { prepareImageFileForUpload } from '../../../core/utils/heic-conversion.util';
+import { IMAGE_FILE_ACCEPT } from '../../../core/utils/media-type.util';
 import { normalizePostContentHtml } from '../../../core/utils/post-content.util';
+import {
+  datetimeLocalValueToTimestamp,
+  timestampToDatetimeLocalValue,
+} from '../../../core/utils/post-date.util';
 import { preparePostMediaForSave, resolvePostMedia } from '../../../core/utils/post-media.util';
 import { Timestamp } from 'firebase/firestore';
 
@@ -29,6 +35,8 @@ export class PostEditorComponent implements OnInit {
   private pushService = inject(PushNotificationService);
 
   private mediaManager = viewChild(PostMediaManagerComponent);
+
+  protected readonly imageFileAccept = IMAGE_FILE_ACCEPT;
 
   protected isEditing = signal(false);
   protected saving = signal(false);
@@ -54,6 +62,9 @@ export class PostEditorComponent implements OnInit {
   protected newLinkLabel = '';
   protected newLinkUrl = '';
   protected status: 'draft' | 'published' = 'draft';
+  protected adventureAtInput = '';
+
+  private existingPost: Post | null = null;
 
   async ngOnInit(): Promise<void> {
     const id = this.route.snapshot.paramMap.get('id');
@@ -77,6 +88,8 @@ export class PostEditorComponent implements OnInit {
     this.externalLinks.set(post.externalLinks ?? []);
     this.mediaItems.set(resolvePostMedia(post));
     this.status = post.status;
+    this.adventureAtInput = timestampToDatetimeLocalValue(post.adventureAt);
+    this.existingPost = post;
   }
 
   addYoutubeEmbed(): void {
@@ -108,6 +121,10 @@ export class PostEditorComponent implements OnInit {
     this.externalLinks.update(list => list.filter((_, i) => i !== index));
   }
 
+  removeCoverImage(): void {
+    this.coverImageUrl.set('');
+  }
+
   async onCoverImageUpload(event: Event): Promise<void> {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) {
@@ -119,9 +136,10 @@ export class PostEditorComponent implements OnInit {
     this.uploadError.set(null);
 
     try {
+      const uploadFile = await prepareImageFileForUpload(file);
       const url = await this.mediaService.uploadFile(
-        file,
-        `posts/covers/${Date.now()}_${file.name}`,
+        uploadFile,
+        `posts/covers/${Date.now()}_${uploadFile.name}`,
         percent => this.coverUploadProgress.set(percent),
       );
       this.coverImageUrl.set(url);
@@ -147,7 +165,8 @@ export class PostEditorComponent implements OnInit {
       const normalizedContent = normalizePostContentHtml(this.content());
       this.content.set(normalizedContent);
 
-      const postData: Omit<Post, 'id'> = {
+      const adventureAt = datetimeLocalValueToTimestamp(this.adventureAtInput);
+      const sharedFields = {
         title: this.title,
         slug,
         excerpt: this.excerpt,
@@ -159,19 +178,33 @@ export class PostEditorComponent implements OnInit {
         externalLinks: this.externalLinks(),
         tags,
         status: this.status,
-        authorUid: user?.uid ?? '',
-        authorName: user?.displayName ?? 'Unknown',
-        publishedAt: this.status === 'published' ? Timestamp.now() : null,
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
+        adventureAt,
+        publishedAt: this.resolvePublishedAt(),
       };
 
       if (this.isEditing() && this.postId()) {
-        await this.postsService.update(this.postId()!, postData);
+        await this.postsService.update(this.postId()!, sharedFields);
+        this.existingPost = this.existingPost
+          ? { ...this.existingPost, ...sharedFields }
+          : null;
       } else {
-        const newId = await this.postsService.create(postData);
+        const newId = await this.postsService.create({
+          ...sharedFields,
+          authorUid: user?.uid ?? '',
+          authorName: user?.displayName ?? 'Unknown',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
         this.postId.set(newId);
         this.isEditing.set(true);
+        this.existingPost = {
+          id: newId,
+          ...sharedFields,
+          authorUid: user?.uid ?? '',
+          authorName: user?.displayName ?? 'Unknown',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
       }
 
       this.saving.set(false);
@@ -213,6 +246,14 @@ export class PostEditorComponent implements OnInit {
 
   goToPostList(): void {
     this.router.navigate(['/admin/posts']);
+  }
+
+  private resolvePublishedAt(): Timestamp | null {
+    if (this.status !== 'published') {
+      return null;
+    }
+
+    return this.existingPost?.publishedAt ?? Timestamp.now();
   }
 
   private generateSlug(title: string): string {

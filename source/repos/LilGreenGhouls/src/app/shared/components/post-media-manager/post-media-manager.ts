@@ -2,8 +2,13 @@ import { Component, inject, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MediaImageFit, PostMediaItem } from '../../../core/models/post-media.model';
 import { MediaService } from '../../../core/services/media.service';
+import { prepareImageFileForUpload } from '../../../core/utils/heic-conversion.util';
 import { enrichMediaItem, inferMediaTypeFromFile } from '../../../core/utils/post-media.util';
-import { isVideoUrl } from '../../../core/utils/media-type.util';
+import {
+  IMAGE_FILE_ACCEPT,
+  isVideoUrl,
+  MEDIA_GALLERY_ACCEPT,
+} from '../../../core/utils/media-type.util';
 
 @Component({
   selector: 'app-post-media-manager',
@@ -14,6 +19,9 @@ import { isVideoUrl } from '../../../core/utils/media-type.util';
 })
 export class PostMediaManagerComponent {
   private readonly mediaService = inject(MediaService);
+
+  protected readonly mediaGalleryAccept = MEDIA_GALLERY_ACCEPT;
+  protected readonly imageFileAccept = IMAGE_FILE_ACCEPT;
 
   readonly mediaItems = model.required<PostMediaItem[]>();
   readonly uploadError = model<string | null>(null);
@@ -50,7 +58,11 @@ export class PostMediaManagerComponent {
 
     try {
       const uploadedItems: PostMediaItem[] = [];
-      for (const file of Array.from(files)) {
+      for (const rawFile of Array.from(files)) {
+        const file =
+          inferMediaTypeFromFile(rawFile) === 'image'
+            ? await prepareImageFileForUpload(rawFile)
+            : rawFile;
         const url = await this.mediaService.uploadFile(
           file,
           `posts/media/${Date.now()}_${file.name}`,
@@ -88,9 +100,10 @@ export class PostMediaManagerComponent {
     this.uploadError.set(null);
 
     try {
+      const uploadFile = await prepareImageFileForUpload(file);
       const coverUrl = await this.mediaService.uploadFile(
-        file,
-        `posts/audio-covers/${Date.now()}_${file.name}`,
+        uploadFile,
+        `posts/audio-covers/${Date.now()}_${uploadFile.name}`,
         percent => this.uploadProgress.set(percent),
       );
       this.updateItem(index, item => ({ ...item, coverImageUrl: coverUrl }));

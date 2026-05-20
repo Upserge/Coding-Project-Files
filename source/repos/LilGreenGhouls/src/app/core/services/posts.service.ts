@@ -15,6 +15,7 @@ import {
   Timestamp,
 } from '@angular/fire/firestore';
 import { Post } from '../models/post.model';
+import { sortPostsByAdventureDate } from '../utils/post-date.util';
 import { normalizePost } from '../utils/post-media.util';
 
 @Injectable({ providedIn: 'root' })
@@ -69,7 +70,9 @@ export class PostsService {
       orderBy('publishedAt', 'desc'),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => normalizePost({ id: d.id, ...d.data() } as Post));
+    return sortPostsByAdventureDate(
+      snap.docs.map(d => normalizePost({ id: d.id, ...d.data() } as Post)),
+    );
   }
 
   async getRecentPublished(count: number): Promise<Post[]> {
@@ -80,7 +83,9 @@ export class PostsService {
       limit(count),
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => normalizePost({ id: d.id, ...d.data() } as Post));
+    return sortPostsByAdventureDate(
+      snap.docs.map(d => normalizePost({ id: d.id, ...d.data() } as Post)),
+    ).slice(0, count);
   }
 
   async getAll(): Promise<Post[]> {
