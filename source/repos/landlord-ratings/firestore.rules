@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function reviewIsReadable() {
+      return resource.data.status == 'published'
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+    }
+
+    match /properties/{propertyId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasAll(['formattedAddress', 'location', 'geohash']);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /landlords/{landlordId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasAll(['name', 'type']);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if reviewIsReadable();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isOwner(resource.data.userId)
+        && resource.data.status in ['pending', 'published'];
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    match /reports/{reportId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid;
+    }
+
+    match /saved/{userId}/items/{itemId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}

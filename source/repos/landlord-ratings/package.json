@@ -1,0 +1,53 @@
+{
+  "name": "landlord-ratings",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "expo start --go",
+    "start:dev-client": "expo start --dev-client",
+    "android": "expo start --android --go",
+    "ios": "expo start --ios --go",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "functions:build": "npm --prefix functions run build",
+    "firebase:deploy": "firebase deploy --only firestore:rules,firestore:indexes,storage,functions"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@gorhom/bottom-sheet": "^5.2.14",
+    "@hookform/resolvers": "^5.2.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/native": "^7.1.8",
+    "@tanstack/react-query": "^5.100.11",
+    "expo": "~54.0.33",
+    "expo-constants": "~18.0.13",
+    "expo-font": "~14.0.11",
+    "expo-linking": "~8.0.11",
+    "expo-location": "~19.0.8",
+    "expo-router": "~6.0.23",
+    "expo-splash-screen": "~31.0.13",
+    "expo-status-bar": "~3.0.9",
+    "expo-web-browser": "~15.0.10",
+    "firebase": "^12.13.0",
+    "geofire-common": "^6.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-hook-form": "^7.76.0",
+    "react-native": "0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-maps": "1.20.1",
+    "react-native-reanimated": "~4.1.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-web": "~0.21.0",
+    "react-native-worklets": "0.5.1",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "react-test-renderer": "19.1.0",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
