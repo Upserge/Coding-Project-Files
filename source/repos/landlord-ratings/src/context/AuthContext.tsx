@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       isConfigured: isFirebaseConfigured,
       signIn: async (email, password) => {
-        await signInWithEmailAndPassword(auth, email, password);
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        await ensureUserProfile(cred.user);
       },
       signUp: async (email, password, displayName) => {
         const cred = await createUserWithEmailAndPassword(auth, email, password);

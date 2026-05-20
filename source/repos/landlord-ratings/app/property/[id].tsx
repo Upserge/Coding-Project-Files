@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { HeaderBackButton } from '@/src/components/navigation/HeaderBackButton';
 import { EntityHeader } from '@/src/components/EntityHeader';
 import { ReportModal } from '@/src/components/ReportModal';
 import { ReviewCard } from '@/src/components/ReviewCard';
@@ -17,6 +18,7 @@ import { getLandlord } from '@/src/services/landlords';
 import { getProperty } from '@/src/services/properties';
 import { getReviewsForProperty } from '@/src/services/reviews';
 import { isItemSaved, saveItem } from '@/src/services/saved';
+import { syncPropertyStatsFromReviews } from '@/src/utils/propertyCache';
 import type { ReviewSort } from '@/src/utils/ratings';
 
 export default function PropertyDetailScreen() {
@@ -43,7 +45,15 @@ export default function PropertyDetailScreen() {
     queryKey: ['reviews', 'property', id, sort],
     queryFn: () => getReviewsForProperty(id!, sort),
     enabled: Boolean(id),
+    staleTime: 0,
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!id) return;
+      void syncPropertyStatsFromReviews(queryClient, id);
+    }, [id, queryClient]),
+  );
 
   const { data: saved = false } = useQuery({
     queryKey: ['saved', user?.uid, 'property', id],
@@ -77,6 +87,8 @@ export default function PropertyDetailScreen() {
       <Stack.Screen
         options={{
           title: 'Property',
+          headerBackTitle: 'Back',
+          headerLeft: () => <HeaderBackButton />,
           headerRight: () => (
             <Pressable onPress={() => setReportVisible(true)}>
               <Text style={styles.report}>Report</Text>

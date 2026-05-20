@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { QueryProvider } from '@/src/context/QueryProvider';
+import { ThemeProvider as AppThemeProvider } from '@/src/theme/ThemeContext';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -62,11 +63,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryProvider>
-        <AuthProvider>
-          <AuthGate>
-            <RootLayoutNav />
-          </AuthGate>
-        </AuthProvider>
+        <AppThemeProvider>
+          <AuthProvider>
+            <AuthGate>
+              <RootLayoutNav />
+            </AuthGate>
+          </AuthProvider>
+        </AppThemeProvider>
       </QueryProvider>
     </GestureHandlerRootView>
   );
@@ -80,9 +83,15 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="property/[id]" options={{ title: 'Property' }} />
-        <Stack.Screen name="landlord/[id]" options={{ title: 'Landlord' }} />
-        <Stack.Screen name="review/new" options={{ title: 'Write a review', presentation: 'modal' }} />
+        <Stack.Screen
+          name="property/[id]"
+          options={{ title: 'Property', headerBackTitle: 'Back' }}
+        />
+        <Stack.Screen name="landlord/[id]" options={{ title: 'Landlord', headerBackTitle: 'Back' }} />
+        <Stack.Screen
+          name="review/new"
+          options={{ title: 'Write a review', presentation: 'modal', headerBackTitle: 'Back' }}
+        />
         <Stack.Screen name="legal/terms" options={{ title: 'Terms of Service' }} />
         <Stack.Screen name="legal/privacy" options={{ title: 'Privacy Policy' }} />
       </Stack>

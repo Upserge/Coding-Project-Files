@@ -105,10 +105,21 @@ export const onReviewWrite = onDocumentWritten('reviews/{reviewId}', async (even
 
   if (after && after.status === 'pending') {
     const hasProfanity = containsProfanity(after.body ?? '');
+    const nextStatus = hasProfanity ? 'rejected' : 'published';
     await db.collection('reviews').doc(reviewId).update({
-      status: hasProfanity ? 'rejected' : 'published',
+      status: nextStatus,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    if (nextStatus === 'published') {
+      await Promise.all([
+        recalculateProperty(after.propertyId),
+        after.landlordId ? recalculateLandlord(after.landlordId) : Promise.resolve(),
+      ]);
+    }
+    return;
+  }
+
+  if (after?.status !== 'published') {
     return;
   }
 

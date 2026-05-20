@@ -3,21 +3,26 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Review } from '@/src/types';
 import { RatingBadge } from '@/src/components/RatingBadge';
 import { StarRating } from '@/src/components/StarRating';
+import { Card } from '@/src/components/ui/Card';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface ReviewCardProps {
   review: Review;
   showPropertyLink?: boolean;
-  propertyAddress?: string;
 }
 
-export function ReviewCard({ review, showPropertyLink, propertyAddress }: ReviewCardProps) {
+export function ReviewCard({ review, showPropertyLink }: ReviewCardProps) {
+  const { theme } = useTheme();
+
   return (
-    <View style={styles.card}>
+    <Card style={styles.card}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.author}>{review.userDisplayName}</Text>
-          <Text style={styles.meta}>
-            {review.isCurrent ? 'Current resident' : `Lived ${review.moveIn} – ${review.moveOut ?? 'present'}`}
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.author, { color: theme.colors.text }]}>{review.userDisplayName}</Text>
+          <Text style={[styles.meta, { color: theme.colors.textSecondary }]}>
+            {review.isCurrent
+              ? 'Current resident'
+              : `Lived ${review.moveIn} – ${review.moveOut ?? 'present'}`}
           </Text>
         </View>
         <RatingBadge value={review.overall} />
@@ -25,43 +30,40 @@ export function ReviewCard({ review, showPropertyLink, propertyAddress }: Review
 
       <StarRating value={review.overall} size={16} />
 
-      <Text style={styles.body}>{review.body}</Text>
+      <Text style={[styles.body, { color: theme.colors.text }]}>{review.body}</Text>
 
       {review.tags.length > 0 ? (
         <View style={styles.tags}>
           {review.tags.map((tag) => (
-            <Text key={tag} style={styles.tag}>
-              #{tag}
-            </Text>
+            <View
+              key={tag}
+              style={[styles.tagChip, { backgroundColor: theme.colors.primarySoft }]}
+            >
+              <Text style={[styles.tag, { color: theme.colors.primary }]}>#{tag}</Text>
+            </View>
           ))}
         </View>
       ) : null}
 
-      {showPropertyLink && propertyAddress ? (
+      {showPropertyLink ? (
         <Link href={`/property/${review.propertyId}`} asChild>
           <Pressable>
-            <Text style={styles.link}>{propertyAddress}</Text>
+            <Text style={[styles.link, { color: theme.colors.accent }]}>View property →</Text>
           </Pressable>
         </Link>
       ) : null}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
+  card: { padding: 16, gap: 10 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  author: { fontWeight: '700', fontSize: 15, color: '#111827' },
-  meta: { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  body: { fontSize: 14, lineHeight: 20, color: '#374151' },
+  author: { fontWeight: '700', fontSize: 15 },
+  meta: { fontSize: 12, marginTop: 2 },
+  body: { fontSize: 14, lineHeight: 22 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { fontSize: 12, color: '#0f766e', fontWeight: '600' },
-  link: { fontSize: 13, color: '#2563eb', marginTop: 4 },
+  tagChip: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  tag: { fontSize: 12, fontWeight: '600' },
+  link: { fontSize: 13, fontWeight: '600', marginTop: 4 },
 });

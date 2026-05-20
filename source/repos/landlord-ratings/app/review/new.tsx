@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, type FieldErrors } from 'react-hook-form';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,6 +17,7 @@ import {
 } from 'react-native';
 import { z } from 'zod';
 import { StarRating } from '@/src/components/StarRating';
+import { Button } from '@/src/components/ui/Button';
 import {
   CATEGORY_LABELS,
   MIN_REVIEW_LENGTH,
@@ -27,26 +29,48 @@ import { createLandlord, findLandlordByName } from '@/src/services/landlords';
 import { getPlaceDetails, searchPlaces } from '@/src/services/places';
 import { findPropertyByPlaceId, getProperty, upsertProperty } from '@/src/services/properties';
 import { createReview, userHasReviewForProperty } from '@/src/services/reviews';
+import { useTheme } from '@/src/theme/ThemeContext';
+import { HeaderBackButton } from '@/src/components/navigation/HeaderBackButton';
+import {
+  optimisticallyApplyReview,
+  seedReviewInCache,
+  syncPropertyStatsFromReviews,
+} from '@/src/utils/propertyCache';
 import type { CategoryScores, LandlordType, Property } from '@/src/types';
 import { REVIEW_CATEGORIES } from '@/src/types';
 
-const reviewSchema = z.object({
-  moveIn: z.string().min(4, 'Move-in date required (YYYY-MM)'),
-  moveOut: z.string().optional(),
-  isCurrent: z.boolean(),
-  landlordName: z.string().min(2, 'Landlord name required'),
-  landlordType: z.enum(['individual', 'company', 'property_manager']),
-  body: z.string().min(MIN_REVIEW_LENGTH, `Review must be at least ${MIN_REVIEW_LENGTH} characters`),
-  tags: z.array(z.string()),
-  categories: z.object({
-    overall: z.number().min(1).max(5),
-    responsiveness: z.number().min(1).max(5),
-    maintenance: z.number().min(1).max(5),
-    safety: z.number().min(1).max(5),
-    value: z.number().min(1).max(5),
-    leaseFairness: z.number().min(1).max(5),
-  }),
+const categorySchema = z.object({
+  overall: z.number(),
+  responsiveness: z.number(),
+  maintenance: z.number(),
+  safety: z.number(),
+  value: z.number(),
+  leaseFairness: z.number(),
 });
+
+const reviewSchema = z
+  .object({
+    moveIn: z.string().min(4, 'Enter move-in date (YYYY-MM)'),
+    moveOut: z.string().optional(),
+    isCurrent: z.boolean(),
+    landlordName: z.string().min(2, 'Landlord name is required'),
+    landlordType: z.enum(['individual', 'company', 'property_manager']),
+    body: z.string().min(MIN_REVIEW_LENGTH, `Review must be at least ${MIN_REVIEW_LENGTH} characters`),
+    tags: z.array(z.string()),
+    categories: categorySchema,
+  })
+  .superRefine((data, ctx) => {
+    for (const key of REVIEW_CATEGORIES) {
+      const score = data.categories[key];
+      if (score < 1 || score > 5) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Please rate: ${CATEGORY_LABELS[key]}`,
+          path: ['categories', key],
+        });
+      }
+    }
+  });
 
 type ReviewFormValues = z.infer<typeof reviewSchema>;
 
@@ -59,9 +83,26 @@ const defaultCategories: CategoryScores = {
   leaseFairness: 0,
 };
 
+function firstErrorMessage(errors: FieldErrors<ReviewFormValues>): string {
+  const walk = (err: unknown): string | undefined => {
+    if (!err || typeof err !== 'object') return undefined;
+    if ('message' in err && typeof (err as { message?: string }).message === 'string') {
+      return (err as { message: string }).message;
+    }
+    for (const value of Object.values(err as Record<string, unknown>)) {
+      const nested = walk(value);
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+  return walk(errors) ?? 'Please complete all required fields.';
+}
+
 export default function NewReviewScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const { propertyId: initialPropertyId } = useLocalSearchParams<{ propertyId?: string }>();
 
   const [addressQuery, setAddressQuery] = useState('');
@@ -72,7 +113,13 @@ export default function NewReviewScreen() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const { control, handleSubmit, setValue, watch } = useForm<ReviewFormValues>({
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
       moveIn: '',
@@ -142,21 +189,15 @@ export default function NewReviewScreen() {
     );
   }
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onValidSubmit = async (values: ReviewFormValues) => {
     if (!property) {
-      Alert.alert('Property required', 'Select an address before submitting.');
+      Alert.alert('Property required', 'Select an address from the suggestions list.');
       return;
     }
 
     if (!user) {
       Alert.alert('Sign in required', 'Please sign in to submit a review.');
       router.push('/(auth)/login');
-      return;
-    }
-
-    const incomplete = REVIEW_CATEGORIES.some((k) => !values.categories[k]);
-    if (incomplete) {
-      Alert.alert('Ratings required', 'Please rate every category.');
       return;
     }
 
@@ -176,7 +217,11 @@ export default function NewReviewScreen() {
         });
       }
 
-      await createReview({
+      const reviewOverall = values.categories.overall;
+
+      optimisticallyApplyReview(queryClient, property, reviewOverall);
+
+      const review = await createReview({
         propertyId: property.id,
         landlordId: landlord.id,
         moveIn: values.moveIn,
@@ -187,28 +232,61 @@ export default function NewReviewScreen() {
         tags: selectedTags,
       });
 
-      Alert.alert('Review submitted', 'Thank you for helping other renters!', [
-        { text: 'OK', onPress: () => router.replace(`/property/${property.id}`) },
+      seedReviewInCache(queryClient, property.id, review);
+      await syncPropertyStatsFromReviews(queryClient, property.id);
+
+      await queryClient.invalidateQueries({ queryKey: ['my-reviews'] });
+
+      const propertyId = property.id;
+      Alert.alert('Review published', 'Thank you for helping other renters!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            if (router.canDismiss()) {
+              router.dismiss();
+            }
+            router.push(`/property/${propertyId}`);
+          },
+        },
       ]);
     } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Could not submit review');
+      Alert.alert('Could not submit', e instanceof Error ? e.message : 'Please try again.');
     } finally {
       setSubmitting(false);
     }
-  });
+  };
+
+  const onInvalidSubmit = (formErrors: FieldErrors<ReviewFormValues>) => {
+    Alert.alert('Incomplete review', firstErrorMessage(formErrors));
+  };
+
+  const inputStyle = [
+    styles.input,
+    {
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+      color: theme.colors.text,
+    },
+  ];
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Stack.Screen
+        options={{
+          headerLeft: () => <HeaderBackButton />,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.heading}>Write a review</Text>
+        <Text style={[styles.heading, { color: theme.colors.text }]}>Write a review</Text>
 
-        <Text style={styles.label}>Property address</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Property address</Text>
         <TextInput
-          style={styles.input}
-          placeholder="Start typing an address…"
+          style={inputStyle}
+          placeholder="Start typing, then pick a suggestion"
+          placeholderTextColor={theme.colors.textSecondary}
           value={addressQuery}
           onChangeText={(t) => {
             setAddressQuery(t);
@@ -216,25 +294,47 @@ export default function NewReviewScreen() {
           }}
         />
         {suggestions.length > 0 ? (
-          <View style={styles.suggestions}>
+          <View style={[styles.suggestions, { borderColor: theme.colors.border }]}>
             {suggestions.map((s) => (
-              <Pressable key={s.placeId} style={styles.suggestion} onPress={() => selectPlace(s.placeId, s.description)}>
-                <Text>{s.description}</Text>
+              <Pressable
+                key={s.placeId}
+                style={[styles.suggestion, { borderBottomColor: theme.colors.border }]}
+                onPress={() => selectPlace(s.placeId, s.description)}
+              >
+                <Text style={{ color: theme.colors.text }}>{s.description}</Text>
               </Pressable>
             ))}
           </View>
         ) : null}
 
-        {property ? <Text style={styles.selected}>Selected: {property.formattedAddress}</Text> : null}
+        {property ? (
+          <Text style={[styles.selected, { color: theme.colors.primary }]}>
+            Selected: {property.formattedAddress}
+          </Text>
+        ) : (
+          <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
+            Tap a suggested address to continue.
+          </Text>
+        )}
 
-        <Text style={styles.label}>Landlord / management</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Landlord / management</Text>
         <Controller
           control={control}
           name="landlordName"
           render={({ field: { onChange, value } }) => (
-            <TextInput style={styles.input} placeholder="Name" value={value} onChangeText={onChange} />
+            <TextInput
+              style={inputStyle}
+              placeholder="Name"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={value}
+              onChangeText={onChange}
+            />
           )}
         />
+        {errors.landlordName ? (
+          <Text style={[styles.error, { color: theme.colors.danger }]}>{errors.landlordName.message}</Text>
+        ) : null}
+
         <View style={styles.typeRow}>
           {(['individual', 'company', 'property_manager'] as LandlordType[]).map((t) => (
             <Controller
@@ -243,10 +343,22 @@ export default function NewReviewScreen() {
               name="landlordType"
               render={({ field: { onChange, value } }) => (
                 <Pressable
-                  style={[styles.typeChip, value === t && styles.typeChipActive]}
+                  style={[
+                    styles.typeChip,
+                    {
+                      borderColor: theme.colors.border,
+                      backgroundColor: value === t ? theme.colors.primary : theme.colors.surfaceMuted,
+                    },
+                  ]}
                   onPress={() => onChange(t)}
                 >
-                  <Text style={[styles.typeText, value === t && styles.typeTextActive]}>
+                  <Text
+                    style={{
+                      color: value === t ? theme.colors.textOnPrimary : theme.colors.text,
+                      fontSize: 12,
+                      textTransform: 'capitalize',
+                    }}
+                  >
                     {t.replace('_', ' ')}
                   </Text>
                 </Pressable>
@@ -255,16 +367,23 @@ export default function NewReviewScreen() {
           ))}
         </View>
 
-        <Text style={styles.label}>Tenure</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Tenure</Text>
         <Controller
           control={control}
           name="moveIn"
           render={({ field: { onChange, value } }) => (
-            <TextInput style={styles.input} placeholder="Move-in (YYYY-MM)" value={value} onChangeText={onChange} />
+            <TextInput
+              style={inputStyle}
+              placeholder="Move-in (YYYY-MM)"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={value}
+              onChangeText={onChange}
+            />
           )}
         />
+
         <View style={styles.switchRow}>
-          <Text>Currently living here</Text>
+          <Text style={{ color: theme.colors.text }}>Currently living here</Text>
           <Controller
             control={control}
             name="isCurrent"
@@ -273,115 +392,112 @@ export default function NewReviewScreen() {
             )}
           />
         </View>
+
         {!isCurrent ? (
           <Controller
             control={control}
             name="moveOut"
             render={({ field: { onChange, value } }) => (
-              <TextInput style={styles.input} placeholder="Move-out (YYYY-MM)" value={value} onChangeText={onChange} />
+              <TextInput
+                style={inputStyle}
+                placeholder="Move-out (YYYY-MM)"
+                placeholderTextColor={theme.colors.textSecondary}
+                value={value}
+                onChangeText={onChange}
+              />
             )}
           />
         ) : null}
 
-        <Text style={styles.section}>Category ratings</Text>
+        <Text style={[styles.section, { color: theme.colors.text }]}>Category ratings</Text>
+        {errors.categories ? (
+          <Text style={[styles.error, { color: theme.colors.danger }]}>
+            Please rate every category (1–5 stars).
+          </Text>
+        ) : null}
         {REVIEW_CATEGORIES.map((key) => (
           <StarRating
             key={key}
             label={CATEGORY_LABELS[key]}
             value={categories[key]}
             onChange={(v) =>
-              setValue('categories', { ...categories, [key]: v }, { shouldValidate: true })
+              setValue(`categories.${key}`, v, { shouldValidate: true, shouldDirty: true })
             }
           />
         ))}
 
-        <Text style={styles.label}>Written review</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Written review</Text>
         <Controller
           control={control}
           name="body"
           render={({ field: { onChange, value } }) => (
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[...inputStyle, styles.textArea]}
               placeholder={`Share your experience (min ${MIN_REVIEW_LENGTH} characters)`}
+              placeholderTextColor={theme.colors.textSecondary}
               value={value}
               onChangeText={onChange}
               multiline
             />
           )}
         />
+        {errors.body ? (
+          <Text style={[styles.error, { color: theme.colors.danger }]}>{errors.body.message}</Text>
+        ) : null}
 
-        <Text style={styles.label}>Tags</Text>
+        <Text style={[styles.label, { color: theme.colors.text }]}>Tags (optional)</Text>
         <View style={styles.tags}>
           {SUGGESTED_TAGS.map((tag) => (
             <Pressable
               key={tag}
-              style={[styles.tagChip, selectedTags.includes(tag) && styles.tagChipActive]}
+              style={[
+                styles.tagChip,
+                {
+                  borderColor: theme.colors.border,
+                  backgroundColor: selectedTags.includes(tag)
+                    ? theme.colors.primary
+                    : theme.colors.surfaceMuted,
+                },
+              ]}
               onPress={() => toggleTag(tag)}
             >
-              <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextActive]}>
+              <Text
+                style={{
+                  color: selectedTags.includes(tag) ? theme.colors.textOnPrimary : theme.colors.text,
+                  fontSize: 12,
+                }}
+              >
                 #{tag}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        <Pressable style={styles.submit} onPress={onSubmit} disabled={submitting}>
-          <Text style={styles.submitText}>{submitting ? 'Submitting…' : 'Submit review'}</Text>
-        </Pressable>
+        <Button
+          label={submitting ? 'Submitting…' : 'Submit review'}
+          onPress={handleSubmit(onValidSubmit, onInvalidSubmit)}
+          disabled={submitting}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12, backgroundColor: '#fff', paddingBottom: 40 },
+  container: { padding: 16, gap: 12, paddingBottom: 48 },
   heading: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
-  label: { fontWeight: '600', color: '#374151', marginTop: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    padding: 12,
-  },
+  label: { fontWeight: '600', marginTop: 4 },
+  hint: { fontSize: 13 },
+  error: { fontSize: 13, marginTop: -4 },
+  input: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 16 },
   textArea: { minHeight: 120, textAlignVertical: 'top' },
-  suggestions: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  suggestion: { padding: 12, borderBottomWidth: 1, borderColor: '#f3f4f6' },
-  selected: { fontSize: 13, color: '#0f766e' },
+  suggestions: { borderWidth: 1, borderRadius: 12, overflow: 'hidden' },
+  suggestion: { padding: 12, borderBottomWidth: 1 },
+  selected: { fontSize: 13, fontWeight: '600' },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  typeChip: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  typeChipActive: { backgroundColor: '#0f766e', borderColor: '#0f766e' },
-  typeText: { fontSize: 12, color: '#374151', textTransform: 'capitalize' },
-  typeTextActive: { color: '#fff' },
+  typeChip: { borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1 },
   switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   section: { fontSize: 17, fontWeight: '700', marginTop: 12 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tagChip: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  tagChipActive: { backgroundColor: '#0f766e', borderColor: '#0f766e' },
-  tagText: { fontSize: 12, color: '#374151' },
-  tagTextActive: { color: '#fff' },
-  submit: {
-    backgroundColor: '#0f766e',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  tagChip: { borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1 },
 });

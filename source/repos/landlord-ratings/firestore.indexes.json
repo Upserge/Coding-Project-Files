@@ -41,6 +41,14 @@
         { "fieldPath": "geohash", "order": "ASCENDING" },
         { "fieldPath": "avgOverall", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "tags", "arrayConfig": "CONTAINS" }
+      ]
     }
   ],
   "fieldOverrides": []

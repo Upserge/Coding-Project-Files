@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { HeaderBackButton } from '@/src/components/navigation/HeaderBackButton';
 import { EntityHeader } from '@/src/components/EntityHeader';
 import { ReportModal } from '@/src/components/ReportModal';
 import { ReviewCard } from '@/src/components/ReviewCard';
@@ -69,6 +70,7 @@ export default function LandlordDetailScreen() {
     <>
       <Stack.Screen
         options={{
+          headerLeft: () => <HeaderBackButton />,
           headerRight: () => (
             <Pressable onPress={() => setReportVisible(true)}>
               <Text style={styles.report}>Report</Text>

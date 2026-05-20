@@ -3,11 +3,12 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
 import type { MapRegion } from '@/src/types/map';
+import { MapSelectionBar } from '@/src/components/MapSelectionBar';
 import { PropertyBottomSheet } from '@/src/components/PropertyBottomSheet';
 import { PropertyMap } from '@/src/components/PropertyMap';
-import { getPropertiesNearby } from '@/src/services/properties';
+import { usePropertiesNearby } from '@/src/hooks/usePropertiesNearby';
+import { useTheme } from '@/src/theme/ThemeContext';
 import type { Property } from '@/src/types';
 
 const DEFAULT_REGION: MapRegion = {
@@ -19,10 +20,34 @@ const DEFAULT_REGION: MapRegion = {
 
 export default function MapScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const sheetRef = useRef<BottomSheet>(null);
   const [region, setRegion] = useState<MapRegion>(DEFAULT_REGION);
   const [selected, setSelected] = useState<Property | null>(null);
-  const [coords, setCoords] = useState({ latitude: DEFAULT_REGION.latitude, longitude: DEFAULT_REGION.longitude });
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [coords, setCoords] = useState({
+    latitude: DEFAULT_REGION.latitude,
+    longitude: DEFAULT_REGION.longitude,
+  });
+
+  const openSheet = useCallback(() => {
+    sheetRef.current?.snapToIndex(0);
+    setIsSheetOpen(true);
+  }, []);
+
+  const dismissSelection = useCallback(() => {
+    setSelected(null);
+    setIsSheetOpen(false);
+    sheetRef.current?.close();
+  }, []);
+
+  const handleSheetIndexChange = useCallback((index: number) => {
+    setIsSheetOpen(index >= 0);
+  }, []);
+
+  const handleSheetClose = useCallback(() => {
+    setIsSheetOpen(false);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -43,35 +68,61 @@ export default function MapScreen() {
     })();
   }, []);
 
-  const { data: properties = [], isLoading } = useQuery({
-    queryKey: ['properties', 'nearby', coords.latitude, coords.longitude],
-    queryFn: () => getPropertiesNearby(coords.latitude, coords.longitude, 15),
-  });
+  const { data: properties = [], isLoading, isFetching } = usePropertiesNearby(
+    coords.latitude,
+    coords.longitude,
+  );
 
-  const handleSelect = useCallback((property: Property) => {
-    setSelected(property);
-    sheetRef.current?.snapToIndex(0);
-  }, []);
+  // Keep selection in sync when property list refreshes (e.g. after a new review).
+  useEffect(() => {
+    if (!selected) return;
+    const updated = properties.find((p) => p.id === selected.id);
+    if (!updated) {
+      dismissSelection();
+      return;
+    }
+    if (updated !== selected) setSelected(updated);
+  }, [properties, selected, dismissSelection]);
+
+  const handleSelect = useCallback(
+    (property: Property) => {
+      setSelected(property);
+      openSheet();
+    },
+    [openSheet],
+  );
+
+  const showSelectionBar = selected != null && !isSheetOpen;
 
   return (
     <View style={styles.container}>
-      {isLoading ? (
+      {(isLoading || isFetching) && properties.length === 0 ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#0f766e" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
-      ) : (
-        <PropertyMap
-          properties={properties}
-          region={region}
-          onRegionChange={setRegion}
-          onSelectProperty={handleSelect}
-          selectedId={selected?.id}
+      ) : null}
+      <PropertyMap
+        properties={properties}
+        region={region}
+        onRegionChange={setRegion}
+        onSelectProperty={handleSelect}
+        selectedId={selected?.id}
+      />
+      {showSelectionBar ? (
+        <MapSelectionBar
+          property={selected}
+          onReopen={openSheet}
+          onDismiss={dismissSelection}
         />
-      )}
+      ) : null}
       <PropertyBottomSheet
         ref={sheetRef}
         property={selected}
-        onWriteReview={() => router.push({ pathname: '/review/new', params: { propertyId: selected?.id } })}
+        onSheetIndexChange={handleSheetIndexChange}
+        onSheetClose={handleSheetClose}
+        onWriteReview={() =>
+          router.push({ pathname: '/review/new', params: { propertyId: selected?.id } })
+        }
       />
     </View>
   );
@@ -84,6 +135,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
 });

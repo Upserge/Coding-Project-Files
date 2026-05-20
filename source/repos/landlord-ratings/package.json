@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "functions:build": "npm --prefix functions run build",
-    "firebase:deploy": "firebase deploy --only firestore:rules,firestore:indexes,storage,functions"
+    "firebase:deploy": "firebase deploy --only firestore:rules,firestore:indexes,storage,functions",
+    "firebase:deploy-rules": "firebase deploy --only firestore:rules"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -35,6 +36,7 @@
     "react-hook-form": "^7.76.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-map-clustering": "^4.0.0",
     "react-native-maps": "1.20.1",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",

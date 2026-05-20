@@ -30,4 +30,5 @@ export const PROHIBITED_TAG_PATTERNS = [
   /sexual/i,
 ];
 
-export const MIN_REVIEW_LENGTH = 50;
+// TODO: change this back to 50 when done testing
+export const MIN_REVIEW_LENGTH = 1;

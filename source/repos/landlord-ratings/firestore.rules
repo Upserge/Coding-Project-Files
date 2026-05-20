@@ -10,13 +10,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function reviewIsReadable() {
-      return resource.data.status == 'published'
+    function canReadReview() {
+      // Allow existence checks (resource == null) and normal read paths
+      return resource == null
+        || resource.data.status == 'published'
         || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
     }
@@ -24,7 +26,9 @@ service cloud.firestore {
     match /properties/{propertyId} {
       allow read: if true;
       allow create: if isSignedIn()
-        && request.resource.data.keys().hasAll(['formattedAddress', 'location', 'geohash']);
+        && request.resource.data.formattedAddress is string
+        && request.resource.data.geohash is string
+        && request.resource.data.location is latlng;
       allow update: if false;
       allow delete: if false;
     }
@@ -32,18 +36,23 @@ service cloud.firestore {
     match /landlords/{landlordId} {
       allow read: if true;
       allow create: if isSignedIn()
-        && request.resource.data.keys().hasAll(['name', 'type']);
+        && request.resource.data.name is string
+        && request.resource.data.type is string;
       allow update: if false;
       allow delete: if false;
     }
 
     match /reviews/{reviewId} {
-      allow read: if reviewIsReadable();
+      allow read: if canReadReview();
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.status == 'pending';
-      allow update: if isOwner(resource.data.userId)
-        && resource.data.status in ['pending', 'published'];
+        && request.resource.data.status in ['pending', 'published']
+        && request.resource.data.propertyId is string
+        && request.resource.data.overall is number
+        && request.resource.data.body is string;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
       allow delete: if isOwner(resource.data.userId);
     }
 

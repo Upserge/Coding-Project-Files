@@ -17,6 +17,7 @@ import type { CreateReviewInput, Review } from '@/src/types';
 import { sortReviews, type ReviewSort } from '@/src/utils/ratings';
 import { MOCK_REVIEWS } from '@/src/services/mockData';
 import { auth } from '@/src/services/firebase';
+import { containsProfanity } from '@/src/utils/moderation';
 
 function mapReview(id: string, data: Record<string, unknown>): Review {
   return { id, ...(data as Omit<Review, 'id'>) };
@@ -84,6 +85,11 @@ export async function getReviewsByUser(userId: string): Promise<Review[]> {
   return snap.docs.map((d) => mapReview(d.id, d.data()));
 }
 
+/** One review per user per property — deterministic doc id avoids fragile list queries. */
+export function reviewDocId(userId: string, propertyId: string): string {
+  return `${userId}_${propertyId}`;
+}
+
 export async function userHasReviewForProperty(
   userId: string,
   propertyId: string,
@@ -92,21 +98,24 @@ export async function userHasReviewForProperty(
     return MOCK_REVIEWS.some((r) => r.userId === userId && r.propertyId === propertyId);
   }
 
-  const q = query(
-    collection(db, 'reviews'),
-    where('userId', '==', userId),
-    where('propertyId', '==', propertyId),
-    limit(1),
-  );
-  const snap = await getDocs(q);
-  return !snap.empty;
+  const snap = await getDoc(doc(db, 'reviews', reviewDocId(userId, propertyId)));
+  return snap.exists();
 }
 
 export async function createReview(input: CreateReviewInput): Promise<Review> {
   const user = auth.currentUser;
   if (!user) throw new Error('You must be signed in to submit a review.');
 
+  const body = input.body.trim();
+  if (containsProfanity(body)) {
+    throw new Error('Your review contains language that violates our community guidelines.');
+  }
+
   const overall = input.categories.overall;
+  // Publish immediately so reviews appear without waiting on Cloud Functions.
+  // Functions still recalculate aggregates and may reject on future edits.
+  const status = 'published' as const;
+
   const payload = {
     userId: user.uid,
     userDisplayName: user.displayName ?? 'Anonymous Renter',
@@ -117,9 +126,9 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
     isCurrent: input.isCurrent,
     overall,
     categories: input.categories,
-    body: input.body.trim(),
+    body,
     tags: input.tags,
-    status: 'pending' as const,
+    status,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -145,8 +154,24 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
     return review;
   }
 
-  const ref = doc(collection(db, 'reviews'));
-  await setDoc(ref, payload);
+  const ref = doc(db, 'reviews', reviewDocId(user.uid, input.propertyId));
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    throw new Error('You have already reviewed this property.');
+  }
+
+  try {
+    await setDoc(ref, payload);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    if (message.includes('permission') || message.includes('PERMISSION_DENIED')) {
+      throw new Error(
+        'Permission denied writing review. Deploy the latest firestore.rules: npm run firebase:deploy',
+      );
+    }
+    throw e;
+  }
+
   const snap = await getDoc(ref);
   return mapReview(ref.id, snap.data()!);
 }

@@ -1,12 +1,28 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '@/src/theme/ThemeContext';
 import { formatRating } from '@/src/utils/ratings';
 
 export function RatingBadge({ value, size = 'md' }: { value: number; size?: 'sm' | 'md' | 'lg' }) {
+  const { theme } = useTheme();
   const display = formatRating(value);
-  const bg =
-    value >= 4 ? '#dcfce7' : value >= 3 ? '#fef9c3' : value > 0 ? '#fee2e2' : '#f3f4f6';
+
   const color =
-    value >= 4 ? '#166534' : value >= 3 ? '#854d0e' : value > 0 ? '#991b1b' : '#374151';
+    value >= 4
+      ? theme.colors.ratingHigh
+      : value >= 3
+        ? theme.colors.ratingMid
+        : value > 0
+          ? theme.colors.ratingLow
+          : theme.colors.ratingNone;
+
+  const bg =
+    value >= 4
+      ? `${theme.colors.ratingHigh}22`
+      : value >= 3
+        ? `${theme.colors.ratingMid}22`
+        : value > 0
+          ? `${theme.colors.ratingLow}22`
+          : theme.colors.surfaceMuted;
 
   return (
     <View style={[styles.badge, { backgroundColor: bg }, size === 'lg' && styles.lg]}>
