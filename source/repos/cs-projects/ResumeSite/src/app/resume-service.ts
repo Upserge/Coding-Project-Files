@@ -10,6 +10,7 @@ import { getTechSVG, getTechLink, getProjectSVG } from './tech-icons';
 import { ParticleField } from './particle-field';
 import { Leaderboard } from './leaderboard';
 import { FocusMode } from './focus-mode';
+import { ShaderHero } from './shader-hero';
 
 export interface ContactInfo {
   email: string;
@@ -88,6 +89,7 @@ export class ResumeService {
   private particleField: ParticleField | null = null;
   private leaderboard: Leaderboard | null = null;
   private focusMode: FocusMode | null = null;
+  private shaderHero: ShaderHero | null = null;
 
   private readonly firestore = inject(Firestore);
   private readonly destroyRef = inject(DestroyRef);
@@ -118,48 +120,15 @@ export class ResumeService {
     }, 50);
   }
 
-  async initLottie() {
-    const holder = document.getElementById('lottie-holder');
-    if (!holder) return;
-    try {
-      const mod = await import('lottie-web');
-      const lottie: any = (mod as any).default ?? mod;
-      const animData = {
-        v: '5.7.4',
-        fr: 30,
-        ip: 0,
-        op: 60,
-        w: 200,
-        h: 200,
-        nm: 'pulse',
-        assets: [],
-        layers: [
-          {
-            ty: 4,
-            nm: 'circle',
-            shapes: [
-              {
-                ty: 'el',
-                p: { a: 0, k: [100, 100] },
-                s: { a: 1, k: [{ t: 0, s: [0, 0] }, { t: 30, s: [120, 120] }, { t: 60, s: [0, 0] }] },
-              },
-              { ty: 'fl', c: { a: 0, k: [1, 1, 1, 0.15] } },
-            ],
-            ip: 0,
-            op: 60,
-          },
-        ],
-      } as any;
+  initShaderHero() {
+    this.shaderHero = new ShaderHero();
+    this.shaderHero.init();
+  }
 
-      lottie.loadAnimation({
-        container: holder,
-        renderer: 'svg',
-        loop: true,
-        autoplay: true,
-        animationData: animData,
-      });
-    } catch (e) {
-      // lottie not available — ignore
+  initHeroLogo() {
+    const img = document.querySelector('.hero-logo') as HTMLImageElement | null;
+    if (img) {
+      img.decoding = 'async';
     }
   }
 
@@ -179,6 +148,8 @@ export class ResumeService {
     this.leaderboard = null;
     this.focusMode?.destroy();
     this.focusMode = null;
+    this.shaderHero?.destroy();
+    this.shaderHero = null;
   }
 
   // ===== Advanced Effects Initialization =====
@@ -296,6 +267,7 @@ export class ResumeService {
     } else {
       html.setAttribute('data-theme', 'light');
     }
+    this.shaderHero?.updateTheme();
   }
 
   // ===== Scroll Navigation Management =====

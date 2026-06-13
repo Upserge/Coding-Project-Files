@@ -47,7 +47,8 @@ export class App {
     afterNextRender(() => {
       this.resumeService.initReveal();
       this.resumeService.initScrollListener();
-      this.resumeService.initLottie();
+      this.resumeService.initShaderHero();
+      this.resumeService.initHeroLogo();
 
       // Initialize advanced effects
       this.resumeService.initCursorSpotlight();
@@ -64,7 +65,7 @@ export class App {
     }
 
     // Start typewriter after letter animations finish (RxJS-driven)
-    timer(1200).pipe(
+    timer(1600).pipe(
       expand(() => {
         const current = this.roles[this.roleIndex];
         if (this.isDeleting) {

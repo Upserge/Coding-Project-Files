@@ -19,24 +19,27 @@
 </nav>
 
 <header class="resume-header">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
   <div class="hero-orbit-wrap" aria-hidden="true">
     <div class="hero-orbit hero-orbit--1"></div>
     <div class="hero-orbit hero-orbit--2"></div>
     <div class="hero-orbit hero-orbit--3"></div>
   </div>
   <div id="hero-container">
-    <div id="lottie-holder" aria-hidden="true"></div>
+    <div id="hero-logo-wrap" aria-hidden="true">
+      <img class="hero-logo" src="j-logo.png" alt="" width="72" height="72" decoding="async" />
+      <span class="hero-logo-ring"></span>
+    </div>
   </div>
-  <div class="container">
+  <div class="container hero-content">
     <h1 class="fancy-title">
       <span class="letter" style="--char-index: 0">J</span><span class="letter" style="--char-index: 1">a</span><span class="letter" style="--char-index: 2">s</span><span class="letter" style="--char-index: 3">o</span><span class="letter" style="--char-index: 4">n</span><span class="name-space"> </span><span class="letter" style="--char-index: 5">S</span><span class="letter" style="--char-index: 6">a</span><span class="letter" style="--char-index: 7">l</span><span class="letter" style="--char-index: 8">a</span><span class="letter" style="--char-index: 9">s</span>
     </h1>
     <p class="title">
       <span class="typewriter-text">{{ typedRole() }}</span><span class="typewriter-cursor">|</span>
     </p>
-    <div class="hero-accent-bar"></div>
 
-    <div class="contact hero-fade" style="--hero-delay: 1.2s">
+    <div class="contact hero-fade" style="--hero-delay: 1.9s">
       <a href="mailto:{{ contact().email }}">{{ contact().email }}</a>
       <span class="sep"> • </span>
       <a href="tel:{{ contact().phone }}">{{ contact().phone }}</a>
@@ -44,7 +47,7 @@
       <span>{{ contact().location }}</span>
     </div>
 
-    <div class="links hero-fade" style="--hero-delay: 1.5s">
+    <div class="links hero-fade" style="--hero-delay: 2.2s">
       @for (l of links(); track l) {
         <button class="link-btn" (click)="openLink(l.url)">{{ l.label }}</button>
       }

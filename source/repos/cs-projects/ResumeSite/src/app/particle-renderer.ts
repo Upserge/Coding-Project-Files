@@ -251,25 +251,18 @@ function drawNormalParticle(
   stretchX: number, stretchY: number, stretchAngle: number,
   isDark: boolean
 ): void {
-  // Normal particle (theme-aware) or galaxy-tinted star
   const gc = p.galaxyColor;
-  const glowPrimary = gc
-    ? `rgba(${gc.r}, ${gc.g}, ${gc.b}, ${p.opacity})`
+  const haloColor = gc
+    ? `rgba(${gc.r}, ${gc.g}, ${gc.b}, ${p.opacity * 0.35})`
     : isDark
-      ? `rgba(124, 92, 255, ${p.opacity})`
-      : `rgba(80, 50, 200, ${p.opacity * 1.8})`;
-  const glowSecondary = gc
-    ? `rgba(${gc.r}, ${gc.g}, ${gc.b}, ${p.opacity * 0.3})`
-    : isDark
-      ? `rgba(94, 234, 212, ${p.opacity * 0.4})`
-      : `rgba(20, 160, 140, ${p.opacity * 0.8})`;
+      ? `rgba(124, 92, 255, ${p.opacity * 0.45})`
+      : `rgba(80, 50, 200, ${p.opacity * 0.55})`;
   const coreColor = gc
-    ? `rgba(255, 255, 255, ${p.opacity * 0.8})`
+    ? `rgba(255, 255, 255, ${p.opacity * 0.85})`
     : isDark
-      ? `rgba(255, 255, 255, ${p.opacity * 0.6})`
+      ? `rgba(255, 255, 255, ${p.opacity * 0.65})`
       : `rgba(60, 30, 180, ${p.opacity * 0.9})`;
 
-  // Apply spaghettification stretch for normal particles
   if (spagGoal) {
     ctx.save();
     ctx.translate(p.x, p.y);
@@ -279,20 +272,13 @@ function drawNormalParticle(
     ctx.translate(-p.x, -p.y);
   }
 
-  const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
-  gradient.addColorStop(0, glowPrimary);
-  gradient.addColorStop(0.4, glowSecondary);
-  gradient.addColorStop(1, gc
-    ? `rgba(${gc.r}, ${gc.g}, ${gc.b}, 0)`
-    : isDark ? 'rgba(124, 92, 255, 0)' : 'rgba(80, 50, 200, 0)');
-
   ctx.beginPath();
-  ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
+  ctx.arc(p.x, p.y, p.r * 1.8, 0, Math.PI * 2);
+  ctx.fillStyle = haloColor;
   ctx.fill();
 
   ctx.beginPath();
-  ctx.arc(p.x, p.y, p.r * 0.6, 0, Math.PI * 2);
+  ctx.arc(p.x, p.y, p.r * 0.75, 0, Math.PI * 2);
   ctx.fillStyle = coreColor;
   ctx.fill();
 

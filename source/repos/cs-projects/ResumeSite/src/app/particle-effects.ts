@@ -217,23 +217,41 @@ export function updateCursorSpaghetti(
   }
 }
 
+export function isNearAnyGoal(
+  p: Particle,
+  goals: readonly GoalPost[],
+  maxRange: number,
+): boolean {
+  const maxRangeSq = maxRange * maxRange;
+  for (const g of goals) {
+    if (g.scored) continue;
+    const dx = p.x - g.x;
+    const dy = p.y - g.y;
+    if (dx * dx + dy * dy < maxRangeSq) return true;
+  }
+  return false;
+}
+
 export function findNearestGoal(
   p: Particle,
   goals: readonly GoalPost[],
   maxRange: number,
 ): { goal: GoalPost | null; dist: number } {
   let nearest: GoalPost | null = null;
-  let nearestDist = Infinity;
+  let nearestDistSq = maxRange * maxRange;
   for (const g of goals) {
     if (g.scored) continue;
     const dx = p.x - g.x;
     const dy = p.y - g.y;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    if (d >= maxRange || d >= nearestDist) continue;
-    nearestDist = d;
+    const distSq = dx * dx + dy * dy;
+    if (distSq >= nearestDistSq) continue;
+    nearestDistSq = distSq;
     nearest = g;
   }
-  return { goal: nearest, dist: nearestDist };
+  return {
+    goal: nearest,
+    dist: nearest ? Math.sqrt(nearestDistSq) : Infinity,
+  };
 }
 
 export function trySpawnSpaghettiStream(

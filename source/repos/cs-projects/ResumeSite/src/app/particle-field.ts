@@ -6,7 +6,7 @@ import { Particle, GoalPost, ConfettiPiece, TrailPiece, SpaghettiStream, TaurusL
 import { drawParticle } from './particle-renderer';
 import { drawBlackHole } from './black-hole-renderer';
 import { spawnGalaxies, spawnTaurus, drawTaurusLines } from './celestial-spawner';
-import { createConfetti, updateConfetti, updateTrails, updateSpaghettiStreams, updateCursorSpaghetti, spawnThrusterTrails, findNearestGoal, trySpawnSpaghettiStream } from './particle-effects';
+import { createConfetti, updateConfetti, updateTrails, updateSpaghettiStreams, updateCursorSpaghetti, spawnThrusterTrails, findNearestGoal, isNearAnyGoal, trySpawnSpaghettiStream } from './particle-effects';
 import { UpgradeState } from './upgrade-state';
 import { UpgradeModal } from './upgrade-modal';
 import { UpgradeInventory } from './upgrade-inventory';
@@ -22,6 +22,8 @@ export class ParticleField {
   private ctx: CanvasRenderingContext2D | null = null;
   private animationFrame: number | null = null;
   private resizeHandler: (() => void) | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private tabVisible = true;
   private particles: Particle[] = [];
   private goals: GoalPost[] = [];
   private mouse = { x: -9999, y: -9999 };
@@ -51,6 +53,7 @@ export class ParticleField {
   private readonly CONFETTI_COUNT = 60;
   private readonly SPAGHETTI_RADIUS = 120;
   private readonly GOAL_HINT_PUSH_THRESHOLD = 4;
+  private readonly MAX_TRAIL_COUNT = 200;
   private confetti: ConfettiPiece[] = [];
   private trails: TrailPiece[] = [];
   private spaghettiStreams: SpaghettiStream[] = [];
@@ -77,12 +80,17 @@ export class ParticleField {
     this.ctx = this.canvas.getContext('2d');
     if (!this.ctx) return;
 
-    this.dpr = window.devicePixelRatio || 1;
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.resize();
     this.spawnWorld();
 
     this.resizeHandler = () => this.resize();
     window.addEventListener('resize', this.resizeHandler);
+
+    this.visibilityHandler = () => {
+      this.tabVisible = !document.hidden;
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
 
     document.addEventListener('mousemove', this.onMouseMove);
     document.addEventListener('mouseleave', this.onMouseLeave);
@@ -166,7 +174,7 @@ export class ParticleField {
 
   private render = () => {
     if (!this.ctx || !this.canvas) return;
-    if (this.paused) {
+    if (this.paused || !this.tabVisible) {
       this.animationFrame = requestAnimationFrame(this.render);
       return;
     }
@@ -177,8 +185,6 @@ export class ParticleField {
     const viewH = window.innerHeight;
     const viewTop = scrollY - 100;
     const viewBottom = scrollY + viewH + 100;
-
-    this.updatePageHeight();
 
     const mousePageX = this.mouse.x;
     const mousePageY = this.mouse.y + scrollY;
@@ -284,7 +290,13 @@ export class ParticleField {
       if (p.y > h + 20) p.y = -20;
 
       // Thruster trail for Ranger when being pushed
-      this.trails.push(...spawnThrusterTrails(p));
+      const newTrails = spawnThrusterTrails(p);
+      if (newTrails.length > 0) {
+        this.trails.push(...newTrails);
+        if (this.trails.length > this.MAX_TRAIL_COUNT) {
+          this.trails.splice(0, this.trails.length - this.MAX_TRAIL_COUNT);
+        }
+      }
 
       // Tractor aim: gently steer pushed rockets toward nearest black hole
       if (p.golden && p.pushTime > 5 && mods.tractorAimStrength > 0) {
@@ -310,8 +322,11 @@ export class ParticleField {
         }
       }
 
-      // Spaghettification: find nearest active black hole
-      const { goal: spaghettiGoal, dist: spaghettiDist } = findNearestGoal(p, this.goals, this.SPAGHETTI_RADIUS);
+      // Spaghettification: find nearest active black hole (skip distant dust)
+      const nearGoal = p.golden || isNearAnyGoal(p, this.goals, this.SPAGHETTI_RADIUS);
+      const { goal: spaghettiGoal, dist: spaghettiDist } = nearGoal
+        ? findNearestGoal(p, this.goals, this.SPAGHETTI_RADIUS)
+        : { goal: null, dist: Infinity };
 
       // Spawn spaghetti stream particles for objects being pulled in
       if (spaghettiGoal) {
@@ -447,6 +462,9 @@ export class ParticleField {
     }
     if (this.resizeHandler) {
       window.removeEventListener('resize', this.resizeHandler);
+    }
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
     }
     document.removeEventListener('mousemove', this.onMouseMove);
     document.removeEventListener('mouseleave', this.onMouseLeave);
