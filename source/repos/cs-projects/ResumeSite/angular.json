@@ -45,6 +45,22 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "github-pages": {
+              "baseHref": "/Jason.io/",
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "20kB",
+                  "maximumError": "24kB"
+                }
+              ],
+              "outputHashing": "all"
             }
           },
           "defaultConfiguration": "production"

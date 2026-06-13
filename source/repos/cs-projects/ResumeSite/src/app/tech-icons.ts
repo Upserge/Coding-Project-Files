@@ -1,3 +1,10 @@
+const ICON_BADGE =
+  '<rect x="10" y="10" width="80" height="80" rx="14" fill="none" stroke="currentColor" stroke-width="2" opacity="0.28"/>';
+
+function withIconBadge(svg: string): string {
+  return svg.replace(/<svg([^>]*)>/, `<svg$1>${ICON_BADGE}`);
+}
+
 // SVG tech icon definitions with animations and links
 export const TECH_ICONS: { [key: string]: string } = {
   javascript: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -7,6 +14,10 @@ export const TECH_ICONS: { [key: string]: string } = {
     <rect width="100" height="100" fill="transparent"/>
     <text x="50" y="70" text-anchor="middle" class="js-text">JS</text>
     <path d="M 20 20 Q 50 10 80 20" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3" class="animate-draw"/>
+  </svg>`,
+  typescript: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="22" y="22" width="56" height="56" rx="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.75"/>
+    <text x="50" y="58" text-anchor="middle" font-size="26" font-weight="700" fill="currentColor">TS</text>
   </svg>`,
   angular: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -77,6 +88,7 @@ export const TECH_ICONS: { [key: string]: string } = {
 
 export const TECH_LINKS: { [key: string]: string } = {
   javascript: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript',
+  typescript: 'https://www.typescriptlang.org',
   angular: 'https://angular.io',
   python: 'https://www.python.org',
   sql: 'https://www.postgresql.org',
@@ -87,23 +99,29 @@ export const TECH_LINKS: { [key: string]: string } = {
   swagger: 'https://swagger.io',
 };
 
+function normalizeIcon(svg: string): string {
+  return withIconBadge(svg);
+}
+
 export function getTechSVG(tech: string): string {
   const t = tech.toLowerCase();
-  if (t.includes('javascript') || t === 'js') return TECH_ICONS['javascript'];
-  if (t.includes('angular')) return TECH_ICONS['angular'];
-  if (t.includes('python')) return TECH_ICONS['python'];
-  if (t.includes('sql')) return TECH_ICONS['sql'];
-  if (t.includes('postman')) return TECH_ICONS['postman'];
-  if (t.includes('jql')) return TECH_ICONS['jql'];
-  if (t.includes('databricks')) return TECH_ICONS['databricks'];
-  if (t.includes('jenkins')) return TECH_ICONS['jenkins'];
-  if (t.includes('swagger')) return TECH_ICONS['swagger'];
-  return TECH_ICONS['javascript'];
+  if (t.includes('javascript') || t === 'js') return normalizeIcon(TECH_ICONS['javascript']);
+  if (t.includes('typescript') || t === 'ts') return normalizeIcon(TECH_ICONS['typescript']);
+  if (t.includes('angular')) return normalizeIcon(TECH_ICONS['angular']);
+  if (t.includes('python')) return normalizeIcon(TECH_ICONS['python']);
+  if (t.includes('sql')) return normalizeIcon(TECH_ICONS['sql']);
+  if (t.includes('postman')) return normalizeIcon(TECH_ICONS['postman']);
+  if (t.includes('jql')) return normalizeIcon(TECH_ICONS['jql']);
+  if (t.includes('databricks')) return normalizeIcon(TECH_ICONS['databricks']);
+  if (t.includes('jenkins')) return normalizeIcon(TECH_ICONS['jenkins']);
+  if (t.includes('swagger')) return normalizeIcon(TECH_ICONS['swagger']);
+  return normalizeIcon(TECH_ICONS['javascript']);
 }
 
 export function getTechLink(tech: string): string {
   const t = tech.toLowerCase();
   if (t.includes('javascript') || t === 'js') return TECH_LINKS['javascript'];
+  if (t.includes('typescript') || t === 'ts') return TECH_LINKS['typescript'];
   if (t.includes('angular')) return TECH_LINKS['angular'];
   if (t.includes('python')) return TECH_LINKS['python'];
   if (t.includes('sql')) return TECH_LINKS['sql'];
@@ -164,15 +182,76 @@ export const PROJECT_ICONS: { [key: string]: string } = {
     <line x1="30" y1="56" x2="42" y2="54" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
   </svg>`,
   'hunt and hide': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <!-- Folded map with X marker -->
     <path d="M12 18 L36 8 L60 18 L88 12 L88 82 L60 72 L36 82 L12 72 Z" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.9"/>
     <line x1="36" y1="8" x2="36" y2="82" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
     <circle cx="70" cy="40" r="6" fill="currentColor" opacity="0.95"/>
     <path d="M66 36 L74 44 M74 36 L66 44" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
   </svg>`,
+  gambdle: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="26" width="58" height="48" rx="8" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.85"/>
+    <rect x="24" y="34" width="14" height="20" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor" stroke-width="2"/>
+    <rect x="43" y="34" width="14" height="20" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor" stroke-width="2"/>
+    <rect x="62" y="34" width="14" height="20" rx="3" fill="currentColor" opacity="0.18" stroke="currentColor" stroke-width="2"/>
+    <text x="31" y="48" font-size="11" font-weight="700" fill="currentColor">7</text>
+    <text x="50" y="48" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">7</text>
+    <text x="69" y="48" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">7</text>
+    <rect x="26" y="58" width="42" height="6" rx="3" fill="currentColor" opacity="0.35"/>
+    <path d="M78 36 L78 58 L88 48 Z" fill="currentColor" opacity="0.55"/>
+    <circle cx="78" cy="62" r="4" fill="none" stroke="currentColor" stroke-width="2" opacity="0.7"/>
+  </svg>`,
+  'lil green ghouls': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M32 34 Q50 18 68 34 L68 54 Q62 50 56 56 Q50 62 44 56 Q38 50 32 54 Z" fill="currentColor" opacity="0.78"/>
+    <path d="M32 54 L32 62 Q38 58 44 64 Q50 70 56 64 Q62 58 68 62 L68 54" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+    <circle cx="42" cy="40" r="3" fill="currentColor" opacity="0.95"/>
+    <circle cx="58" cy="40" r="3" fill="currentColor" opacity="0.95"/>
+    <path d="M46 48 Q50 51 54 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+    <line x1="28" y1="72" x2="72" y2="72" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+    <line x1="34" y1="78" x2="60" y2="78" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+  </svg>`,
+  'pac-man': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" opacity="0.82">
+      <rect x="14" y="14" width="72" height="72"/>
+      <path d="M14 30 H34 M66 30 H86"/>
+      <path d="M14 46 H26 M38 46 H62 M74 46 H86"/>
+      <path d="M14 62 H34 M66 62 H86"/>
+      <path d="M14 78 H34 M66 78 H86"/>
+      <path d="M34 14 V30 M34 46 V62 M34 78 V86"/>
+      <path d="M66 14 V30 M66 46 V62 M66 78 V86"/>
+      <path d="M38 30 V46 M62 30 V46"/>
+      <path d="M38 62 V78 M62 62 V78"/>
+      <rect x="40" y="48" width="20" height="14"/>
+      <path d="M46 48 V42 H54 V48"/>
+    </g>
+    <g fill="currentColor" opacity="0.42">
+      <circle cx="22" cy="22" r="1.6"/>
+      <circle cx="30" cy="22" r="1.6"/>
+      <circle cx="50" cy="22" r="1.6"/>
+      <circle cx="70" cy="22" r="1.6"/>
+      <circle cx="78" cy="22" r="1.6"/>
+      <circle cx="22" cy="38" r="1.6"/>
+      <circle cx="30" cy="38" r="1.6"/>
+      <circle cx="50" cy="38" r="1.6"/>
+      <circle cx="70" cy="38" r="1.6"/>
+      <circle cx="78" cy="38" r="1.6"/>
+      <circle cx="22" cy="54" r="1.6"/>
+      <circle cx="30" cy="54" r="1.6"/>
+      <circle cx="70" cy="54" r="1.6"/>
+      <circle cx="78" cy="54" r="1.6"/>
+      <circle cx="22" cy="70" r="1.6"/>
+      <circle cx="30" cy="70" r="1.6"/>
+      <circle cx="50" cy="70" r="1.6"/>
+      <circle cx="70" cy="70" r="1.6"/>
+      <circle cx="78" cy="70" r="1.6"/>
+      <circle cx="22" cy="78" r="1.6"/>
+      <circle cx="50" cy="78" r="1.6"/>
+      <circle cx="78" cy="78" r="1.6"/>
+      <circle cx="14" cy="54" r="2.8" opacity="0.85"/>
+      <circle cx="86" cy="54" r="2.8" opacity="0.85"/>
+    </g>
+  </svg>`,
 };
 
 export function getProjectSVG(title: string): string {
   const t = title.toLowerCase();
-  return PROJECT_ICONS[t] || PROJECT_ICONS['resume site'];
+  return normalizeIcon(PROJECT_ICONS[t] || PROJECT_ICONS['resume site']);
 }

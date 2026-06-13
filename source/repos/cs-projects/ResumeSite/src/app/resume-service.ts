@@ -10,6 +10,7 @@ import { getTechSVG, getTechLink, getProjectSVG } from './tech-icons';
 import { ParticleField } from './particle-field';
 import { Leaderboard } from './leaderboard';
 import { FocusMode } from './focus-mode';
+import { buildSymmetricCategories, TechCategoryDisplay } from './tech-grid';
 import { ShaderHero } from './shader-hero';
 
 export interface ContactInfo {
@@ -23,6 +24,19 @@ export interface LinkItem {
   url: string;
 }
 
+export interface ProjectItem {
+  title: string;
+  description?: string;
+  url?: string;
+  tags?: string[];
+  featured?: boolean;
+}
+
+export interface TechCategory {
+  label: string;
+  items: string[];
+}
+
 export interface ResumeData {
   name: string;
   title: string;
@@ -30,9 +44,14 @@ export interface ResumeData {
   links: LinkItem[];
   summary: string;
   technologies: string[];
-  projects: { title: string; description?: string; url?: string }[];
+  projects: ProjectItem[];
   experience?: { company: string; role: string; startDate: string; endDate?: string; description?: string }[];
 }
+
+const TECH_CATEGORIES: TechCategory[] = [
+  { label: 'Languages', items: ['JavaScript', 'TypeScript', 'Python', 'SQL'] },
+  { label: 'Tools & platforms', items: ['Angular', 'Postman', 'JQL', 'DataBricks', 'Jenkins', 'Swagger'] },
+];
 
 @Injectable({
   providedIn: 'root',
@@ -53,14 +72,24 @@ export class ResumeService {
     ],
     summary:
       'Results-driven software developer experienced building web applications and backend services. Strong foundation in JavaScript, Angular, Python, and SQL. Comfortable working across the stack and delivering maintainable code.',
-    technologies: ['JavaScript', 'Angular', 'Python', 'SQL', 'Postman', 'JQL', 'DataBricks', 'Jenkins', 'Swagger'],
+    technologies: ['JavaScript', 'TypeScript', 'Angular', 'Python', 'SQL', 'Postman', 'JQL', 'DataBricks', 'Jenkins', 'Swagger'],
     projects: [
-      { title: 'Resume Site', description: 'Interactive portfolio built with Angular, featuring animated timeline, keyboard shortcuts, and WebGL effects.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/ResumeSite' },
-      { title: 'Hunt and Hide', description: 'Multiplayer Hide and Seek type game built on ThreeJS and WebGL.', url: 'https://huntandhide-a1a35.web.app/' },
-      { title: 'PokeDex', description: 'Pokémon encyclopedia app with search, filtering, and detailed stat breakdowns.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/PokeDex' },
-      { title: 'Deck of Cards', description: 'Card game engine with shuffle, draw, and hand management mechanics.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/deckOfCards' },
-      { title: 'Array Algorithms', description: 'Visual implementations of sorting and searching algorithms with step-by-step animations.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/ArrayAlgorithms' },
-      { title: 'Book Tracker', description: 'Reading list manager for tracking books, progress, and reviews.', url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/book-tracker' },
+      {
+        title: 'Resume Site',
+        description: 'Interactive portfolio built with Angular, featuring animated timeline, keyboard shortcuts, and WebGL effects.',
+        url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/ResumeSite',
+        tags: ['Angular', 'WebGL', 'Firebase', 'Canvas'],
+        featured: true,
+      },
+      {
+        title: 'Gambdle',
+        description: 'Once a day slot machine game. Feeling lucky?',
+        url: 'https://gambdle-97592.web.app/',
+        tags: ['Angular', 'Firebase'],
+      },
+      { title: 'Hunt and Hide', description: '3D multiplayer hide and seek game built with ThreeJS and WebGL.', url: 'https://huntandhide-a1a35.web.app/', tags: ['Angular', 'WebGL', 'ThreeJS'] },
+      { title: 'Lil Green Ghouls', description: 'Ghost adventure blog, check it out and get spooked.', url: 'https://lilgreenghouls-fd542.web.app/', tags: ['JavaScript', 'TypeScript', 'React'] },
+      { title: 'PAC-MAN', description: 'Collaborative PAC-MAN recreation, built with JavaScript and the HTML5 Canvas API.', url: 'https://gabrielp295.github.io/pacman-game/', tags: ['PACMAN', 'Game Development'] },
     ],
     experience: [
       { company: 'Riot Games', role: 'QA Engineer III | Premier | VALORANT', startDate: '2022', endDate: undefined, description: 'QA Engineering Lead for Premier features' },
@@ -215,6 +244,15 @@ export class ResumeService {
 
   getProjectSVG(title: string): string {
     return getProjectSVG(title);
+  }
+
+  getTechCategories(): TechCategoryDisplay[] {
+    const categories = TECH_CATEGORIES.map((category) => ({
+      label: category.label,
+      items: category.items.filter((item) => this.data.technologies.includes(item)),
+    }));
+
+    return buildSymmetricCategories(categories);
   }
 
   // ===== User Interaction Methods =====

@@ -98,20 +98,51 @@
 
       @if (resume().projects.length > 0) {
       <ul class="projects-list">
-        @for (p of resume().projects; track p; let i = $index) {
-        <li class="project-card reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.08) + 's'">
-          <div class="project-inner">
-            <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
-            <div class="project-body">
-              <strong>{{ p.title }}</strong>
+        @for (p of resume().projects; track p.title; let i = $index) {
+        <li
+          class="project-card reveal reveal-scale"
+          [class.project-card--featured]="p.featured"
+          [style]="'--delay: ' + (0.2 + i * 0.08) + 's'"
+        >
+          @if (p.url) {
+          <a [href]="p.url" target="_blank" rel="noopener" class="project-card-link">
+            <div class="project-inner" [class.project-inner--compact]="!p.featured">
+              <div class="project-header">
+                <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
+                <div class="project-title-wrap">
+                  <strong>{{ p.title }}</strong>
+                  @if (p.featured) {
+                  <span class="project-featured-pill">Featured</span>
+                  }
+                </div>
+                <span class="project-arrow" aria-hidden="true">&#8594;</span>
+              </div>
               @if (p.description) {
               <div class="project-desc">{{ p.description }}</div>
               }
-              @if (p.url) {
-              <a [href]="p.url" target="_blank" rel="noopener" class="project-link">&#8594; View Project</a>
+              @if (p.tags?.length) {
+              <ul class="project-tags" aria-label="Technologies used">
+                @for (tag of p.tags; track tag) {
+                <li class="project-tag">{{ tag }}</li>
+                }
+              </ul>
               }
+              <span class="project-link">View project</span>
             </div>
+          </a>
+          } @else {
+          <div class="project-inner" [class.project-inner--compact]="!p.featured">
+            <div class="project-header">
+              <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
+              <div class="project-title-wrap">
+                <strong>{{ p.title }}</strong>
+              </div>
+            </div>
+            @if (p.description) {
+            <div class="project-desc">{{ p.description }}</div>
+            }
           </div>
+          }
         </li>
         }
       </ul>
@@ -154,16 +185,32 @@
   <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
-      <ul class="tech-list">
-        @for (t of technologies(); track t; let i = $index) {
-        <li>
-          <button class="tech-chip reveal reveal-scale" [style]="'--delay: ' + (0.2 + i * 0.05) + 's'" (click)="openTechLink(t)" title="Learn more about {{ t }}">
-            <span class="tech-icon" [innerHTML]="getTechSVG(t)"></span>
-            <span class="tech-label">{{ t }}</span>
-          </button>
-        </li>
+      <div class="tech-categories">
+        @for (cat of techCategories(); track cat.label; let ci = $index) {
+        <div class="tech-category reveal reveal-up" [style]="'--delay: ' + (0.15 + ci * 0.1) + 's'">
+          <h3 class="tech-category-label">{{ cat.label }}</h3>
+          <ul class="tech-list" [style.--category-cols]="cat.columns">
+            @for (slot of cat.slots; track $index; let i = $index) {
+            <li [class.tech-chip-spacer]="!slot">
+              @if (slot) {
+              <button
+                class="tech-chip reveal reveal-scale"
+                [style]="'--delay: ' + (0.25 + ci * 0.1 + i * 0.05) + 's'"
+                (click)="openTechLink(slot)"
+                title="Learn more about {{ slot }}"
+              >
+                <span class="magnetic-inner">
+                  <span class="tech-icon" [innerHTML]="getTechSVG(slot)"></span>
+                  <span class="tech-label">{{ slot }}</span>
+                </span>
+              </button>
+              }
+            </li>
+            }
+          </ul>
+        </div>
         }
-      </ul>
+      </div>
     </div>
   </section>
 </main>

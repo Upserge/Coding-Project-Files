@@ -39,7 +39,7 @@ export class App {
 
   protected readonly contact = computed(() => this.resume().contact);
   protected readonly links = computed(() => this.resume().links);
-  protected readonly technologies = computed(() => this.resume().technologies);
+  protected readonly techCategories = computed(() => this.resumeService.getTechCategories());
 
   // ===== Component Lifecycle =====
   constructor() {
