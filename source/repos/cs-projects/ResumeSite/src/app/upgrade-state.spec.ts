@@ -59,29 +59,37 @@ describe('UpgradeState', () => {
 
     it('should trigger at each fixed milestone in order', () => {
       expect(state.checkMilestone(1)).toBeTrue();   // milestone 0
-      expect(state.checkMilestone(5)).toBeTrue();   // milestone 1
-      expect(state.checkMilestone(15)).toBeTrue();  // milestone 2
-      expect(state.checkMilestone(30)).toBeTrue();  // milestone 3
-      expect(state.checkMilestone(50)).toBeTrue();  // milestone 4
+      expect(state.checkMilestone(3)).toBeTrue();   // milestone 1
+      expect(state.checkMilestone(5)).toBeTrue();   // milestone 2
+      expect(state.checkMilestone(8)).toBeTrue();   // milestone 3
+      expect(state.checkMilestone(12)).toBeTrue();  // milestone 4
     });
 
     it('should not double-trigger the same milestone', () => {
       expect(state.checkMilestone(1)).toBeTrue();
       expect(state.checkMilestone(1)).toBeFalse();
-      expect(state.checkMilestone(3)).toBeFalse();
+      expect(state.checkMilestone(2)).toBeFalse();
     });
 
-    it('should trigger repeating milestones every 20 after 50', () => {
+    it('should peek milestone without advancing state', () => {
+      expect(state.wouldTriggerMilestone(1)).toBeTrue();
+      expect(state.wouldTriggerMilestone(1)).toBeTrue();
+      expect(state.checkMilestone(1)).toBeTrue();
+      expect(state.wouldTriggerMilestone(3)).toBeTrue();
+      expect(state.wouldTriggerMilestone(2)).toBeFalse();
+    });
+
+    it('should trigger repeating milestones every 8 after story complete', () => {
       // Exhaust fixed milestones
       state.checkMilestone(1);
+      state.checkMilestone(3);
       state.checkMilestone(5);
-      state.checkMilestone(15);
-      state.checkMilestone(30);
-      state.checkMilestone(50);
+      state.checkMilestone(8);
+      state.checkMilestone(12);
 
-      expect(state.checkMilestone(70)).toBeTrue();  // 50 + 20
-      expect(state.checkMilestone(70)).toBeFalse(); // same score
-      expect(state.checkMilestone(90)).toBeTrue();  // 50 + 40
+      expect(state.checkMilestone(20)).toBeTrue();  // 12 + 8
+      expect(state.checkMilestone(20)).toBeFalse(); // same score
+      expect(state.checkMilestone(28)).toBeTrue();  // 12 + 16
     });
   });
 
@@ -101,24 +109,23 @@ describe('UpgradeState', () => {
 
     it('should show progress toward second milestone after first triggers', () => {
       state.addScore(1);
-      state.checkMilestone(1); // triggers milestone 0, now looking at milestone 1 (score 5)
+      state.checkMilestone(1); // triggers milestone 0, now looking at milestone 1 (score 3)
       const progress = state.nextMilestoneProgress();
-      // prev = MILESTONES[0] = 1, target = MILESTONES[1] = 5, range = 4
-      // current score = 1, progress = 1 - 1 = 0
-      expect(progress.target).toBe(4);
+      // prev = MILESTONES[0] = 1, target = MILESTONES[1] = 3, range = 2
+      expect(progress.target).toBe(2);
       expect(progress.current).toBe(0);
     });
 
     it('should show repeating interval progress after fixed milestones', () => {
-      state.addScore(55);
+      state.addScore(14);
       state.checkMilestone(1);
+      state.checkMilestone(3);
       state.checkMilestone(5);
-      state.checkMilestone(15);
-      state.checkMilestone(30);
-      state.checkMilestone(50);
+      state.checkMilestone(8);
+      state.checkMilestone(12);
       const progress = state.nextMilestoneProgress();
-      expect(progress.target).toBe(20);
-      expect(progress.current).toBe(5);
+      expect(progress.target).toBe(8);
+      expect(progress.current).toBe(2);
     });
 
     it('should cap fraction at 1', () => {

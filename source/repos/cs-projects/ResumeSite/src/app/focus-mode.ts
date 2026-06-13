@@ -2,9 +2,9 @@
 
 const OPACITY_TIERS = [
   { minScore: 0, opacity: 1.0 },
-  { minScore: 5, opacity: 0.82 },
-  { minScore: 10, opacity: 0.65 },
-  { minScore: 15, opacity: 0.50 },
+  { minScore: 3, opacity: 0.82 },
+  { minScore: 6, opacity: 0.65 },
+  { minScore: 9, opacity: 0.50 },
 ] as const;
 
 const IDLE_RESTORE_MS = 12_000;
@@ -61,10 +61,16 @@ export class FocusMode {
 
   private updateToggleLabel(): void {
     if (!this.toggle) return;
+    const tier = this.resolveOpacityTier();
+    const tierHint =
+      tier.minScore === 0
+        ? 'Full résumé visible'
+        : `Résumé fades to ${Math.round(tier.opacity * 100)}% after ${tier.minScore}+ session pts`;
     this.toggle.textContent = this.manualMode === 'game' ? '📄' : '🎮';
-    this.toggle.title = this.manualMode === 'game'
-      ? 'Switch to Resume focus'
-      : 'Switch to Game focus';
+    this.toggle.title =
+      this.manualMode === 'game'
+        ? 'Reading mode — restore full résumé opacity'
+        : `Game focus — ${tierHint}. Click to prioritize reading.`;
   }
 
   private applyResumeOpacity(): void {

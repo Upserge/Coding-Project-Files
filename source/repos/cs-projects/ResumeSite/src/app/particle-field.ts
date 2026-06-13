@@ -15,7 +15,14 @@ import { RunManager, RunStats } from './run-manager';
 import { RunSummary } from './run-summary';
 import { applyTractorAim, applyGravityWell } from './upgrade-physics';
 import { drawConnections } from './connection-renderer';
-import { createDustParticles, createRocketParticle, placeAwayFromOccupied, createGoalPost } from './particle-spawner';
+import { createDustParticles, createRocketParticle, placeRocketNearGoal, pickGoalForRocketSpawn, isRocketNearActiveGoal, createGoalPost } from './particle-spawner';
+import { GameNarrative } from './game-narrative';
+import { GameTutorial } from './game-tutorial';
+import { STORY_SCORE_COMPLETE } from './content/game-narrative';
+
+export interface ParticleFieldOptions {
+  enableTutorial?: boolean;
+}
 
 export class ParticleField {
   private canvas: HTMLCanvasElement | null = null;
@@ -39,8 +46,16 @@ export class ParticleField {
   private readonly progressBar = new MilestoneProgressBar();
   private readonly runManager = new RunManager();
   private readonly runSummary = new RunSummary();
+  private readonly gameNarrative = new GameNarrative();
+  private readonly gameTutorial = new GameTutorial();
   private paused = false;
   private goalsScoredThisRun = 0;
+  private storyPhaseActive = true;
+  private storyPhaseEndedThisRun = false;
+
+  private readonly STORY_GOAL_RADIUS_MUL = 1.4;
+  private readonly STORY_TRACTOR_STRENGTH = 0.009;
+  private readonly STORY_REPULSE_MUL = 1.15;
 
   private readonly PARTICLE_COUNT = 2000;
   private readonly GOLDEN_COUNT = 3;
@@ -62,7 +77,7 @@ export class ParticleField {
   private taurusLines: TaurusLine[] = [];
   private goalHintStrength = 0;
 
-  init(onScore?: (points: number) => void) {
+  init(onScore?: (points: number) => void, options?: ParticleFieldOptions) {
     this.onScoreCallback = onScore ?? null;
 
     this.canvas = document.createElement('canvas');
@@ -100,6 +115,12 @@ export class ParticleField {
     this.progressBar.init();
     this.runManager.init((stats) => this.runSummary.show(stats, () => this.restartRun()));
 
+    if (options?.enableTutorial) {
+      this.gameTutorial.showIfNeeded();
+    }
+
+    this.updateStoryPacing();
+
     if (typeof ResizeObserver !== 'undefined') {
       this.layoutObserver = new ResizeObserver(() => this.refreshPageLayout());
       this.layoutObserver.observe(document.body);
@@ -117,6 +138,10 @@ export class ParticleField {
     if (wasUndersized && grew) {
       this.spawnWorld();
     }
+  }
+
+  showGameTutorial(): void {
+    this.gameTutorial.show();
   }
 
   private resize() {
@@ -137,21 +162,40 @@ export class ParticleField {
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
     this.particles.push(...createDustParticles(this.PARTICLE_COUNT, w, h, this.DRIFT_SPEED, this.PARTICLE_MIN_R, this.PARTICLE_MAX_R));
+  }
+
+  private spawnRocketsNearGoals(): void {
+    const w = window.innerWidth;
+    const h = this.pageHeight || window.innerHeight;
+    const activeGoals = this.goals.filter((g) => !g.scored);
 
     for (let i = 0; i < this.GOLDEN_COUNT; i++) {
-      const gp = createRocketParticle(w, h, this.DRIFT_SPEED);
-      placeAwayFromOccupied(gp, w, h, this.getOccupiedPositions(), 250);
-      this.particles.push(gp);
+      const rocket = createRocketParticle(w, h, this.DRIFT_SPEED);
+      const goal =
+        activeGoals.length > 0
+          ? activeGoals[i % activeGoals.length]
+          : this.goals[i % Math.max(this.goals.length, 1)];
+
+      if (goal) {
+        placeRocketNearGoal(rocket, w, h, goal, this.getOccupiedPositions(), 160, this.DRIFT_SPEED);
+      }
+      this.particles.push(rocket);
     }
   }
 
-  private getOccupiedPositions(): { x: number; y: number }[] {
+  private pickSpawnGoal(excludeGoal?: GoalPost): GoalPost | null {
+    const rockets = this.particles.filter((p) => p.golden);
+    return pickGoalForRocketSpawn(this.goals, rockets, excludeGoal);
+  }
+
+  private getOccupiedPositions(exclude?: Particle): { x: number; y: number }[] {
     const positions: { x: number; y: number }[] = [];
     for (const g of this.goals) {
       if (!g.scored) positions.push({ x: g.x, y: g.y });
     }
     for (const p of this.particles) {
-      if (p.golden) positions.push({ x: p.x, y: p.y });
+      if (!p.golden || p === exclude) continue;
+      positions.push({ x: p.x, y: p.y });
     }
     return positions;
   }
@@ -168,6 +212,7 @@ export class ParticleField {
   private spawnWorld(): void {
     this.spawnParticles();
     this.spawnGoals();
+    this.spawnRocketsNearGoals();
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
     this.particles.push(...spawnGalaxies(w, h, this.DRIFT_SPEED, this.GALAXY_COUNT));
@@ -241,7 +286,7 @@ export class ParticleField {
     if (!this.ctx) return;
 
     const mods = this.upgradeState.modifiers;
-    const effectiveRepulse = this.REPULSE_RADIUS * mods.repulseRadiusMul;
+      const effectiveRepulse = this.REPULSE_RADIUS * mods.repulseRadiusMul * (this.storyPhaseActive ? this.STORY_REPULSE_MUL : 1);
     const effectiveForce = this.REPULSE_FORCE * mods.repulseForceMul;
     this.upgradeState.tickChainReaction();
 
@@ -316,8 +361,10 @@ export class ParticleField {
       }
 
       // Tractor aim: gently steer pushed rockets toward nearest black hole
-      if (p.golden && p.pushTime > 5 && mods.tractorAimStrength > 0) {
+      if (p.golden && p.pushTime > 2 && mods.tractorAimStrength > 0) {
         applyTractorAim(p, this.goals, mods.tractorAimStrength);
+      } else if (p.golden && p.pushTime > 2 && this.storyPhaseActive) {
+        applyTractorAim(p, this.goals, this.STORY_TRACTOR_STRENGTH);
       }
 
       // Gravity well: black holes pull nearby rockets
@@ -327,7 +374,7 @@ export class ParticleField {
 
       // Goal collision for golden particles
       if (p.golden) {
-        const goalRadiusMul = mods.goalRadiusMul;
+        const goalRadiusMul = mods.goalRadiusMul * (this.storyPhaseActive ? this.STORY_GOAL_RADIUS_MUL : 1);
         for (const goal of this.goals) {
           if (goal.scored) continue;
           const gx = p.x - goal.x;
@@ -411,22 +458,90 @@ export class ParticleField {
     this.upgradeState.triggerChainReaction();
     this.goalsScoredThisRun++;
 
-    const newP = createRocketParticle(w, h, this.DRIFT_SPEED);
-    placeAwayFromOccupied(newP, w, h, this.getOccupiedPositions(), 200);
-    p.x = newP.x;
-    p.y = newP.y;
-    p.vx = newP.vx;
-    p.vy = newP.vy;
-    p.driftAngle = newP.driftAngle;
+    this.respawnScoredRocket(p, w, h, goal);
+    this.ensureRocketFleet(w, h);
 
     this.shakeTimer = this.SHAKE_DURATION;
     this.confetti.push(...createConfetti(goal.x, goal.y, this.CONFETTI_COUNT));
+
+    const sessionScore = this.upgradeState.score;
+    const milestoneNow = this.upgradeState.wouldTriggerMilestone(sessionScore);
+
     this.onScoreCallback?.(points);
     this.progressBar.update(this.upgradeState.nextMilestoneProgress());
-    this.checkMilestoneAndUpgrade(w, h);
+
+    if (!milestoneNow) {
+      this.gameNarrative.onSessionScore(sessionScore);
+    }
+
+    this.updateStoryPacing();
+    this.checkMilestoneAndUpgrade(w, h, milestoneNow ? sessionScore : undefined);
   }
 
-  private checkMilestoneAndUpgrade(w: number, h: number): void {
+  private updateStoryPacing(): void {
+    const inStory = this.upgradeState.score < STORY_SCORE_COMPLETE;
+    this.storyPhaseActive = inStory;
+    this.runManager.entropy.setStoryPhase(inStory);
+    this.runManager.entropy.setKnockbackMultiplier(inStory ? 1.55 : 1);
+
+    if (!inStory && !this.storyPhaseEndedThisRun) {
+      this.storyPhaseEndedThisRun = true;
+      this.gameNarrative.onStoryComplete();
+    }
+  }
+
+  private respawnScoredRocket(p: Particle, w: number, h: number, scoredGoal: GoalPost): void {
+    const fresh = createRocketParticle(w, h, this.DRIFT_SPEED);
+    const goal = this.pickSpawnGoal(scoredGoal);
+
+    if (goal) {
+      placeRocketNearGoal(fresh, w, h, goal, this.getOccupiedPositions(p), 160, this.DRIFT_SPEED);
+    }
+
+    p.x = fresh.x;
+    p.y = fresh.y;
+    p.vx = fresh.vx;
+    p.vy = fresh.vy;
+    p.r = fresh.r;
+    p.opacity = fresh.opacity;
+    p.driftAngle = fresh.driftAngle;
+    p.driftRate = fresh.driftRate;
+    p.pushTime = 0;
+    p.golden = true;
+  }
+
+  /** Keep fleet count up and pair rockets with active black holes. */
+  private ensureRocketFleet(w: number, h: number): void {
+    const mods = this.upgradeState.modifiers;
+    const target = this.GOLDEN_COUNT + mods.extraRockets;
+    const rockets = this.particles.filter((particle) => particle.golden);
+
+    for (const rocket of rockets) {
+      if (!isRocketNearActiveGoal(rocket, this.goals)) {
+        const goal = this.pickSpawnGoal();
+        if (goal) {
+          placeRocketNearGoal(rocket, w, h, goal, this.getOccupiedPositions(rocket), 160, this.DRIFT_SPEED);
+          rocket.pushTime = 0;
+        }
+      }
+    }
+
+    const activeGoals = this.goals.filter((g) => !g.scored);
+    for (let i = rockets.length; i < target; i++) {
+      const rocket = createRocketParticle(w, h, this.DRIFT_SPEED);
+      const goal =
+        activeGoals.length > 0
+          ? activeGoals[i % activeGoals.length]
+          : this.pickSpawnGoal();
+
+      if (goal) {
+        placeRocketNearGoal(rocket, w, h, goal, this.getOccupiedPositions(), 160, this.DRIFT_SPEED);
+      }
+      this.particles.push(rocket);
+    }
+  }
+
+  private checkMilestoneAndUpgrade(w: number, h: number, deferredNarrativeScore?: number): void {
     if (!this.upgradeState.checkMilestone(this.upgradeState.score)) return;
 
     this.paused = true;
@@ -436,21 +551,23 @@ export class ParticleField {
       this.inventory.refresh(this.upgradeState.stackMap);
       this.progressBar.update(this.upgradeState.nextMilestoneProgress());
       this.paused = false;
+      if (deferredNarrativeScore !== undefined) {
+        this.gameNarrative.onSessionScore(deferredNarrativeScore);
+      }
     });
   }
 
   private applyStructuralUpgrades(w: number, h: number): void {
     const mods = this.upgradeState.modifiers;
-    const targetRockets = this.GOLDEN_COUNT + mods.extraRockets;
-    const currentRockets = this.particles.filter(p => p.golden).length;
-    for (let i = currentRockets; i < targetRockets; i++) {
-      this.particles.push(createRocketParticle(w, h, this.DRIFT_SPEED));
-    }
+    this.ensureRocketFleet(w, h);
 
     const targetGoals = this.GOAL_COUNT + mods.extraGoals;
     for (let i = this.goals.length; i < targetGoals; i++) {
       this.goals.push(createGoalPost(w, h, 80, this.getOccupiedPositions()));
     }
+
+    // New black holes should get a nearby rocket if the fleet is spread thin.
+    this.ensureRocketFleet(w, h);
   }
 
   private tickRunSystems(): void {
@@ -468,6 +585,9 @@ export class ParticleField {
     this.runSummary.destroy();
     this.goalsScoredThisRun = 0;
     this.shakeTimer = 0;
+    this.storyPhaseActive = true;
+    this.storyPhaseEndedThisRun = false;
+    this.updateStoryPacing();
     this.spawnWorld();
     this.paused = false;
   }
@@ -495,5 +615,6 @@ export class ParticleField {
     this.progressBar.destroy();
     this.runManager.destroy();
     this.runSummary.destroy();
+    this.gameTutorial.destroy();
   }
 }

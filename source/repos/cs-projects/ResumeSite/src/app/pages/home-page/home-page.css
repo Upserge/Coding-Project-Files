@@ -72,6 +72,41 @@
 .hero-cta-primary:hover{border-color:rgba(192,132,252,0.65)!important;box-shadow:0 8px 24px rgba(192,132,252,0.2)!important}
 .hero-cta-secondary{color:var(--muted)!important;border-style:dashed}
 
+.game-story-strip{
+  position:relative;
+  z-index:3;
+  padding:20px 0 8px;
+  text-align:center;
+}
+.game-story-inner{max-width:720px}
+.game-story-thesis{
+  font-size:clamp(15px,1.7vw,18px);
+  line-height:1.6;
+  color:var(--muted);
+  margin:0 0 12px;
+}
+.game-story-details{
+  font-size:14px;
+  color:var(--muted);
+  text-align:left;
+  margin:0 auto;
+  max-width:560px;
+}
+.game-story-details summary{
+  cursor:pointer;
+  color:var(--accent);
+  font-weight:600;
+  list-style:none;
+  text-align:center;
+}
+.game-story-details summary::-webkit-details-marker{display:none}
+.game-story-bullets{
+  margin:12px 0 0;
+  padding-left:20px;
+  line-height:1.65;
+}
+.game-story-bullets li{margin-bottom:6px}
+
 .work-section{padding-top:48px}
 .work-lead{font-size:clamp(17px,2vw,20px)!important;font-weight:500;color:var(--text)!important;margin:-24px auto 36px auto;max-width:640px}
 .work-showcase{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;max-width:960px;margin:0 auto;text-align:left}

@@ -33,10 +33,8 @@ export const RIOT_VALORANT_CASE_STUDY: CaseStudy = {
       ],
       figures: [
         {
-          src: 'case-studies/valorant-premier-hero.svg',
-          alt: 'VALORANT Premier promotional artwork placeholder',
-          caption:
-            'Placeholder artwork — swap for a licensed VALORANT Premier press asset when ready.',
+          src: 'case-studies/valorant-premier-hero.webp',
+          alt: 'VALORANT Premier press art',
         },
       ],
     },

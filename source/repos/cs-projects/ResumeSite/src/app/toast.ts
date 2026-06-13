@@ -1,14 +1,44 @@
-// Toast notification system for copy feedback
+// Toast notification system — copy feedback + narrative story beats
+
+export type ToastVariant = 'default' | 'narrative';
+
+export interface ToastOptions {
+  readonly variant?: ToastVariant;
+  readonly duration?: number;
+}
+
+const NARRATIVE_Z = 10050;
+const DEFAULT_Z = 10050;
+
 export class Toast {
-  static show(message: string, duration = 2000) {
+  static show(message: string, durationOrOptions?: number | ToastOptions, legacyDuration?: number) {
+    let duration = 2000;
+    let variant: ToastVariant = 'default';
+
+    if (typeof durationOrOptions === 'number') {
+      duration = durationOrOptions;
+    } else if (durationOrOptions) {
+      duration = durationOrOptions.duration ?? 2000;
+      variant = durationOrOptions.variant ?? 'default';
+    }
+    if (legacyDuration !== undefined) {
+      duration = legacyDuration;
+    }
+
     const toast = document.createElement('div');
-    toast.className = 'toast';
+    toast.className = variant === 'narrative' ? 'toast toast-narrative' : 'toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
     toast.textContent = message;
+    toast.style.zIndex = String(variant === 'narrative' ? NARRATIVE_Z : DEFAULT_Z);
     document.body.appendChild(toast);
 
+    // Force reflow so entrance animation runs reliably after DOM insert
+    toast.getBoundingClientRect();
+
     setTimeout(() => {
-      toast.style.animation = 'slideInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) reverse';
-      setTimeout(() => toast.remove(), 400);
+      toast.classList.add('toast-exit');
+      setTimeout(() => toast.remove(), 420);
     }, duration);
   }
 }

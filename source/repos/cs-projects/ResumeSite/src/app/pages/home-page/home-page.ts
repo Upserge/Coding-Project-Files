@@ -8,6 +8,7 @@ import { ResumeService } from '../../resume-service';
 import { Toast } from '../../toast';
 import { getAllCaseStudies } from '../../content/case-studies';
 import { CaseStudy } from '../../content/case-study.types';
+import { GAME_STORY_COPY } from '../../content/game-narrative';
 
 @Component({
   selector: 'app-home-page',
@@ -34,6 +35,7 @@ export class HomePage implements OnDestroy {
       return 0;
     })
   );
+  protected readonly gameStory = GAME_STORY_COPY;
 
   private readonly roles = ['Software Developer', 'Full-Stack Engineer', 'QA Engineer', 'Problem Solver', 'Regular Dude'];
   private roleIndex = 0;

@@ -41,10 +41,24 @@
   </div>
 </header>
 
+<section id="game-story" class="game-story-strip reveal reveal-up" style="--delay: 0.05s" aria-label="About the background game">
+  <div class="container game-story-inner">
+    <p class="game-story-thesis">{{ gameStory.thesis }}</p>
+    <details class="game-story-details">
+      <summary>{{ gameStory.howToTitle }}</summary>
+      <ul class="game-story-bullets">
+        @for (bullet of gameStory.bullets; track bullet) {
+        <li>{{ bullet }}</li>
+        }
+      </ul>
+    </details>
+  </div>
+</section>
+
 <main class="resume-main">
   <section id="work" class="section work-section" [class.highlighted]="highlightedSection() === 'work'">
     <div class="container">
-      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Selected work</h2>
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Case Studies</h2>
       <p class="work-lead reveal reveal-up" style="--delay: 0.15s">
         Case studies with context, approach, and impact — the proof behind the résumé.
       </p>

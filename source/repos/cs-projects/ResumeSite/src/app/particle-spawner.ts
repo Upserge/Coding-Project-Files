@@ -59,11 +59,145 @@ export function placeAwayFromOccupied(
     particle.x = Math.random() * w;
     particle.y = Math.random() * h;
     attempts++;
-  } while (attempts < 40 && occupied.some(o => {
+  } while (attempts < 40 && isTooClose(particle, occupied, minDist));
+}
+
+/** Place a rocket in the current viewport so players can keep scoring without scrolling. */
+export function placeRocketInViewport(
+  particle: Particle,
+  w: number,
+  viewTop: number,
+  viewBottom: number,
+  occupied: readonly { x: number; y: number }[],
+  minDist: number,
+  margin = 72,
+): void {
+  const bandTop = viewTop + margin;
+  const bandBottom = viewBottom - margin;
+  const bandHeight = Math.max(bandBottom - bandTop, margin * 2);
+  const bandLeft = margin;
+  const bandRight = Math.max(w - margin, bandLeft + margin * 2);
+  const bandWidth = bandRight - bandLeft;
+
+  let attempts = 0;
+  do {
+    particle.x = bandLeft + Math.random() * bandWidth;
+    particle.y = bandTop + Math.random() * bandHeight;
+    attempts++;
+  } while (attempts < 50 && isTooClose(particle, occupied, minDist));
+}
+
+function isTooClose(
+  particle: Particle,
+  occupied: readonly { x: number; y: number }[],
+  minDist: number,
+): boolean {
+  const minDistSq = minDist * minDist;
+  return occupied.some((o) => {
     const dx = o.x - particle.x;
     const dy = o.y - particle.y;
-    return Math.sqrt(dx * dx + dy * dy) < minDist;
-  }));
+    return dx * dx + dy * dy < minDistSq;
+  });
+}
+
+function clampToPage(particle: Particle, w: number, h: number, margin = 48): void {
+  particle.x = Math.max(margin, Math.min(w - margin, particle.x));
+  particle.y = Math.max(margin, Math.min(h - margin, particle.y));
+}
+
+/** Extra distance beyond goal.radius — keeps spawns outside capture + assist radii. */
+const ROCKET_ORBIT_MIN_OFFSET = 200;
+const ROCKET_ORBIT_MAX_OFFSET = 420;
+const ROCKET_PAIRING_RADIUS = 460;
+
+/** Orbit an unscored black hole — paired with the hole but outside auto-capture range. */
+export function placeRocketNearGoal(
+  particle: Particle,
+  w: number,
+  h: number,
+  goal: GoalPost,
+  occupied: readonly { x: number; y: number }[],
+  minDistFromOthers = 160,
+  driftSpeed = 0.15,
+): void {
+  const minOrbit = goal.radius + ROCKET_ORBIT_MIN_OFFSET;
+  const maxOrbit = goal.radius + ROCKET_ORBIT_MAX_OFFSET;
+
+  let spawnAngle = 0;
+  let attempts = 0;
+  do {
+    spawnAngle = Math.random() * Math.PI * 2;
+    const dist = minOrbit + Math.random() * (maxOrbit - minOrbit);
+    particle.x = goal.x + Math.cos(spawnAngle) * dist;
+    particle.y = goal.y + Math.sin(spawnAngle) * dist;
+    clampToPage(particle, w, h);
+    attempts++;
+  } while (attempts < 50 && isTooClose(particle, occupied, minDistFromOthers));
+
+  // Tangential drift so rockets don't idle-drift straight into the hole
+  const tangent = spawnAngle + Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1);
+  const speed = driftSpeed * (0.28 + Math.random() * 0.38);
+  particle.vx = Math.cos(tangent) * speed;
+  particle.vy = Math.sin(tangent) * speed;
+  particle.driftAngle = tangent;
+  particle.driftRate = (Math.random() - 0.5) * 0.012;
+  particle.pushTime = 0;
+}
+
+export function getActiveGoals(goals: readonly GoalPost[]): GoalPost[] {
+  return goals.filter((g) => !g.scored);
+}
+
+/** Prefer goals with fewer nearby rockets; optionally skip one (e.g. just scored). */
+export function pickGoalForRocketSpawn(
+  goals: readonly GoalPost[],
+  rockets: readonly Particle[],
+  excludeGoal?: GoalPost,
+): GoalPost | null {
+  const active = goals.filter((g) => !g.scored && g !== excludeGoal);
+  const pool = active.length > 0 ? active : goals.filter((g) => g !== excludeGoal);
+  if (pool.length === 0) return goals[0] ?? null;
+
+  let best = pool[0];
+  let bestCount = countRocketsNear(rockets, best);
+
+  for (let i = 1; i < pool.length; i++) {
+    const candidate = pool[i];
+    const count = countRocketsNear(rockets, candidate);
+    if (count < bestCount) {
+      best = candidate;
+      bestCount = count;
+    }
+  }
+
+  return best;
+}
+
+function countRocketsNear(rockets: readonly Particle[], goal: GoalPost, radius = ROCKET_PAIRING_RADIUS): number {
+  const radiusSq = radius * radius;
+  let count = 0;
+  for (const rocket of rockets) {
+    if (!rocket.golden) continue;
+    const dx = rocket.x - goal.x;
+    const dy = rocket.y - goal.y;
+    if (dx * dx + dy * dy <= radiusSq) count++;
+  }
+  return count;
+}
+
+export function isRocketNearActiveGoal(
+  rocket: Particle,
+  goals: readonly GoalPost[],
+  maxDist = ROCKET_PAIRING_RADIUS,
+): boolean {
+  const maxDistSq = maxDist * maxDist;
+  for (const goal of goals) {
+    if (goal.scored) continue;
+    const dx = rocket.x - goal.x;
+    const dy = rocket.y - goal.y;
+    if (dx * dx + dy * dy <= maxDistSq) return true;
+  }
+  return getActiveGoals(goals).length === 0;
 }
 
 export function createGoalPost(

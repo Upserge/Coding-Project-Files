@@ -18,6 +18,14 @@ export class KeyboardHintsModal {
       <div class="widget-body">
         <div class="shortcut-group">
           <div class="shortcut-item">
+            <kbd>W</kbd>
+            <span>Selected work</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd><span>+</span><kbd>K</kbd>
+            <span>Command palette</span>
+          </div>
+          <div class="shortcut-item">
             <kbd>J</kbd>
             <span>Summary</span>
           </div>

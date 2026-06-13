@@ -2,6 +2,7 @@
 
 import { Upgrade, getCategoryIcon, pickRandomUpgrades, RARITY_COLORS, RARITY_LABELS } from './upgrade-registry';
 import { UpgradeVFX } from './upgrade-vfx';
+import { getUpgradeFlavor } from './content/game-narrative';
 
 type ChoiceCallback = (upgrade: Upgrade) => void;
 
@@ -52,6 +53,8 @@ export class UpgradeModal {
     const cards = choices.map((u, i) => {
       const color = RARITY_COLORS[u.rarity];
       const label = RARITY_LABELS[u.rarity];
+      const flavor = getUpgradeFlavor(u.id);
+      const flavorHtml = flavor ? `<span class="upgrade-flavor">${flavor}</span>` : '';
       return `
       <button class="upgrade-card rarity-${u.rarity}" data-index="${i}"
               style="--card-delay: ${i * 0.08}s; --rarity-color: ${color}">
@@ -59,6 +62,7 @@ export class UpgradeModal {
         <span class="upgrade-icon">${getCategoryIcon(u.category)}</span>
         <span class="upgrade-name">${u.name}</span>
         <span class="upgrade-desc">${u.description}</span>
+        ${flavorHtml}
         <span class="upgrade-category">${u.category}</span>
       </button>
     `;

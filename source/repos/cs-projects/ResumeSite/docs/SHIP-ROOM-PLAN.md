@@ -13,8 +13,8 @@ Last updated: **2026-06-13**
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| **Phase 1** | Case study foundation | **Mostly complete** — see [Phase 1 notes](#phase-1--case-study-foundation) |
-| **Phase 2** | Game ↔ story connection | Not started |
+| **Phase 1** | Case study foundation | **Complete** — see [Phase 1 notes](#phase-1--case-study-foundation) |
+| **Phase 2** | Game ↔ story connection | **Mostly complete** — story pacing, tutorial, palette; see [Phase 2](#phase-2--game--story-connection) |
 | **Phase 3** | Cinematic work reel | Not started |
 | **Phase 4** | About + proof | Not started |
 
@@ -29,10 +29,11 @@ Last updated: **2026-06-13**
 
 **Open follow-ups from Phase 1:**
 
-- [ ] Replace VALORANT Premier placeholder hero (`public/case-studies/valorant-premier-hero.svg`) with licensed press art
+- [x] VALORANT Premier hero image (`public/case-studies/valorant-premier-hero.webp`)
+- [x] Resume Site hero image (`public/case-studies/resume-site-hero.jpg`)
 - [ ] Add real colleague testimonial in `riot-valorant.ts`
-- [ ] Particle field: full-page coverage on route changes (partial fix in `particle-field.ts`; revisit end of iteration)
-- [ ] Optional: pause or scope game systems on case study routes
+- [x] Particle field: full-page coverage on route changes (`refreshPageLayout`, `ResizeObserver`)
+- [ ] Optional: pause or scope game HUD on case study routes
 
 ---
 
@@ -170,33 +171,37 @@ Placeholder assets: `public/case-studies/*.svg`
 
 ### 2.1 “Why the game?” onboarding strip
 
-One-line thesis on home (below hero or in summary). Collapsible “What am I playing?” with 3 bullets tying game to résumé.
+One-line thesis on home (below hero). Collapsible “What am I playing?” with 3 bullets tying game to résumé.
 
-**Files:** `home-page.html`, `home-page.css`, optional `src/app/content/game-narrative.ts`
+**Files:** `home-page.html`, `home-page.css`, `src/app/content/game-narrative.ts` — **Done**
 
 ### 2.2 Score-tier narrative toasts
 
 | Score | One-time toast |
 |-------|----------------|
-| 5 | Focus mode / spectacle vs clarity |
-| 15 | Entropy + combos as systems thinking |
-| 50 | Builder mode + link to Resume Site case study |
+| 3 | Focus mode / spectacle vs clarity |
+| 6 | Entropy + combos as systems thinking |
+| 12 | Story complete + challenge mode |
 
-Each fires once per session (`sessionStorage`).
+**Done** — `game-narrative.ts`, `GameNarrative` class. Story phase (score &lt; 12): entropy cannot end run; easier goal radius + tractor assist.
 
 ### 2.3 Upgrade → résumé bridge
 
-Flavor copy on certain upgrades (e.g. black hole → scale/quality at Riot). Copy in `game-narrative.ts`, not hardcoded in game logic.
+Flavor copy on upgrades in `UPGRADE_FLAVOR` — **Done** (`upgrade-modal.ts`)
 
 ### 2.4 Command palette
 
-**Ctrl+K** / `/` — jump to section, open case study, copy email, toggle theme, “Explain the game”. Extend `keyboard-shortcuts.ts` / hints modal.
+**Ctrl+K** — jump to section, case studies, copy email, theme, tutorial. **Done** (`command-palette.ts`, `app.ts`)
 
 ### 2.5 Focus mode copy upgrade
 
-Explain opacity tiers (0 / 5 / 10 / 15 score). Optional “Reading mode” label.
+Toggle tooltips explain opacity tiers — **Done** (`focus-mode.ts`)
 
-**Phase 2 exit:** First-time visitors understand the game without an interview explanation.
+### 2.6 Game tutorial overlay
+
+First-visit 3-step overlay on home — **Done** (`game-tutorial.ts`, localStorage `resume-site-game-tutorial-v1`)
+
+**Phase 2 exit:** First-time visitors understand the game without an interview explanation. *(Ready for deploy review.)*
 
 ---
 

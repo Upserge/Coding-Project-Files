@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router
 import { filter, map, startWith } from 'rxjs/operators';
 import { ResumeService } from './resume-service';
 import { KeyboardHintsModal } from './keyboard-hints-modal';
+import { CommandPalette } from './command-palette';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +18,7 @@ export class App {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private keyboardHintsModal: KeyboardHintsModal | null = null;
+  private commandPalette: CommandPalette | null = null;
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -43,6 +45,7 @@ export class App {
       this.resumeService.initParticleField();
       this.resumeService.initLeaderboard();
       this.resumeService.initFocusMode();
+      this.initCommandPalette();
       this.initKeyboardShortcuts();
     });
 
@@ -53,7 +56,46 @@ export class App {
     this.destroyRef.onDestroy(() => {
       this.resumeService.dispose();
       this.keyboardHintsModal?.destroy();
+      this.commandPalette?.destroy();
     });
+  }
+
+  private initCommandPalette(): void {
+    this.commandPalette = new CommandPalette();
+    this.commandPalette.init([
+      { id: 'work', label: 'Go to Selected work', hint: 'W', run: () => this.resumeService.scrollTo('work') },
+      { id: 'summary', label: 'Go to Summary', hint: 'J', run: () => this.resumeService.scrollTo('summary') },
+      { id: 'technologies', label: 'Go to Technologies', hint: 'K', run: () => this.resumeService.scrollTo('technologies') },
+      { id: 'experience', label: 'Go to Experience', hint: 'L', run: () => this.resumeService.scrollTo('experience') },
+      { id: 'projects', label: 'Go to Projects', hint: ';', run: () => this.resumeService.scrollTo('projects') },
+      {
+        id: 'valorant',
+        label: 'Read VALORANT case study',
+        run: () => void this.router.navigate(['/work/riot-valorant']),
+      },
+      {
+        id: 'resume-site',
+        label: 'Read Resume Site case study',
+        run: () => void this.router.navigate(['/work/resume-site']),
+      },
+      { id: 'game-story', label: 'How to play the background game', run: () => this.goToGameStory() },
+      { id: 'tutorial', label: 'Show game tutorial', run: () => this.resumeService.showGameTutorial() },
+      { id: 'email', label: 'Copy email address', run: () => void this.resumeService.copyEmail() },
+      { id: 'theme', label: 'Toggle dark / light mode', hint: 'D', run: () => this.toggleDarkMode() },
+      { id: 'leaderboard', label: 'Open leaderboard', hint: 'S', run: () => this.showLeaderboard() },
+      { id: 'shortcuts', label: 'Keyboard shortcuts', hint: '?', run: () => this.showKeyboardHints() },
+    ]);
+  }
+
+  private goToGameStory(): void {
+    const onHome = this.isHome();
+    if (!onHome) {
+      void this.router.navigate(['/']).then(() => {
+        setTimeout(() => this.resumeService.scrollTo('game-story'), 120);
+      });
+      return;
+    }
+    this.resumeService.scrollTo('game-story');
   }
 
   private initKeyboardShortcuts() {
@@ -66,7 +108,9 @@ export class App {
       ';': () => this.resumeService.scrollTo('projects'),
       s: () => this.showLeaderboard(),
       '?': () => this.showKeyboardHints(),
+      'ctrl+k': () => this.commandPalette?.show(),
       Escape: () => {
+        this.commandPalette?.close();
         this.closeKeyboardHints();
         this.closeLeaderboard();
       },

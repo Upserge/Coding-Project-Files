@@ -1,9 +1,10 @@
 // Tracks session score, active upgrades, milestones, and computed modifiers
 
 import { Upgrade, UPGRADE_POOL } from './upgrade-registry';
+import { SESSION_MILESTONES, POST_STORY_MILESTONE_INTERVAL } from './content/game-narrative';
 
-const MILESTONES = [1, 5, 15, 30, 50] as const;
-const MILESTONE_REPEAT_INTERVAL = 20;
+const MILESTONES = SESSION_MILESTONES;
+const MILESTONE_REPEAT_INTERVAL = POST_STORY_MILESTONE_INTERVAL;
 
 export interface GameModifiers {
   readonly repulseRadiusMul: number;
@@ -57,22 +58,31 @@ export class UpgradeState {
   }
 
   checkMilestone(totalScore: number): boolean {
+    if (!this.wouldTriggerMilestone(totalScore)) return false;
+
+    const nextIndex = this.lastMilestoneIndex + 1;
+    if (nextIndex < MILESTONES.length) {
+      this.lastMilestoneIndex = nextIndex;
+      return true;
+    }
+
+    this.lastMilestoneIndex++;
+    return true;
+  }
+
+  /** Peek whether this score would trigger a milestone without advancing state. */
+  wouldTriggerMilestone(totalScore: number): boolean {
     const nextIndex = this.lastMilestoneIndex + 1;
 
     if (nextIndex < MILESTONES.length) {
-      if (totalScore < MILESTONES[nextIndex]) return false;
-      this.lastMilestoneIndex = nextIndex;
-      return true;
+      return totalScore >= MILESTONES[nextIndex];
     }
 
     const lastFixed = MILESTONES[MILESTONES.length - 1];
     const overshoot = totalScore - lastFixed;
     const repeatsNeeded = Math.floor(overshoot / MILESTONE_REPEAT_INTERVAL);
     const repeatsTriggered = this.lastMilestoneIndex - (MILESTONES.length - 1);
-    if (repeatsNeeded <= repeatsTriggered) return false;
-
-    this.lastMilestoneIndex++;
-    return true;
+    return repeatsNeeded > repeatsTriggered;
   }
 
   computeScorePoints(): number {

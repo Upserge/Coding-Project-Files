@@ -12,9 +12,24 @@ export class KeyboardShortcuts {
 
   init() {
     fromEvent<KeyboardEvent>(document, 'keydown').pipe(
-      filter(e => (e.target as HTMLElement).tagName !== 'INPUT'),
+      filter((e) => {
+        const tag = (e.target as HTMLElement).tagName;
+        const inInput = tag === 'INPUT' || tag === 'TEXTAREA';
+        const ctrlOrMeta = e.ctrlKey || e.metaKey;
+        if (ctrlOrMeta && e.key.toLowerCase() === 'k') return true;
+        return !inInput;
+      }),
       takeUntil(this.destroy$)
-    ).subscribe(e => {
+    ).subscribe((e) => {
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+      if (ctrlOrMeta && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const callback = this.callbacks.get('ctrl+k');
+        if (callback) callback();
+        return;
+      }
+      if (ctrlOrMeta) return;
+
       const key = e.key.toLowerCase();
       const callback = this.callbacks.get(key);
       if (callback) {

@@ -8,8 +8,12 @@ export interface EntropySnapshot {
 }
 
 const BASE_RATE = 0.00025;
+const STORY_RATE_MUL = 0.35;
+const STORY_MAX_VALUE = 0.72;
 const ACCELERATION_PER_SECOND = 0.0000012;
+const STORY_ACCEL_MUL = 0.25;
 const BASE_KNOCKBACK = 0.15;
+const STORY_KNOCKBACK_MUL = 1.55;
 const FREEZE_FRAMES = 180; // 3 seconds at 60fps
 const DANGER_THRESHOLD = 0.7;
 
@@ -18,6 +22,8 @@ export class EntropyMeter {
   private elapsed = 0;
   private freezeTimer = 0;
   private rateMul = 1;
+  private storyPhase = false;
+  private knockbackMul = 1;
 
   private container: HTMLElement | null = null;
   private fill: HTMLElement | null = null;
@@ -39,7 +45,20 @@ export class EntropyMeter {
     this.container.style.display = 'none';
   }
 
-  /** Call once per frame. Returns true when entropy hits 100%. */
+  /** Story phase: entropy cannot end the run; fills slowly with a lower cap. */
+  setStoryPhase(active: boolean): void {
+    this.storyPhase = active;
+    if (active && this.value > STORY_MAX_VALUE) {
+      this.value = STORY_MAX_VALUE;
+    }
+    this.updateDOM();
+  }
+
+  setKnockbackMultiplier(mul: number): void {
+    this.knockbackMul = mul;
+  }
+
+  /** Call once per frame. Returns true when entropy hits 100% (challenge mode only). */
   tick(): boolean {
     if (this.freezeTimer > 0) {
       this.freezeTimer--;
@@ -48,8 +67,16 @@ export class EntropyMeter {
     }
 
     this.elapsed++;
-    const accel = 1 + (this.elapsed / 60) * ACCELERATION_PER_SECOND * 60;
-    this.value += BASE_RATE * accel * this.rateMul;
+    const accelBase = this.storyPhase ? ACCELERATION_PER_SECOND * STORY_ACCEL_MUL : ACCELERATION_PER_SECOND;
+    const rateBase = this.storyPhase ? BASE_RATE * STORY_RATE_MUL : BASE_RATE;
+    const accel = 1 + (this.elapsed / 60) * accelBase * 60;
+    this.value += rateBase * accel * this.rateMul;
+    if (this.storyPhase) {
+      this.value = Math.min(this.value, STORY_MAX_VALUE);
+      this.updateDOM();
+      return false;
+    }
+
     this.value = Math.min(this.value, 1);
 
     this.updateDOM();
@@ -58,10 +85,8 @@ export class EntropyMeter {
 
   /** Push entropy back when a goal is scored. */
   knockback(comboMultiplier: number): void {
-    console.log('[EntropyMeter.knockback] value before:', this.value, 'comboMultiplier:', comboMultiplier);
-    this.value -= BASE_KNOCKBACK * comboMultiplier;
+    this.value -= BASE_KNOCKBACK * this.knockbackMul * comboMultiplier;
     this.value = Math.max(this.value, 0);
-    console.log('[EntropyMeter.knockback] value after:', this.value);
   }
 
   /** Freeze entropy for a short burst (emergency-vent upgrade). */
@@ -82,6 +107,8 @@ export class EntropyMeter {
     this.elapsed = 0;
     this.freezeTimer = 0;
     this.rateMul = 1;
+    this.storyPhase = false;
+    this.knockbackMul = 1;
     this.updateDOM();
   }
 
@@ -122,6 +149,16 @@ export class EntropyMeter {
 
     const pct = Math.min(this.value * 100, 100);
     this.fill.style.width = `${pct}%`;
+
+    if (this.storyPhase) {
+      this.label.textContent = 'Story';
+      this.container.classList.remove('entropy-danger');
+      this.container.classList.toggle('entropy-frozen', this.freezeTimer > 0);
+      this.container.classList.add('entropy-story');
+      return;
+    }
+
+    this.container.classList.remove('entropy-story');
     this.label.textContent = `${Math.floor(pct)}%`;
 
     this.container.classList.toggle('entropy-danger', this.value >= DANGER_THRESHOLD);

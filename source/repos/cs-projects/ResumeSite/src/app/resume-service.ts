@@ -13,6 +13,7 @@ import { Leaderboard } from './leaderboard';
 import { FocusMode } from './focus-mode';
 import { buildSymmetricCategories, TechCategoryDisplay } from './tech-grid';
 import { ShaderHero } from './shader-hero';
+import { Toast } from './toast';
 
 export interface ContactInfo {
   email: string;
@@ -222,16 +223,34 @@ export class ResumeService {
   }
 
   initParticleField() {
+    const onHome = this.router.url === '/' || this.router.url === '';
     this.particleField = new ParticleField();
-    this.particleField.init((points: number) => {
-      this.score.update(s => s + points);
-      this.leaderboard?.onScore(this.score());
-      this.focusMode?.onScore(this.score());
-    });
+    this.particleField.init(
+      (points: number) => {
+        this.score.update((s) => s + points);
+        this.leaderboard?.onScore(this.score());
+        this.focusMode?.onScore(this.score());
+      },
+      { enableTutorial: onHome }
+    );
   }
 
   refreshParticleFieldLayout(): void {
     this.particleField?.refreshPageLayout();
+  }
+
+  showGameTutorial(): void {
+    this.particleField?.showGameTutorial();
+  }
+
+  async copyEmail(): Promise<void> {
+    const email = this.getResume().contact.email;
+    try {
+      await navigator.clipboard.writeText(email);
+      Toast.show('Email copied!');
+    } catch {
+      Toast.show('Failed to copy email');
+    }
   }
 
   initLeaderboard() {
