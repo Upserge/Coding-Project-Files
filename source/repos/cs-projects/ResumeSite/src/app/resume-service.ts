@@ -1,5 +1,6 @@
 import { Injectable, signal, inject, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { fromEvent } from 'rxjs';
 import { throttleTime, map } from 'rxjs/operators';
 import { Firestore } from '@angular/fire/firestore';
@@ -28,6 +29,7 @@ export interface ProjectItem {
   title: string;
   description?: string;
   url?: string;
+  caseStudySlug?: string;
   tags?: string[];
   featured?: boolean;
 }
@@ -78,6 +80,7 @@ export class ResumeService {
         title: 'Resume Site',
         description: 'Interactive portfolio built with Angular, featuring animated timeline, keyboard shortcuts, and WebGL effects.',
         url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/ResumeSite',
+        caseStudySlug: 'resume-site',
         tags: ['Angular', 'WebGL', 'Firebase', 'Canvas'],
         featured: true,
       },
@@ -121,6 +124,7 @@ export class ResumeService {
   private shaderHero: ShaderHero | null = null;
 
   private readonly firestore = inject(Firestore);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
@@ -147,6 +151,23 @@ export class ResumeService {
     setTimeout(() => {
       document.querySelectorAll('.reveal').forEach((el) => this.revealObserver?.observe(el));
     }, 50);
+  }
+
+  refreshReveal() {
+    this.revealObserver?.disconnect();
+    this.revealObserver = null;
+    this.initReveal();
+  }
+
+  refreshMagneticButtons() {
+    this.magneticButtons?.destroy();
+    this.magneticButtons = new MagneticButtons();
+    this.magneticButtons.init();
+  }
+
+  destroyShaderHero() {
+    this.shaderHero?.destroy();
+    this.shaderHero = null;
   }
 
   initShaderHero() {
@@ -209,6 +230,10 @@ export class ResumeService {
     });
   }
 
+  refreshParticleFieldLayout(): void {
+    this.particleField?.refreshPageLayout();
+  }
+
   initLeaderboard() {
     this.leaderboard = new Leaderboard(this.firestore);
     this.leaderboard.init((storedBest) => {
@@ -257,18 +282,38 @@ export class ResumeService {
 
   // ===== User Interaction Methods =====
   scrollTo(id: string) {
-    const el = document.getElementById(id);
-    if (el) {
-      this.highlightedSection.set(id);
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(() => {
-        this.highlightedSection.set(null);
-      }, 2500);
+    const scrollToSection = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        this.highlightedSection.set(id);
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => {
+          this.highlightedSection.set(null);
+        }, 2500);
+      }
+    };
+
+    const onHome = this.router.url === '/' || this.router.url === '';
+    if (onHome) {
+      scrollToSection();
+      return;
     }
+
+    void this.router.navigate(['/']).then(() => {
+      setTimeout(scrollToSection, 120);
+    });
   }
 
   scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const onHome = this.router.url === '/' || this.router.url === '';
+    if (onHome) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    void this.router.navigate(['/']).then(() => {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    });
   }
 
   // ===== Resume Data Methods =====

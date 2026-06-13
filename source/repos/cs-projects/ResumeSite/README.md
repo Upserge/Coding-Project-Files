@@ -1,6 +1,12 @@
 # ResumeSite
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.14.
+Interactive Angular portfolio (WebGL hero, canvas game, Firebase leaderboard) deployed to [Jason.io](https://upserge.github.io/Jason.io/).
+
+## Project docs
+
+| Doc | Description |
+|-----|-------------|
+| [docs/SHIP-ROOM-PLAN.md](docs/SHIP-ROOM-PLAN.md) | Master phased plan for the portfolio overhaul (case studies, game narrative, work reel, about page) |
 
 ## Development server
 

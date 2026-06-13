@@ -32,6 +32,7 @@ export class ParticleField {
   private shakeTimer = 0;
   private onScoreCallback: ((points: number) => void) | null = null;
   private pageHeight = 0;
+  private layoutObserver: ResizeObserver | null = null;
   private readonly upgradeState = new UpgradeState();
   private readonly upgradeModal = new UpgradeModal();
   private readonly inventory = new UpgradeInventory();
@@ -99,7 +100,23 @@ export class ParticleField {
     this.progressBar.init();
     this.runManager.init((stats) => this.runSummary.show(stats, () => this.restartRun()));
 
+    if (typeof ResizeObserver !== 'undefined') {
+      this.layoutObserver = new ResizeObserver(() => this.refreshPageLayout());
+      this.layoutObserver.observe(document.body);
+    }
+
     this.render();
+  }
+
+  /** Re-measure scroll height after routed page content mounts (shell loads before HomePage). */
+  refreshPageLayout(): void {
+    const prev = this.pageHeight;
+    this.updatePageHeight();
+    const wasUndersized = prev < window.innerHeight * 1.2;
+    const grew = this.pageHeight > prev + 80;
+    if (wasUndersized && grew) {
+      this.spawnWorld();
+    }
   }
 
   private resize() {
@@ -466,6 +483,8 @@ export class ParticleField {
     if (this.visibilityHandler) {
       document.removeEventListener('visibilitychange', this.visibilityHandler);
     }
+    this.layoutObserver?.disconnect();
+    this.layoutObserver = null;
     document.removeEventListener('mousemove', this.onMouseMove);
     document.removeEventListener('mouseleave', this.onMouseLeave);
     this.canvas?.remove();

@@ -1,0 +1,70 @@
+@if (study) {
+<article class="case-study">
+  <header class="case-hero">
+    @if (study.heroImage) {
+    <img class="case-hero-image" [src]="study.heroImage" [alt]="study.title" decoding="async" />
+    <div class="case-hero-overlay" aria-hidden="true"></div>
+    }
+    <div class="container case-hero-content">
+      <a routerLink="/" class="case-back-link">← Back to home</a>
+      <p class="case-kicker">{{ study.timeframe }}</p>
+      <h1 class="case-title">{{ study.title }}</h1>
+      <p class="case-subtitle">{{ study.subtitle }}</p>
+      <p class="case-role">{{ study.role }}</p>
+      <ul class="case-tags" aria-label="Topics">
+        @for (tag of study.tags; track tag) {
+        <li class="case-tag">{{ tag }}</li>
+        }
+      </ul>
+    </div>
+  </header>
+
+  <div class="container case-body">
+    <section class="case-summary reveal reveal-up" style="--delay: 0.05s">
+      <h2 class="case-section-label">Overview</h2>
+      <p class="case-summary-text">{{ study.summary }}</p>
+    </section>
+
+    <section class="case-metrics reveal reveal-up" style="--delay: 0.1s" aria-label="Key metrics">
+      @for (metric of study.metrics; track metric.label) {
+      <div class="case-metric">
+        <span class="case-metric-value">{{ metric.value }}</span>
+        <span class="case-metric-label">{{ metric.label }}</span>
+      </div>
+      }
+    </section>
+
+    @for (section of study.sections; track section.id; let i = $index) {
+    <section class="case-section reveal reveal-up" [style]="'--delay: ' + (0.15 + i * 0.08) + 's'">
+      <h2 class="case-section-title">{{ section.title }}</h2>
+      @for (paragraph of section.body; track $index) {
+      <p class="case-paragraph">{{ paragraph }}</p>
+      }
+      @if (section.figures?.length) {
+      <div class="case-figures">
+        @for (figure of section.figures; track figure.src) {
+        <figure class="case-figure">
+          <img [src]="figure.src" [alt]="figure.alt" loading="lazy" decoding="async" />
+          @if (figure.caption) {
+          <figcaption>{{ figure.caption }}</figcaption>
+          }
+        </figure>
+        }
+      </div>
+      }
+    </section>
+    }
+
+    @if (study.externalLinks.length) {
+    <section class="case-cta reveal reveal-up" style="--delay: 0.2s">
+      <h2 class="case-section-label">Links</h2>
+      <div class="case-links">
+        @for (link of study.externalLinks; track link.url) {
+        <a [href]="link.url" target="_blank" rel="noopener" class="link-btn">{{ link.label }}</a>
+        }
+      </div>
+    </section>
+    }
+  </div>
+</article>
+}
