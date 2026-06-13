@@ -7,7 +7,7 @@ export const RIOT_VALORANT_CASE_STUDY: CaseStudy = {
   role: 'Quality Owner — Premier (0→1) · Quality Lead — Competitive',
   timeframe: 'Riot Games · 2020 — Present',
   tags: ['Test strategy', 'Automation', 'Global launch', 'Offshore leadership'],
-  heroImage: 'case-studies/valorant-premier-hero.svg',
+  heroImage: 'case-studies/valorant-premier-hero.webp',
   externalLinks: [
     {
       label: 'LinkedIn',

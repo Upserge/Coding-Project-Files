@@ -1,6 +1,8 @@
-<nav class="top-nav" [class.hidden]="isNavHidden()">
+@if (isHome()) {
+<nav class="top-nav">
   <div class="container nav-inner">
     <div class="nav-links">
+      <a [class.active]="highlightedSection() === 'work'" (click)="scrollTo('work')">Work</a>
       <a [class.active]="highlightedSection() === 'summary'" (click)="scrollTo('summary')">Summary</a>
       <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
       <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
@@ -16,7 +18,21 @@
     </div>
   </div>
 </nav>
+} @else {
+<div class="subpage-dock" aria-label="Page controls">
+  <a routerLink="/" class="subpage-dock-pill subpage-dock-home">← Home</a>
+  <div class="subpage-dock-utils">
+    @if (score() > 0) {
+      <button type="button" class="subpage-dock-pill subpage-dock-score" (click)="showLeaderboard()" title="View leaderboard">
+        🏆 {{ score() }}
+      </button>
+    }
+    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
+    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
+  </div>
+</div>
+}
 
-<main class="app-page-host">
+<main class="app-page-host" [class.app-page-host--home]="isHome()">
   <router-outlet />
 </main>

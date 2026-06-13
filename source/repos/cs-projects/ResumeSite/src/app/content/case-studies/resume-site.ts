@@ -7,7 +7,7 @@ export const RESUME_SITE_CASE_STUDY: CaseStudy = {
   role: 'Designer, developer, and deploy owner',
   timeframe: '2024 — Present',
   tags: ['Angular', 'WebGL', 'Canvas', 'Firebase', 'GitHub Pages'],
-  heroImage: 'case-studies/resume-site-hero.svg',
+  heroImage: 'case-studies/resume-site-hero.jpg',
   externalLinks: [
     {
       label: 'View source on GitHub',

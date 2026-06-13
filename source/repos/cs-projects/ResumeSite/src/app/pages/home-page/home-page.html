@@ -33,10 +33,53 @@
       }
       <button class="link-btn copy" (click)="copyEmail()">Copy Email</button>
     </div>
+
+    <div class="hero-work-cta hero-fade" style="--hero-delay: 2.5s">
+      <a routerLink="/work/riot-valorant" class="link-btn hero-cta-primary">Read featured case study</a>
+      <button type="button" class="link-btn hero-cta-secondary" (click)="scrollToWork()">View all work</button>
+    </div>
   </div>
 </header>
 
 <main class="resume-main">
+  <section id="work" class="section work-section" [class.highlighted]="highlightedSection() === 'work'">
+    <div class="container">
+      <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Selected work</h2>
+      <p class="work-lead reveal reveal-up" style="--delay: 0.15s">
+        Case studies with context, approach, and impact — the proof behind the résumé.
+      </p>
+      <div class="work-showcase">
+        @for (study of caseStudies(); track study.slug; let i = $index) {
+        <a
+          [routerLink]="['/work', study.slug]"
+          class="work-card reveal reveal-scale"
+          [class.work-card--flagship]="study.slug === 'riot-valorant'"
+          [style]="'--delay: ' + (0.2 + i * 0.1) + 's'"
+        >
+          @if (study.heroImage) {
+          <div class="work-card-visual">
+            <img [src]="study.heroImage" [alt]="" decoding="async" />
+          </div>
+          }
+          <div class="work-card-body">
+            <span class="work-card-kicker">{{ study.timeframe }}</span>
+            <h3 class="work-card-title">{{ study.title }}</h3>
+            <p class="work-card-subtitle">{{ study.subtitle }}</p>
+            @if (study.metrics.length) {
+            <ul class="work-card-metrics" aria-label="Highlights">
+              @for (metric of study.metrics.slice(0, 3); track metric.label) {
+              <li><strong>{{ metric.value }}</strong> {{ metric.label }}</li>
+              }
+            </ul>
+            }
+            <span class="work-card-cta">Read case study →</span>
+          </div>
+        </a>
+        }
+      </div>
+    </div>
+  </section>
+
   <section id="summary" class="section" [class.highlighted]="highlightedSection() === 'summary'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Summary</h2>
@@ -69,9 +112,6 @@
         </div>
       </div>
       <p class="summary-cta reveal reveal-up" style="--delay: 0.85s">Now looking for the next thing worth building.</p>
-      <a routerLink="/work/riot-valorant" class="summary-case-link reveal reveal-up" style="--delay: 0.9s">
-        Quality at global scale — Read the VALORANT case study →
-      </a>
     </div>
   </section>
 

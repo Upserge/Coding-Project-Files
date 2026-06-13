@@ -6,6 +6,8 @@ import { timer } from 'rxjs';
 import { expand } from 'rxjs/operators';
 import { ResumeService } from '../../resume-service';
 import { Toast } from '../../toast';
+import { getAllCaseStudies } from '../../content/case-studies';
+import { CaseStudy } from '../../content/case-study.types';
 
 @Component({
   selector: 'app-home-page',
@@ -25,6 +27,13 @@ export class HomePage implements OnDestroy {
   protected readonly contact = computed(() => this.resume().contact);
   protected readonly links = computed(() => this.resume().links);
   protected readonly techCategories = computed(() => this.resumeService.getTechCategories());
+  protected readonly caseStudies = signal<CaseStudy[]>(
+    [...getAllCaseStudies()].sort((a, b) => {
+      if (a.slug === 'riot-valorant') return -1;
+      if (b.slug === 'riot-valorant') return 1;
+      return 0;
+    })
+  );
 
   private readonly roles = ['Software Developer', 'Full-Stack Engineer', 'QA Engineer', 'Problem Solver', 'Regular Dude'];
   private roleIndex = 0;
@@ -96,5 +105,9 @@ export class HomePage implements OnDestroy {
     if (link) {
       this.openLink(link);
     }
+  }
+
+  scrollToWork() {
+    this.resumeService.scrollTo('work');
   }
 }

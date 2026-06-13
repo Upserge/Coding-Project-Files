@@ -1,24 +1,39 @@
 import { Component, computed, inject, afterNextRender, DestroyRef } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter, map, startWith } from 'rxjs/operators';
 import { ResumeService } from './resume-service';
 import { KeyboardHintsModal } from './keyboard-hints-modal';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, RouterLink],
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
 })
 export class App {
   private readonly resumeService = inject(ResumeService);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private keyboardHintsModal: KeyboardHintsModal | null = null;
 
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+      startWith(this.router.url)
+    ),
+    { initialValue: this.router.url }
+  );
+
   protected readonly isDarkMode = computed(() => this.resumeService.isDarkMode());
-  protected readonly isNavHidden = computed(() => this.resumeService.isNavHidden());
   protected readonly highlightedSection = this.resumeService.highlightedSection;
   protected readonly score = computed(() => this.resumeService.score());
+  protected readonly isHome = computed(() => {
+    const url = this.currentUrl();
+    return url === '/' || url === '';
+  });
 
   constructor() {
     afterNextRender(() => {
@@ -44,6 +59,7 @@ export class App {
   private initKeyboardShortcuts() {
     this.resumeService.initKeyboardShortcuts({
       d: () => this.toggleDarkMode(),
+      w: () => this.resumeService.scrollTo('work'),
       j: () => this.resumeService.scrollTo('summary'),
       k: () => this.resumeService.scrollTo('technologies'),
       l: () => this.resumeService.scrollTo('experience'),
