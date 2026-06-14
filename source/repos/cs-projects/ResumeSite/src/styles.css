@@ -550,15 +550,14 @@ button:active::before {
 }
 
 .upgrade-inventory.collapsed { width: auto; }
-.upgrade-inventory.collapsed .inventory-list { max-height: 0; opacity: 0; padding: 0; }
-.upgrade-inventory.collapsed .inventory-label { display: none; }
+.upgrade-inventory.collapsed .inventory-list { max-height: 0; opacity: 0; padding: 0; margin: 0; border: none; }
 
 .inventory-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 12px;
   background: none;
   border: none;
   color: var(--text);
@@ -567,18 +566,25 @@ button:active::before {
   font-weight: 600;
   position: relative;
   transition: background 0.2s ease;
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
 .inventory-toggle:hover {
   background: rgba(124, 92, 255, 0.08);
 }
 
-.inventory-icon { font-size: 18px; }
+.inventory-icon { font-size: 18px; flex-shrink: 0; }
+
+.inventory-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+}
 
 .inventory-badge {
-  position: absolute;
-  top: 4px;
-  right: 8px;
+  flex-shrink: 0;
   min-width: 18px;
   height: 18px;
   border-radius: 9px;
@@ -589,7 +595,8 @@ button:active::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
+  padding: 0 5px;
+  margin-left: auto;
 }
 
 .inventory-list {

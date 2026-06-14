@@ -45,7 +45,10 @@ export class UpgradeInventory {
     panel.className = 'upgrade-inventory collapsed';
 
     const toggle = document.createElement('button');
+    toggle.type = 'button';
     toggle.className = 'inventory-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', 'upgrade-inventory-list');
     toggle.innerHTML = '<span class="inventory-icon">🛡️</span><span class="inventory-label">Upgrades</span>';
     toggle.addEventListener('click', () => this.toggleCollapse());
 
@@ -56,6 +59,7 @@ export class UpgradeInventory {
 
     this.listEl = document.createElement('div');
     this.listEl.className = 'inventory-list';
+    this.listEl.id = 'upgrade-inventory-list';
 
     panel.appendChild(toggle);
     panel.appendChild(this.listEl);
@@ -66,6 +70,8 @@ export class UpgradeInventory {
     if (!this.panel) return;
     this.collapsed = !this.collapsed;
     this.panel.classList.toggle('collapsed', this.collapsed);
+    const toggle = this.panel.querySelector('.inventory-toggle');
+    toggle?.setAttribute('aria-expanded', String(!this.collapsed));
   }
 
   private getAcquiredUpgrades(stacks: ReadonlyMap<string, number>): Upgrade[] {
