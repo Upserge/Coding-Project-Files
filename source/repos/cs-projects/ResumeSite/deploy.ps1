@@ -160,14 +160,14 @@ try {
         throw "Build output folder is empty: $DistBrowser"
     }
 
-    foreach ($file in $builtFiles) {
-        Copy-Item -Path $file.FullName -Destination (Join-Path $JasonIoRoot $file.Name) -Force
-    }
+    # Copy full build output (root bundles + public asset folders like work/, case-studies/).
+    Copy-Item -Path (Join-Path $DistBrowser "*") -Destination $JasonIoRoot -Recurse -Force
 
     Copy-Item -Path (Join-Path $DistBrowser "index.html") -Destination (Join-Path $JasonIoRoot "404.html") -Force
 
     $newMain = (Get-ChildItem -Path $DistBrowser -Filter "main-*.js" | Select-Object -First 1).Name
     $newStyles = (Get-ChildItem -Path $DistBrowser -Filter "styles-*.css" | Select-Object -First 1).Name
+    $newChunks = @(Get-ChildItem -Path $DistBrowser -Filter "chunk-*.js" | ForEach-Object { $_.Name })
 
     Get-ChildItem -Path $JasonIoRoot -Filter "main-*.js" | ForEach-Object {
         if ($_.Name -ne $newMain) {
@@ -185,7 +185,13 @@ try {
         }
     }
 
-    Get-ChildItem -Path $JasonIoRoot -Filter "chunk-*.js" | Remove-Item -Force
+    # Remove only stale lazy chunks from prior builds; keep chunks required by index.html.
+    Get-ChildItem -Path $JasonIoRoot -Filter "chunk-*.js" | ForEach-Object {
+        if ($newChunks -notcontains $_.Name) {
+            Remove-Item $_.FullName -Force
+            Write-Host "Removed stale chunk: $($_.Name)" -ForegroundColor DarkYellow
+        }
+    }
 
     $prodIndex = Get-Content (Join-Path $JasonIoRoot "index.html") -Raw
     if ($prodIndex -notmatch [regex]::Escape("<base href=`"$ExpectedBaseHref`">")) {
