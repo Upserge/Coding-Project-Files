@@ -67,7 +67,7 @@
         <a
           [routerLink]="['/work', study.slug]"
           class="work-card reveal reveal-scale"
-          [class.work-card--flagship]="study.slug === 'riot-valorant'"
+          [class.work-card--featured]="study.slug === 'riot-valorant'"
           [style]="'--delay: ' + (0.2 + i * 0.1) + 's'"
         >
           @if (study.heroImage) {
@@ -132,9 +132,59 @@
   <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Projects</h2>
+      <p class="projects-lead reveal reveal-up" style="--delay: 0.15s">
+        Selected builds — swipe the reel on desktop, or browse the full grid below.
+      </p>
+
+      @if (reelProjects().length > 0) {
+      <div class="reveal reveal-up" style="--delay: 0.2s">
+        <app-work-reel [items]="reelProjects()" />
+      </div>
+      }
 
       @if (resume().projects.length > 0) {
-      <ul class="projects-list">
+      <ul class="projects-list projects-list--desktop-compact">
+        @for (p of gridProjects(); track p.title; let i = $index) {
+        <li
+          class="project-card reveal reveal-scale"
+          [style]="'--delay: ' + (0.25 + i * 0.08) + 's'"
+        >
+          <div class="project-inner project-inner--compact">
+            <div class="project-header">
+              <div class="project-icon" [innerHTML]="getProjectSVG(p.title)"></div>
+              <div class="project-title-wrap">
+                <strong>{{ p.title }}</strong>
+              </div>
+              @if (p.caseStudySlug || p.url) {
+              <span class="project-arrow" aria-hidden="true">&#8594;</span>
+              }
+            </div>
+            @if (p.description) {
+            <div class="project-desc">{{ p.description }}</div>
+            }
+            @if (p.tags?.length) {
+            <ul class="project-tags" aria-label="Technologies used">
+              @for (tag of p.tags; track tag) {
+              <li class="project-tag">{{ tag }}</li>
+              }
+            </ul>
+            }
+            @if (p.caseStudySlug || p.url) {
+            <div class="project-actions">
+              @if (p.caseStudySlug) {
+              <a [routerLink]="['/work', p.caseStudySlug]" class="project-link">Read case study</a>
+              }
+              @if (p.url) {
+              <a [href]="p.url" target="_blank" rel="noopener" class="project-external-link">View project</a>
+              }
+            </div>
+            }
+          </div>
+        </li>
+        }
+      </ul>
+
+      <ul class="projects-list projects-list--mobile-all">
         @for (p of resume().projects; track p.title; let i = $index) {
         <li
           class="project-card reveal reveal-scale"
@@ -154,8 +204,8 @@
               <span class="project-arrow" aria-hidden="true">&#8594;</span>
               }
             </div>
-            @if (p.description) {
-            <div class="project-desc">{{ p.description }}</div>
+            @if (p.hook || p.description) {
+            <div class="project-desc">{{ p.hook || p.description }}</div>
             }
             @if (p.tags?.length) {
             <ul class="project-tags" aria-label="Technologies used">

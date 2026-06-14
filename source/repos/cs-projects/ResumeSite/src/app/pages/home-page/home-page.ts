@@ -9,11 +9,12 @@ import { Toast } from '../../toast';
 import { getAllCaseStudies } from '../../content/case-studies';
 import { CaseStudy } from '../../content/case-study.types';
 import { GAME_STORY_COPY } from '../../content/game-narrative';
+import { WorkReelComponent } from '../../components/work-reel/work-reel.component';
 
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, WorkReelComponent],
   templateUrl: './home-page.html',
   styleUrls: ['./home-page.css'],
 })
@@ -36,6 +37,15 @@ export class HomePage implements OnDestroy {
     })
   );
   protected readonly gameStory = GAME_STORY_COPY;
+
+  protected readonly reelProjects = computed(() =>
+    this.resume().projects.filter((p) => p.featured || p.heroImage)
+  );
+
+  protected readonly gridProjects = computed(() => {
+    const reelTitles = new Set(this.reelProjects().map((p) => p.title));
+    return this.resume().projects.filter((p) => !reelTitles.has(p.title));
+  });
 
   private readonly roles = ['Software Developer', 'Full-Stack Engineer', 'QA Engineer', 'Problem Solver', 'Regular Dude'];
   private roleIndex = 0;

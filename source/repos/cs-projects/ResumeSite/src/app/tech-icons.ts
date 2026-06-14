@@ -209,7 +209,8 @@ export const PROJECT_ICONS: { [key: string]: string } = {
     <line x1="34" y1="78" x2="60" y2="78" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
   </svg>`,
   'pac-man': `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" opacity="0.82">
+    <rect width="100" height="100" fill="#000" opacity="0.35"/>
+    <g fill="none" stroke="#4f8cff" stroke-width="2.2" stroke-linecap="square" opacity="0.95">
       <rect x="14" y="14" width="72" height="72"/>
       <path d="M14 30 H34 M66 30 H86"/>
       <path d="M14 46 H26 M38 46 H62 M74 46 H86"/>
@@ -222,31 +223,31 @@ export const PROJECT_ICONS: { [key: string]: string } = {
       <rect x="40" y="48" width="20" height="14"/>
       <path d="M46 48 V42 H54 V48"/>
     </g>
-    <g fill="currentColor" opacity="0.42">
-      <circle cx="22" cy="22" r="1.6"/>
-      <circle cx="30" cy="22" r="1.6"/>
-      <circle cx="50" cy="22" r="1.6"/>
-      <circle cx="70" cy="22" r="1.6"/>
-      <circle cx="78" cy="22" r="1.6"/>
-      <circle cx="22" cy="38" r="1.6"/>
-      <circle cx="30" cy="38" r="1.6"/>
-      <circle cx="50" cy="38" r="1.6"/>
-      <circle cx="70" cy="38" r="1.6"/>
-      <circle cx="78" cy="38" r="1.6"/>
-      <circle cx="22" cy="54" r="1.6"/>
-      <circle cx="30" cy="54" r="1.6"/>
-      <circle cx="70" cy="54" r="1.6"/>
-      <circle cx="78" cy="54" r="1.6"/>
-      <circle cx="22" cy="70" r="1.6"/>
-      <circle cx="30" cy="70" r="1.6"/>
-      <circle cx="50" cy="70" r="1.6"/>
-      <circle cx="70" cy="70" r="1.6"/>
-      <circle cx="78" cy="70" r="1.6"/>
-      <circle cx="22" cy="78" r="1.6"/>
-      <circle cx="50" cy="78" r="1.6"/>
-      <circle cx="78" cy="78" r="1.6"/>
-      <circle cx="14" cy="54" r="2.8" opacity="0.85"/>
-      <circle cx="86" cy="54" r="2.8" opacity="0.85"/>
+    <g fill="currentColor" opacity="0.5">
+      <circle cx="22" cy="22" r="1.4"/>
+      <circle cx="30" cy="22" r="1.4"/>
+      <circle cx="50" cy="22" r="1.4"/>
+      <circle cx="70" cy="22" r="1.4"/>
+      <circle cx="78" cy="22" r="1.4"/>
+      <circle cx="22" cy="38" r="1.4"/>
+      <circle cx="30" cy="38" r="1.4"/>
+      <circle cx="50" cy="38" r="1.4"/>
+      <circle cx="70" cy="38" r="1.4"/>
+      <circle cx="78" cy="38" r="1.4"/>
+      <circle cx="22" cy="54" r="1.4"/>
+      <circle cx="30" cy="54" r="1.4"/>
+      <circle cx="70" cy="54" r="1.4"/>
+      <circle cx="78" cy="54" r="1.4"/>
+      <circle cx="22" cy="70" r="1.4"/>
+      <circle cx="30" cy="70" r="1.4"/>
+      <circle cx="50" cy="70" r="1.4"/>
+      <circle cx="70" cy="70" r="1.4"/>
+      <circle cx="78" cy="70" r="1.4"/>
+      <circle cx="22" cy="78" r="1.4"/>
+      <circle cx="50" cy="78" r="1.4"/>
+      <circle cx="78" cy="78" r="1.4"/>
+      <circle cx="14" cy="54" r="2.4" opacity="0.9"/>
+      <circle cx="86" cy="54" r="2.4" opacity="0.9"/>
     </g>
   </svg>`,
 };

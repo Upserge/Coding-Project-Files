@@ -1,0 +1,54 @@
+<div class="work-reel" role="region" aria-label="Featured projects reel">
+  <p class="work-reel-hint" aria-hidden="true">Scroll or swipe →</p>
+  <div class="work-reel-track" tabindex="0">
+    @for (item of items(); track item.title; let i = $index) {
+    <article class="work-reel-panel" [attr.aria-label]="item.title">
+      <div class="work-reel-visual" [class.work-reel-visual--fallback]="!item.heroImage" [style.--panel-accent]="panelAccent(i)">
+        @if (item.heroImage) {
+        <img
+          [src]="item.heroImage"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          [class.work-reel-visual-maze]="item.title === 'PAC-MAN'"
+        />
+        } @else {
+        <div class="work-reel-visual-placeholder" aria-hidden="true">
+          <span class="work-reel-visual-glyph">{{ item.title.charAt(0) }}</span>
+        </div>
+        }
+        <div class="work-reel-visual-scrim"></div>
+      </div>
+
+      <div class="work-reel-body">
+        @if (item.featured) {
+        <span class="work-reel-kicker">Featured</span>
+        }
+        <h3 class="work-reel-title">{{ item.title }}</h3>
+        @if (item.hook) {
+        <p class="work-reel-hook">{{ item.hook }}</p>
+        } @else if (item.description) {
+        <p class="work-reel-hook">{{ item.description }}</p>
+        }
+
+        @if (item.tags?.length) {
+        <ul class="work-reel-tags" aria-label="Technologies">
+          @for (tag of item.tags!.slice(0, 5); track tag) {
+          <li>{{ tag }}</li>
+          }
+        </ul>
+        }
+
+        <div class="work-reel-actions">
+          @if (item.caseStudySlug) {
+          <a [routerLink]="['/work', item.caseStudySlug]" class="work-reel-btn work-reel-btn--primary">Read case study</a>
+          }
+          @if (item.url) {
+          <a [href]="item.url" target="_blank" rel="noopener" class="work-reel-btn work-reel-btn--ghost">Live demo</a>
+          }
+        </div>
+      </div>
+    </article>
+    }
+  </div>
+</div>

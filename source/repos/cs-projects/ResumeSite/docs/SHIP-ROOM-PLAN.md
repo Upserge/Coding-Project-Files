@@ -15,7 +15,7 @@ Last updated: **2026-06-13**
 |-------|--------|--------|
 | **Phase 1** | Case study foundation | **Complete** — see [Phase 1 notes](#phase-1--case-study-foundation) |
 | **Phase 2** | Game ↔ story connection | **Mostly complete** — story pacing, tutorial, palette; see [Phase 2](#phase-2--game--story-connection) |
-| **Phase 3** | Cinematic work reel | Not started |
+| **Phase 3** | Cinematic work reel | **In progress** — reel component + assets; see [Phase 3](#phase-3--cinematic-work-reel) |
 | **Phase 4** | About + proof | Not started |
 
 **Related work (outside Ship Room phases, already shipped):**
@@ -211,21 +211,19 @@ First-visit 3-step overlay on home — **Done** (`game-tutorial.ts`, localStorag
 
 ### 3.1 Horizontal work reel
 
-**New:** `src/app/components/work-reel/` — scroll-snap panels above or replacing projects grid.
+**New:** `src/app/components/work-reel/` — scroll-snap panels in Projects section (desktop).
 
-Per panel: hero visual, title, hook, tags, case study + live demo CTAs.
-
-Extend `ProjectItem` with `heroImage?: string`.
+Per panel: hero visual, title, hook, tags, case study + live demo CTAs. **Done (initial)**
 
 ### 3.2 Visual assets
 
-**New folder:** `public/work/` — WebP screenshots per project.
+**Folder:** `public/work/` — SVG placeholders per project; swap to WebP when ready. Resume Site uses `case-studies/resume-site-hero.jpg`.
 
 ### 3.3 Grid fallback
 
-Compact grid below reel, or reel-only on desktop / grid on mobile.
+Compact grid below reel on desktop (non-reel items); full grid on mobile. **Done (initial)**
 
-**Phase 3 exit:** Projects section feels portfolio-grade.
+**Phase 3 exit:** Projects section feels portfolio-grade. *(Swap placeholder SVGs for real screenshots to finish.)*
 
 ---
 

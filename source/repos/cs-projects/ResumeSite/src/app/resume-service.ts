@@ -29,10 +29,12 @@ export interface LinkItem {
 export interface ProjectItem {
   title: string;
   description?: string;
+  hook?: string;
   url?: string;
   caseStudySlug?: string;
   tags?: string[];
   featured?: boolean;
+  heroImage?: string;
 }
 
 export interface TechCategory {
@@ -79,21 +81,48 @@ export class ResumeService {
     projects: [
       {
         title: 'Resume Site',
+        hook: 'Interactive résumé where the background game explains how I think about systems.',
         description: 'Interactive portfolio built with Angular, featuring animated timeline, keyboard shortcuts, and WebGL effects.',
         url: 'https://github.com/Upserge/Coding-Project-Files/tree/master/source/repos/cs-projects/ResumeSite',
         caseStudySlug: 'resume-site',
+        heroImage: 'case-studies/resume-site-hero.jpg',
         tags: ['Angular', 'WebGL', 'Firebase', 'Canvas'],
         featured: true,
       },
       {
         title: 'Gambdle',
+        hook: 'Once-a-day slot machine — luck, streaks, and Firebase-backed state.',
         description: 'Once a day slot machine game. Feeling lucky?',
         url: 'https://gambdle-97592.web.app/',
+        heroImage: 'work/gambdle-hero.png',
         tags: ['Angular', 'Firebase'],
+        featured: true,
       },
-      { title: 'Hunt and Hide', description: '3D multiplayer hide and seek game built with ThreeJS and WebGL.', url: 'https://huntandhide-a1a35.web.app/', tags: ['Angular', 'WebGL', 'ThreeJS'] },
-      { title: 'Lil Green Ghouls', description: 'Ghost adventure blog, check it out and get spooked.', url: 'https://lilgreenghouls-fd542.web.app/', tags: ['JavaScript', 'TypeScript', 'React'] },
-      { title: 'PAC-MAN', description: 'Collaborative PAC-MAN recreation, built with JavaScript and the HTML5 Canvas API.', url: 'https://gabrielp295.github.io/pacman-game/', tags: ['PACMAN', 'Game Development'] },
+      {
+        title: 'Hunt and Hide',
+        hook: 'Multiplayer hide-and-seek in the browser with Three.js.',
+        description: '3D multiplayer hide and seek game built with ThreeJS and WebGL.',
+        url: 'https://huntandhide-a1a35.web.app/',
+        heroImage: 'work/hunt-and-hide-hero.png',
+        tags: ['Angular', 'WebGL', 'ThreeJS'],
+        featured: true,
+      },
+      {
+        title: 'Lil Green Ghouls',
+        hook: 'Spooky blog adventure with a playful React front end.',
+        description: 'Ghost adventure blog, check it out and get spooked.',
+        url: 'https://lilgreenghouls-fd542.web.app/',
+        heroImage: 'work/lil-green-ghouls-hero.png',
+        tags: ['JavaScript', 'TypeScript', 'React'],
+      },
+      {
+        title: 'PAC-MAN',
+        hook: 'Classic arcade rebuilt on canvas — collision, ghosts, and score loops.',
+        description: 'Collaborative PAC-MAN recreation, built with JavaScript and the HTML5 Canvas API.',
+        url: 'https://gabrielp295.github.io/pacman-game/',
+        heroImage: 'work/pacman-hero.png',
+        tags: ['PACMAN', 'Game Development'],
+      },
     ],
     experience: [
       { company: 'Riot Games', role: 'QA Engineer III | Premier | VALORANT', startDate: '2022', endDate: undefined, description: 'QA Engineering Lead for Premier features' },
