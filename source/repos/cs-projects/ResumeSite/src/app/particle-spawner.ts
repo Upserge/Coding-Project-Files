@@ -106,9 +106,15 @@ function clampToPage(particle: Particle, w: number, h: number, margin = 48): voi
 }
 
 /** Extra distance beyond goal.radius — keeps spawns outside capture + assist radii. */
-const ROCKET_ORBIT_MIN_OFFSET = 200;
-const ROCKET_ORBIT_MAX_OFFSET = 420;
-const ROCKET_PAIRING_RADIUS = 460;
+const ROCKET_ORBIT_MIN_OFFSET = 340;
+const ROCKET_ORBIT_MAX_OFFSET = 560;
+const ROCKET_PAIRING_RADIUS = 640;
+
+function distanceToGoal(particle: Particle, goal: GoalPost): number {
+  const dx = particle.x - goal.x;
+  const dy = particle.y - goal.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
 
 /** Orbit an unscored black hole — paired with the hole but outside auto-capture range. */
 export function placeRocketNearGoal(
@@ -125,18 +131,41 @@ export function placeRocketNearGoal(
 
   let spawnAngle = 0;
   let attempts = 0;
+  let placed = false;
   do {
     spawnAngle = Math.random() * Math.PI * 2;
     const dist = minOrbit + Math.random() * (maxOrbit - minOrbit);
     particle.x = goal.x + Math.cos(spawnAngle) * dist;
     particle.y = goal.y + Math.sin(spawnAngle) * dist;
     clampToPage(particle, w, h);
+
+    const distFromGoal = distanceToGoal(particle, goal);
+    const tooCloseToGoal = distFromGoal < minOrbit;
     attempts++;
-  } while (attempts < 50 && isTooClose(particle, occupied, minDistFromOthers));
+    if (!tooCloseToGoal && !isTooClose(particle, occupied, minDistFromOthers)) {
+      placed = true;
+    }
+  } while (attempts < 50 && !placed);
+
+  if (!placed) {
+    // Edge clamp can pull spawns into capture range — push outward from the goal.
+    const angle = Math.atan2(h / 2 - goal.y, w / 2 - goal.x);
+    const dist = minOrbit + (maxOrbit - minOrbit) * 0.45;
+    particle.x = goal.x + Math.cos(angle) * dist;
+    particle.y = goal.y + Math.sin(angle) * dist;
+    const distFromGoal = distanceToGoal(particle, goal);
+    if (distFromGoal < minOrbit && distFromGoal > 0) {
+      const scale = minOrbit / distFromGoal;
+      particle.x = goal.x + (particle.x - goal.x) * scale;
+      particle.y = goal.y + (particle.y - goal.y) * scale;
+    }
+    clampToPage(particle, w, h);
+    spawnAngle = angle;
+  }
 
   // Tangential drift so rockets don't idle-drift straight into the hole
   const tangent = spawnAngle + Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1);
-  const speed = driftSpeed * (0.28 + Math.random() * 0.38);
+  const speed = driftSpeed * (0.22 + Math.random() * 0.32);
   particle.vx = Math.cos(tangent) * speed;
   particle.vy = Math.sin(tangent) * speed;
   particle.driftAngle = tangent;

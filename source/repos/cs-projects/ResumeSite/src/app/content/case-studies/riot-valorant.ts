@@ -65,13 +65,5 @@ export const RIOT_VALORANT_CASE_STUDY: CaseStudy = {
         'The through-line for my engineering work today: design systems where failure is visible early, coverage is measurable, and shipping standards match what players expect at scale.',
       ],
     },
-    {
-      id: 'testimonial',
-      title: 'Colleague perspective',
-      body: [
-        '[Placeholder testimonial — Jason will add a quote from a colleague or partner here.]',
-        '— Placeholder Name, Role @ Company',
-      ],
-    },
   ],
 };

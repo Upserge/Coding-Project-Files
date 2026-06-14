@@ -39,8 +39,17 @@ describe('particle-spawner rocket placement', () => {
     const dx = rocket.x - goal.x;
     const dy = rocket.y - goal.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    expect(dist).toBeGreaterThan(goal.radius + 180);
-    expect(dist).toBeLessThan(goal.radius + 440);
+    expect(dist).toBeGreaterThan(goal.radius + 320);
+    expect(dist).toBeLessThan(goal.radius + 580);
+  });
+
+  it('keeps rockets outside capture range when goal is near a page edge', () => {
+    const goal = makeGoal(40, 40);
+    const rocket = createRocketParticle(800, 1200, 0.15);
+    placeRocketNearGoal(rocket, 800, 1200, goal, []);
+
+    const dist = Math.hypot(rocket.x - goal.x, rocket.y - goal.y);
+    expect(dist).toBeGreaterThan(goal.radius + 320);
   });
 
   it('prefers goals with fewer nearby rockets', () => {
