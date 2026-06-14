@@ -3,6 +3,7 @@
   <div class="container nav-inner">
     <div class="nav-links">
       <a [class.active]="highlightedSection() === 'work'" (click)="scrollTo('work')">Work</a>
+      <a routerLink="/about">About</a>
       <a [class.active]="highlightedSection() === 'summary'" (click)="scrollTo('summary')">Summary</a>
       <a [class.active]="highlightedSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
       <a [class.active]="highlightedSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>

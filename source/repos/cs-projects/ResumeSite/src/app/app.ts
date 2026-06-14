@@ -78,6 +78,11 @@ export class App {
         label: 'Read Resume Site case study',
         run: () => void this.router.navigate(['/work/resume-site']),
       },
+      {
+        id: 'about',
+        label: 'About Jason',
+        run: () => void this.router.navigate(['/about']),
+      },
       { id: 'game-story', label: 'How to play the background game', run: () => this.goToGameStory() },
       { id: 'tutorial', label: 'Show game tutorial', run: () => this.resumeService.showGameTutorial() },
       { id: 'email', label: 'Copy email address', run: () => void this.resumeService.copyEmail() },

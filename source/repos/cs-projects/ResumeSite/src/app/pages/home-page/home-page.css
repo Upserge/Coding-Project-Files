@@ -55,6 +55,15 @@
 }
 
 .summary-lead{font-size:clamp(18px,2.2vw,24px)!important;font-weight:500;color:var(--text)!important;margin-bottom:20px}
+.summary-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:28px;max-width:720px;margin-left:auto;margin-right:auto}
+.summary-stat{padding:16px 14px;border-radius:14px;border:1px solid rgba(124,92,255,0.14);background:rgba(124,92,255,0.04);text-align:center}
+.summary-stat-value{display:block;font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-bottom:4px}
+.summary-stat-label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+.summary-quote{margin:0 auto 32px;padding:22px 24px;max-width:720px;border-radius:14px;border-left:3px solid var(--accent);background:rgba(124,92,255,0.06);text-align:left}
+.summary-quote p{margin:0 0 10px;font-size:clamp(16px,1.8vw,18px)!important;line-height:1.65;color:var(--text)!important;font-style:italic}
+.summary-quote footer{margin:0;font-size:13px;color:var(--muted);font-style:normal}
+.summary-quote-link{color:var(--accent);text-decoration:none;font-weight:600}
+.summary-quote-link:hover{text-decoration:underline}
 .summary-pills{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:40px}
 .summary-pill{padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;letter-spacing:0.3px;color:var(--accent);border:1px solid rgba(124,92,255,0.2);background:rgba(124,92,255,0.05);transition:all .2s ease}
 .summary-pill:hover{background:rgba(124,92,255,0.1);border-color:rgba(124,92,255,0.35);transform:translateY(-2px)}
@@ -65,7 +74,8 @@
 .summary-card strong{display:block;font-size:17px;color:var(--text);margin-bottom:8px;letter-spacing:-0.01em}
 .summary-card p{font-size:14px!important;line-height:1.6;color:var(--muted);margin:0;max-width:none}
 .summary-cta{font-style:italic;font-size:clamp(15px,1.6vw,18px)!important;color:var(--muted)!important;opacity:0.8;margin-top:0}
-@media(max-width:768px){.summary-cards{grid-template-columns:1fr}}
+@media(max-width:768px){.summary-cards{grid-template-columns:1fr}.summary-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.summary-stats{grid-template-columns:1fr}}
 
 .hero-work-cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:24px}
 .hero-cta-primary{border-color:rgba(192,132,252,0.45)!important;background:rgba(192,132,252,0.12)!important;color:#e9d5ff!important}

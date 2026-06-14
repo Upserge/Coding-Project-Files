@@ -9,6 +9,7 @@ import { Toast } from '../../toast';
 import { getAllCaseStudies } from '../../content/case-studies';
 import { CaseStudy } from '../../content/case-study.types';
 import { GAME_STORY_COPY } from '../../content/game-narrative';
+import { ABOUT_CONTENT } from '../../content/about';
 import { WorkReelComponent } from '../../components/work-reel/work-reel.component';
 
 @Component({
@@ -37,6 +38,7 @@ export class HomePage implements OnDestroy {
     })
   );
   protected readonly gameStory = GAME_STORY_COPY;
+  protected readonly aboutTeaser = ABOUT_CONTENT;
 
   protected readonly reelProjects = computed(() =>
     this.resume().projects.filter((p) => p.featured || p.heroImage)

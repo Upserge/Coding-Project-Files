@@ -9,14 +9,14 @@ Master implementation plan for the ResumeSite portfolio overhaul. Inspired by [F
 
 ## Status snapshot
 
-Last updated: **2026-06-13**
+Last updated: **2026-06-14**
 
 | Phase | Focus | Status |
 |-------|--------|--------|
 | **Phase 1** | Case study foundation | **Complete** — see [Phase 1 notes](#phase-1--case-study-foundation) |
-| **Phase 2** | Game ↔ story connection | **Mostly complete** — story pacing, tutorial, palette; see [Phase 2](#phase-2--game--story-connection) |
-| **Phase 3** | Cinematic work reel | **In progress** — reel component + assets; see [Phase 3](#phase-3--cinematic-work-reel) |
-| **Phase 4** | About + proof | Not started |
+| **Phase 2** | Game ↔ story connection | **Complete** — see [Phase 2](#phase-2--game--story-connection) |
+| **Phase 3** | Cinematic work reel | **Complete** — see [Phase 3](#phase-3--cinematic-work-reel) |
+| **Phase 4** | About + proof | **In progress** — `/about` route + home teaser; see [Phase 4](#phase-4--about--proof) |
 
 **Related work (outside Ship Room phases, already shipped):**
 
@@ -31,8 +31,9 @@ Last updated: **2026-06-13**
 
 - [x] VALORANT Premier hero image (`public/case-studies/valorant-premier-hero.webp`)
 - [x] Resume Site hero image (`public/case-studies/resume-site-hero.jpg`)
-- [ ] Add real colleague testimonial in `riot-valorant.ts`
+- [x] Colleague testimonial removed from Riot case study (moved to About when ready)
 - [x] Particle field: full-page coverage on route changes (`refreshPageLayout`, `ResizeObserver`)
+- [x] `deploy.ps1` — recursive asset copy + keep lazy `chunk-*.js` bundles
 - [ ] Optional: pause or scope game HUD on case study routes
 
 ---
@@ -113,7 +114,7 @@ flowchart TB
 | `/` | Home |
 | `/work/resume-site` | Resume Site case study |
 | `/work/riot-valorant` | VALORANT Premier & Competitive case study |
-| `/about` | Phase 4 (not built yet) |
+| `/about` | About page (bio, stats, links) |
 
 ---
 
@@ -159,9 +160,9 @@ Placeholder assets: `public/case-studies/*.svg`
 
 **`resume-site`** — drafted in `resume-site.ts`
 
-**`riot-valorant`** — drafted with your Premier/Competitive facts; testimonial and hero image still placeholder.
+**`riot-valorant`** — drafted with Premier/Competitive facts and hero image.
 
-**Phase 1 exit:** Deploy with 2 live case study URLs. *(Ready to deploy when you ask.)*
+**Phase 1 exit:** Deploy with 2 live case study URLs. *(Complete.)*
 
 ---
 
@@ -201,7 +202,7 @@ Toggle tooltips explain opacity tiers — **Done** (`focus-mode.ts`)
 
 First-visit 3-step overlay on home — **Done** (`game-tutorial.ts`, localStorage `resume-site-game-tutorial-v1`)
 
-**Phase 2 exit:** First-time visitors understand the game without an interview explanation. *(Ready for deploy review.)*
+**Phase 2 exit:** First-time visitors understand the game without an interview explanation. *(Complete.)*
 
 ---
 
@@ -217,41 +218,41 @@ Per panel: hero visual, title, hook, tags, case study + live demo CTAs. **Done (
 
 ### 3.2 Visual assets
 
-**Folder:** `public/work/` — SVG placeholders per project; swap to WebP when ready. Resume Site uses `case-studies/resume-site-hero.jpg`.
+**Folder:** `public/work/` — PNG heroes per project (Pac-Man, Gambdle, Hunt and Hide, Lil Green Ghouls). Resume Site reel uses `case-studies/resume-site-hero.jpg`.
 
 ### 3.3 Grid fallback
 
-Compact grid below reel on desktop (non-reel items); full grid on mobile. **Done (initial)**
+Compact grid below reel on desktop (non-reel items); full grid on mobile. **Done**
 
-**Phase 3 exit:** Projects section feels portfolio-grade. *(Swap placeholder SVGs for real screenshots to finish.)*
+**Phase 3 exit:** Projects section feels portfolio-grade. *(Complete.)*
 
 ---
 
 ## Phase 4 — About + proof
 
-**Priority #4 · Trust and humanity**
+**Priority #4 · Trust and humanity · In progress**
 
 ### 4.1 About route `/about`
 
 **New:** `src/app/pages/about-page/`, `src/app/content/about.ts`
 
-Sections: photo + bio, stats HUD, testimonials, downloads, links. Add **About** to nav.
+Sections: photo + bio, stats HUD, testimonials (optional array), downloads, links. **About** in top nav. **Done (initial)**
 
 ### 4.2 Home teaser
 
-Testimonial pull-quote in summary; stats row under lead.
+Stats row + pull-quote in summary section linking to `/about`. **Done (initial)**
 
 ### 4.3 Optional PDF export (4b)
 
 Print CSS or static PDF — lower priority.
 
-**Content needed:**
+**Content still needed:**
 
-- Headshot → `public/jason-about.webp`
-- 1+ testimonial (quote + attribution)
-- Short bio in your voice
+- [ ] Real headshot → swap `about.photo` to `public/jason-about.webp`
+- [ ] Optional colleague testimonials in `about.testimonials[]`
+- [ ] Optional static PDF résumé download
 
-**Phase 4 exit:** Site answers “who is Jason?” not only “what has Jason listed?”
+**Phase 4 exit:** Site answers “who is Jason?” not only “what has Jason listed?” *(Partial — route live; swap headshot when ready.)*
 
 ---
 
@@ -263,8 +264,8 @@ Print CSS or static PDF — lower priority.
 |-------|----------------|
 | 1 | Registry spec (done); optional `case-study-page` component spec |
 | 2 | `game-narrative.spec.ts` — tiers, once-per-session |
-| 3 | `work-reel.spec.ts` — panel count |
-| 4 | `about-page.spec.ts` — stats render |
+| 3 | `work-reel.spec.ts` — panel count (done) |
+| 4 | `about-page.spec.ts` — stats render (done) |
 
 Run **`npm test`** before every deploy.
 
@@ -330,4 +331,5 @@ Path pattern: `.cursor/projects/.../canvases/*.canvas.tsx`
 
 | Date | Change |
 |------|--------|
+| 2026-06-14 | Phase 3 complete; Phase 4 started (`/about`, home teaser, deploy.ps1 fix) |
 | 2026-06-13 | Initial doc added to repo; Phase 1 mostly complete |

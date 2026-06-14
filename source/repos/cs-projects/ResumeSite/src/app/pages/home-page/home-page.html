@@ -100,6 +100,21 @@
       <p class="summary-lead reveal reveal-up" style="--delay: 0.2s">
         10+ years shipping software across startups, aerospace, and gaming.
       </p>
+      <div class="summary-stats reveal reveal-up" style="--delay: 0.25s" aria-label="Career highlights">
+        @for (stat of aboutTeaser.stats; track stat.label) {
+        <div class="summary-stat">
+          <span class="summary-stat-value">{{ stat.value }}</span>
+          <span class="summary-stat-label">{{ stat.label }}</span>
+        </div>
+        }
+      </div>
+      <blockquote class="summary-quote reveal reveal-up" style="--delay: 0.3s">
+        <p>“{{ aboutTeaser.pullQuote.quote }}”</p>
+        <footer>
+          — {{ aboutTeaser.pullQuote.attribution }} ·
+          <a routerLink="/about" class="summary-quote-link">More about Jason</a>
+        </footer>
+      </blockquote>
       <div class="summary-pills reveal reveal-up" style="--delay: 0.35s">
         <span class="summary-pill">SpaceX</span>
         <span class="summary-pill">Riot Games</span>
