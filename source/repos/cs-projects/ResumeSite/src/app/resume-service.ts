@@ -162,31 +162,29 @@ export class ResumeService {
   }
 
   // ===== View Animations (moved from App component) =====
-  initReveal() {
+  initReveal(root: ParentNode = document) {
     if (typeof IntersectionObserver === 'undefined') return;
     this.revealObserver = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
+          if (!e.isIntersecting) continue;
           const el = e.target as HTMLElement;
-          if (e.isIntersecting) {
-            el.classList.add('visible');
-          } else {
-            el.classList.remove('visible');
-          }
+          el.classList.add('visible');
+          this.revealObserver?.unobserve(el);
         }
       },
-      { threshold: 0.15, rootMargin: '-60px 0px' }
+      { threshold: 0.12, rootMargin: '-40px 0px' }
     );
 
-    setTimeout(() => {
-      document.querySelectorAll('.reveal').forEach((el) => this.revealObserver?.observe(el));
-    }, 50);
+    requestAnimationFrame(() => {
+      root.querySelectorAll('.reveal').forEach((el) => this.revealObserver?.observe(el));
+    });
   }
 
-  refreshReveal() {
+  refreshReveal(root: ParentNode = document) {
     this.revealObserver?.disconnect();
     this.revealObserver = null;
-    this.initReveal();
+    this.initReveal(root);
   }
 
   refreshMagneticButtons() {
@@ -262,6 +260,12 @@ export class ResumeService {
       },
       { enableTutorial: onHome }
     );
+  }
+
+  refreshParticleFieldLayoutAfterRoute(): void {
+    this.particleField?.refreshPageLayout();
+    setTimeout(() => this.particleField?.refreshPageLayout(), 0);
+    setTimeout(() => this.particleField?.refreshPageLayout(), 150);
   }
 
   refreshParticleFieldLayout(): void {

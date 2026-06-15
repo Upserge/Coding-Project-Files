@@ -1,10 +1,11 @@
-import { Component, computed, inject, afterNextRender, DestroyRef } from '@angular/core';
+import { Component, computed, inject, afterNextRender, DestroyRef, effect } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs/operators';
 import { ResumeService } from './resume-service';
 import { KeyboardHintsModal } from './keyboard-hints-modal';
 import { CommandPalette } from './command-palette';
+import { applyVisualTier } from './content/visual-tier';
 
 @Component({
   selector: 'app-root',
@@ -38,6 +39,11 @@ export class App {
   });
 
   constructor() {
+    effect(() => {
+      this.currentUrl();
+      this.resumeService.refreshParticleFieldLayoutAfterRoute();
+    });
+
     afterNextRender(() => {
       this.resumeService.initScrollListener();
       this.resumeService.initCursorSpotlight();
@@ -157,6 +163,7 @@ export class App {
 
   toggleDarkMode() {
     this.resumeService.toggleDarkMode();
+    applyVisualTier();
   }
 
   showLeaderboard() {

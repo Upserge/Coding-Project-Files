@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, ElementRef, afterNextRender } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { CaseStudy } from '../../content/case-study.types';
@@ -17,8 +17,15 @@ export class CaseStudyPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly title = inject(Title);
   private readonly resumeService = inject(ResumeService);
+  private readonly host = inject(ElementRef<HTMLElement>);
 
   protected study: CaseStudy | null = null;
+
+  constructor() {
+    afterNextRender(() => {
+      setTimeout(() => this.resumeService.refreshParticleFieldLayout(), 0);
+    });
+  }
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug') ?? '';
@@ -30,7 +37,7 @@ export class CaseStudyPage implements OnInit, OnDestroy {
 
     this.study = match;
     this.title.setTitle(`${match.title} — Jason Salas`);
-    this.resumeService.refreshReveal();
+    this.resumeService.refreshReveal(this.host.nativeElement);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 

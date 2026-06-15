@@ -17,6 +17,7 @@ Last updated: **2026-06-14**
 | **Phase 2** | Game ↔ story connection | **Complete** — see [Phase 2](#phase-2--game--story-connection) |
 | **Phase 3** | Cinematic work reel | **Complete** — see [Phase 3](#phase-3--cinematic-work-reel) |
 | **Phase 4** | About + proof | **In progress** — `/about` route + home teaser; see [Phase 4](#phase-4--about--proof) |
+| **Phase 5** | Cinematic portfolio (V2) | **Planned** — see `docs/SHIP-ROOM-V2-PACKAGE-2.md` |
 
 **Related work (outside Ship Room phases, already shipped):**
 

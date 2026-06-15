@@ -1,10 +1,10 @@
 <article class="about-page">
   <header class="about-hero">
     <div class="container about-hero-inner">
-      <div class="about-photo-wrap reveal reveal-scale" style="--delay: 0.05s">
+      <div class="about-photo-wrap reveal reveal-subpage reveal-scale" style="--delay: 0.05s">
         <img class="about-photo" [src]="about.photo" [alt]="about.photoAlt" width="160" height="160" decoding="async" />
       </div>
-      <div class="about-intro reveal reveal-up" style="--delay: 0.12s">
+      <div class="about-intro reveal reveal-subpage reveal-up" style="--delay: 0.12s">
         <p class="about-kicker">About</p>
         <h1 class="about-title">{{ about.headline }}</h1>
         <p class="about-subtitle">{{ about.subtitle }}</p>
@@ -18,7 +18,7 @@
   </header>
 
   <div class="container about-body">
-    <section class="about-stats reveal reveal-up" style="--delay: 0.15s" aria-label="Career highlights">
+    <section class="about-stats reveal reveal-subpage reveal-up" style="--delay: 0.15s" aria-label="Career highlights">
       @for (stat of about.stats; track stat.label) {
       <div class="about-stat">
         <span class="about-stat-value">{{ stat.value }}</span>
@@ -27,14 +27,14 @@
       }
     </section>
 
-    <section class="about-bio reveal reveal-up" style="--delay: 0.2s">
+    <section class="about-bio reveal reveal-subpage reveal-up" style="--delay: 0.2s">
       <h2 class="about-section-label">Bio</h2>
       @for (paragraph of about.bio; track $index) {
       <p class="about-paragraph">{{ paragraph }}</p>
       }
     </section>
 
-    <section class="about-quote reveal reveal-up" style="--delay: 0.25s">
+    <section class="about-quote reveal reveal-subpage reveal-up" style="--delay: 0.25s">
       <blockquote class="about-pull-quote">
         <p>“{{ about.pullQuote.quote }}”</p>
         <footer>— {{ about.pullQuote.attribution }}</footer>
@@ -42,7 +42,7 @@
     </section>
 
     @if (about.testimonials.length) {
-    <section class="about-testimonials reveal reveal-up" style="--delay: 0.3s">
+    <section class="about-testimonials reveal reveal-subpage reveal-up" style="--delay: 0.3s">
       <h2 class="about-section-label">What colleagues say</h2>
       @for (item of about.testimonials; track item.attribution) {
       <blockquote class="about-testimonial">
@@ -53,7 +53,7 @@
     </section>
     }
 
-    <section class="about-links reveal reveal-up" style="--delay: 0.35s">
+    <section class="about-links reveal reveal-subpage reveal-up" style="--delay: 0.35s">
       <h2 class="about-section-label">Connect</h2>
       <div class="about-link-row">
         @for (link of links; track link.url) {
@@ -64,7 +64,7 @@
     </section>
 
     @if (about.downloads.length) {
-    <section class="about-downloads reveal reveal-up" style="--delay: 0.4s">
+    <section class="about-downloads reveal reveal-subpage reveal-up" style="--delay: 0.4s">
       <h2 class="about-section-label">Downloads</h2>
       <div class="about-link-row">
         @for (item of about.downloads; track item.url) {
@@ -74,7 +74,7 @@
     </section>
     }
 
-    <section class="about-cta reveal reveal-up" style="--delay: 0.45s">
+    <section class="about-cta reveal reveal-subpage reveal-up" style="--delay: 0.45s">
       <a routerLink="/work/riot-valorant" class="link-btn about-cta-primary">Read featured case study</a>
       <a routerLink="/" class="link-btn">Back to home</a>
     </section>

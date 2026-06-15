@@ -1,27 +1,15 @@
 
 /* Global: minimalist portfolio-inspired styles with dark/light theme */
+@import './styles/tokens.css';
+@import './styles/cinematic.css';
 
-/* Dark theme (default) */
-:root, html[data-theme="dark"] {
-  --bg:#0f2433;
-  --text:#eef6fb;
-  --muted:#b0c3cf;
-  --accent:#6f5cff;
-}
-
-/* Light theme - softer, warmer palette */
-html[data-theme="light"] {
-  --bg:#f8f9fa;
-  --text:#3d4a57;
-  --muted:#7a8a98;
-  --accent:#6f5cff;
-}
+/* Theme colors — aliases live in tokens.css (--bg, --text, --muted, --accent) */
 
 *{box-sizing:border-box}
 html,body{
   height:100%;
   margin:0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: var(--font-body);
   color:var(--text);
   background: var(--bg);
   -webkit-font-smoothing:antialiased;
@@ -46,7 +34,8 @@ html {
 
 /* ===== Scroll-Driven Animations ===== */
 @supports (animation-timeline: view()) {
-  .reveal {
+  /* Home only — subpages use IntersectionObserver reveals (avoids double animation) */
+  .app-page-host--home .reveal:not(.reveal-left):not(.reveal-up):not(.reveal-scale) {
     animation: revealScroll linear;
     animation-timeline: view();
     animation-range: entry 0% cover 30%;
@@ -1242,4 +1231,3 @@ button:active::before {
   color: var(--muted);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
-

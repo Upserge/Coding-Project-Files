@@ -19,6 +19,7 @@ import { createDustParticles, createRocketParticle, placeRocketNearGoal, pickGoa
 import { GameNarrative } from './game-narrative';
 import { GameTutorial } from './game-tutorial';
 import { STORY_SCORE_COMPLETE } from './content/game-narrative';
+import { computeParticleFieldDensity, ParticleFieldDensity } from './particle-field-density';
 
 export interface ParticleFieldOptions {
   enableTutorial?: boolean;
@@ -57,23 +58,21 @@ export class ParticleField {
   private readonly STORY_TRACTOR_STRENGTH = 0.009;
   private readonly STORY_REPULSE_MUL = 1.15;
 
-  private readonly PARTICLE_COUNT = 2000;
-  private readonly GOLDEN_COUNT = 3;
-  private readonly GOAL_COUNT = 6;
+  private density: ParticleFieldDensity = computeParticleFieldDensity(
+    typeof window !== 'undefined' ? window.innerHeight : 900,
+    typeof window !== 'undefined' ? window.innerHeight : 900,
+  );
   private readonly REPULSE_RADIUS = 120;
   private readonly REPULSE_FORCE = 0.8;
   private readonly DRIFT_SPEED = 0.15;
   private readonly PARTICLE_MIN_R = 0.6;
   private readonly PARTICLE_MAX_R = 2.8;
   private readonly SHAKE_DURATION = 35;
-  private readonly CONFETTI_COUNT = 60;
   private readonly SPAGHETTI_RADIUS = 120;
   private readonly GOAL_HINT_PUSH_THRESHOLD = 4;
-  private readonly MAX_TRAIL_COUNT = 200;
   private confetti: ConfettiPiece[] = [];
   private trails: TrailPiece[] = [];
   private spaghettiStreams: SpaghettiStream[] = [];
-  private readonly GALAXY_COUNT = 4;
   private taurusLines: TaurusLine[] = [];
   private goalHintStrength = 0;
 
@@ -135,8 +134,11 @@ export class ParticleField {
     this.updatePageHeight();
     const wasUndersized = prev < window.innerHeight * 1.2;
     const grew = this.pageHeight > prev + 80;
+    const shrank = prev > 0 && this.pageHeight < prev - 80;
     if (wasUndersized && grew) {
       this.spawnWorld();
+    } else if (grew || shrank) {
+      this.respawnBackgroundForFullPage();
     }
   }
 
@@ -155,13 +157,17 @@ export class ParticleField {
 
   private updatePageHeight() {
     this.pageHeight = Math.max(document.body.scrollHeight, window.innerHeight);
+    this.density = computeParticleFieldDensity(this.pageHeight, window.innerHeight);
   }
 
   private spawnParticles() {
+    const { dustCount } = this.density;
     this.particles = [];
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
-    this.particles.push(...createDustParticles(this.PARTICLE_COUNT, w, h, this.DRIFT_SPEED, this.PARTICLE_MIN_R, this.PARTICLE_MAX_R));
+    this.particles.push(
+      ...createDustParticles(dustCount, w, h, this.DRIFT_SPEED, this.PARTICLE_MIN_R, this.PARTICLE_MAX_R),
+    );
   }
 
   private spawnRocketsNearGoals(): void {
@@ -169,7 +175,7 @@ export class ParticleField {
     const h = this.pageHeight || window.innerHeight;
     const activeGoals = this.goals.filter((g) => !g.scored);
 
-    for (let i = 0; i < this.GOLDEN_COUNT; i++) {
+    for (let i = 0; i < this.density.goldenCount; i++) {
       const rocket = createRocketParticle(w, h, this.DRIFT_SPEED);
       const goal =
         activeGoals.length > 0
@@ -204,7 +210,7 @@ export class ParticleField {
     this.goals = [];
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
-    for (let i = 0; i < this.GOAL_COUNT; i++) {
+    for (let i = 0; i < this.density.goalCount; i++) {
       this.goals.push(createGoalPost(w, h, 80, this.getOccupiedPositions()));
     }
   }
@@ -215,13 +221,41 @@ export class ParticleField {
     this.spawnRocketsNearGoals();
     const w = window.innerWidth;
     const h = this.pageHeight || window.innerHeight;
-    this.particles.push(...spawnGalaxies(w, h, this.DRIFT_SPEED, this.GALAXY_COUNT));
-    const taurus = spawnTaurus(w, h, this.DRIFT_SPEED);
-    this.particles.push(...taurus.particles);
-    this.taurusLines = taurus.lines;
+    this.appendCelestialBackground(w, h);
     this.confetti = [];
     this.trails = [];
     this.spaghettiStreams = [];
+  }
+
+  private appendCelestialBackground(w: number, h: number): void {
+    const { galaxyCount, includeTaurus } = this.density;
+    this.particles.push(...spawnGalaxies(w, h, this.DRIFT_SPEED, galaxyCount));
+    if (includeTaurus) {
+      const taurus = spawnTaurus(w, h, this.DRIFT_SPEED);
+      this.particles.push(...taurus.particles);
+      this.taurusLines = taurus.lines;
+    } else {
+      this.taurusLines = [];
+    }
+  }
+
+  /** Re-spread dust, galaxies, and constellations when document height changes (keeps goals + rockets). */
+  private respawnBackgroundForFullPage(): void {
+    const w = window.innerWidth;
+    const h = this.pageHeight || window.innerHeight;
+    const rockets = this.particles.filter((p) => p.golden);
+    this.particles = [...rockets];
+    this.particles.push(
+      ...createDustParticles(
+        this.density.dustCount,
+        w,
+        h,
+        this.DRIFT_SPEED,
+        this.PARTICLE_MIN_R,
+        this.PARTICLE_MAX_R,
+      ),
+    );
+    this.appendCelestialBackground(w, h);
   }
 
   private onMouseMove = (e: MouseEvent) => {
@@ -355,8 +389,8 @@ export class ParticleField {
       const newTrails = spawnThrusterTrails(p);
       if (newTrails.length > 0) {
         this.trails.push(...newTrails);
-        if (this.trails.length > this.MAX_TRAIL_COUNT) {
-          this.trails.splice(0, this.trails.length - this.MAX_TRAIL_COUNT);
+        if (this.trails.length > this.density.maxTrailCount) {
+          this.trails.splice(0, this.trails.length - this.density.maxTrailCount);
         }
       }
 
@@ -462,7 +496,7 @@ export class ParticleField {
     this.ensureRocketFleet(w, h);
 
     this.shakeTimer = this.SHAKE_DURATION;
-    this.confetti.push(...createConfetti(goal.x, goal.y, this.CONFETTI_COUNT));
+    this.confetti.push(...createConfetti(goal.x, goal.y, this.density.confettiCount));
 
     const sessionScore = this.upgradeState.score;
     const milestoneNow = this.upgradeState.wouldTriggerMilestone(sessionScore);
@@ -513,7 +547,7 @@ export class ParticleField {
   /** Keep fleet count up and pair rockets with active black holes. */
   private ensureRocketFleet(w: number, h: number): void {
     const mods = this.upgradeState.modifiers;
-    const target = this.GOLDEN_COUNT + mods.extraRockets;
+    const target = this.density.goldenCount + mods.extraRockets;
     const rockets = this.particles.filter((particle) => particle.golden);
 
     for (const rocket of rockets) {
@@ -561,7 +595,7 @@ export class ParticleField {
     const mods = this.upgradeState.modifiers;
     this.ensureRocketFleet(w, h);
 
-    const targetGoals = this.GOAL_COUNT + mods.extraGoals;
+    const targetGoals = this.density.goalCount + mods.extraGoals;
     for (let i = this.goals.length; i < targetGoals; i++) {
       this.goals.push(createGoalPost(w, h, 80, this.getOccupiedPositions()));
     }

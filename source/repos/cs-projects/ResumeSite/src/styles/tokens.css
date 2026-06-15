@@ -1,0 +1,102 @@
+/* Design tokens — cinematic brand (default) */
+
+:root,
+html[data-theme='dark'] {
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
+  --font-display: 'Space Grotesk', var(--font-body);
+
+  --color-bg: #080f1a;
+  --color-surface: rgba(6, 14, 28, 0.94);
+  --color-surface-elevated: rgba(10, 22, 40, 0.96);
+  --color-text: #f4f8fc;
+  --color-muted: #9eb0c0;
+  --color-accent: #7c5cff;
+  --color-accent-muted: #c4b5fd;
+  --color-accent-secondary: #5eead4;
+  --color-glow: rgba(124, 92, 255, 0.32);
+  --color-border: rgba(124, 92, 255, 0.16);
+  --color-border-strong: rgba(192, 132, 252, 0.42);
+
+  --accent-a03: rgba(124, 92, 255, 0.03);
+  --accent-a04: rgba(124, 92, 255, 0.04);
+  --accent-a06: rgba(124, 92, 255, 0.06);
+  --accent-a08: rgba(124, 92, 255, 0.08);
+  --accent-a10: rgba(124, 92, 255, 0.1);
+  --accent-a14: rgba(124, 92, 255, 0.14);
+  --accent-a18: rgba(124, 92, 255, 0.18);
+  --accent-a20: rgba(124, 92, 255, 0.2);
+  --accent-a25: rgba(124, 92, 255, 0.25);
+  --accent-a35: rgba(124, 92, 255, 0.35);
+
+  --purple-card-a04: rgba(192, 132, 252, 0.04);
+  --purple-card-a09: rgba(192, 132, 252, 0.09);
+  --purple-card-a20: rgba(192, 132, 252, 0.2);
+  --purple-card-a35: rgba(192, 132, 252, 0.35);
+
+  --bg: var(--color-bg);
+  --text: var(--color-text);
+  --muted: var(--color-muted);
+  --accent: var(--color-accent);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 12px 28px var(--color-glow);
+  --shadow-glow-lg: 0 16px 40px var(--color-glow);
+
+  --duration-fast: 0.2s;
+  --duration-normal: 0.35s;
+  --duration-slow: 0.5s;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+html[data-theme='light'] {
+  --color-bg: #f4f6fa;
+  --color-surface: rgba(255, 255, 255, 0.96);
+  --color-surface-elevated: #ffffff;
+  --color-text: #1e2936;
+  --color-muted: #64748b;
+  --color-accent: #6d4aff;
+  --color-accent-muted: #8b6cff;
+  --color-glow: rgba(109, 74, 255, 0.18);
+  --color-border: rgba(109, 74, 255, 0.16);
+  --color-border-strong: rgba(109, 74, 255, 0.32);
+
+  --accent-a03: rgba(80, 50, 200, 0.03);
+  --accent-a04: rgba(80, 50, 200, 0.04);
+  --accent-a06: rgba(80, 50, 200, 0.06);
+  --accent-a08: rgba(80, 50, 200, 0.08);
+  --accent-a10: rgba(80, 50, 200, 0.1);
+  --accent-a14: rgba(80, 50, 200, 0.14);
+  --accent-a18: rgba(80, 50, 200, 0.18);
+  --accent-a20: rgba(80, 50, 200, 0.2);
+  --accent-a25: rgba(80, 50, 200, 0.22);
+  --accent-a35: rgba(80, 50, 200, 0.35);
+
+  --purple-card-a04: rgba(120, 80, 220, 0.04);
+  --purple-card-a09: rgba(120, 80, 220, 0.09);
+  --purple-card-a20: rgba(120, 80, 220, 0.22);
+  --purple-card-a35: rgba(120, 80, 220, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-normal: 0.01ms;
+    --duration-slow: 0.01ms;
+  }
+}
