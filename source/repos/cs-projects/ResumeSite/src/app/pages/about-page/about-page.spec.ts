@@ -26,6 +26,7 @@ describe('AboutPage', () => {
               links: [{ label: 'GitHub', url: 'https://github.com/upserge' }],
             }),
             refreshReveal: () => undefined,
+            refreshParticleFieldLayout: () => undefined,
             copyEmail: async () => undefined,
           },
         },

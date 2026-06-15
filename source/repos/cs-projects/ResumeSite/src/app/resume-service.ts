@@ -199,6 +199,7 @@ export class ResumeService {
   }
 
   initShaderHero() {
+    if (this.shaderHero) return;
     this.shaderHero = new ShaderHero();
     this.shaderHero.init();
   }
@@ -253,10 +254,11 @@ export class ResumeService {
     const onHome = this.router.url === '/' || this.router.url === '';
     this.particleField = new ParticleField();
     this.particleField.init(
-      (points: number) => {
+      (points: number, scorePageY: number) => {
         this.score.update((s) => s + points);
         this.leaderboard?.onScore(this.score());
         this.focusMode?.onScore(this.score());
+        this.shaderHero?.pulseOnScore(scorePageY);
       },
       { enableTutorial: onHome }
     );
@@ -266,6 +268,12 @@ export class ResumeService {
     this.particleField?.refreshPageLayout();
     setTimeout(() => this.particleField?.refreshPageLayout(), 0);
     setTimeout(() => this.particleField?.refreshPageLayout(), 150);
+    setTimeout(() => this.shaderHero?.refreshAnchors(), 0);
+    setTimeout(() => this.shaderHero?.refreshAnchors(), 150);
+  }
+
+  refreshShaderAnchors(): void {
+    this.shaderHero?.refreshAnchors();
   }
 
   refreshParticleFieldLayout(): void {

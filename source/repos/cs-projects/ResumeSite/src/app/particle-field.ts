@@ -38,7 +38,7 @@ export class ParticleField {
   private dpr = 1;
   private isDark = true;
   private shakeTimer = 0;
-  private onScoreCallback: ((points: number) => void) | null = null;
+  private onScoreCallback: ((points: number, scorePageY: number) => void) | null = null;
   private pageHeight = 0;
   private layoutObserver: ResizeObserver | null = null;
   private readonly upgradeState = new UpgradeState();
@@ -67,16 +67,18 @@ export class ParticleField {
   private readonly DRIFT_SPEED = 0.15;
   private readonly PARTICLE_MIN_R = 0.6;
   private readonly PARTICLE_MAX_R = 2.8;
-  private readonly SHAKE_DURATION = 35;
+  private readonly SHAKE_DURATION = 52;
   private readonly SPAGHETTI_RADIUS = 120;
   private readonly GOAL_HINT_PUSH_THRESHOLD = 4;
+  private readonly UPGRADE_CELEBRATION_MS = 900;
+  private pendingUpgradeTimer: ReturnType<typeof setTimeout> | null = null;
   private confetti: ConfettiPiece[] = [];
   private trails: TrailPiece[] = [];
   private spaghettiStreams: SpaghettiStream[] = [];
   private taurusLines: TaurusLine[] = [];
   private goalHintStrength = 0;
 
-  init(onScore?: (points: number) => void, options?: ParticleFieldOptions) {
+  init(onScore?: (points: number, scorePageY: number) => void, options?: ParticleFieldOptions) {
     this.onScoreCallback = onScore ?? null;
 
     this.canvas = document.createElement('canvas');
@@ -288,7 +290,7 @@ export class ParticleField {
     // Screen shake offset
     let shakeX = 0, shakeY = 0;
     if (this.shakeTimer > 0) {
-      const intensity = (this.shakeTimer / this.SHAKE_DURATION) * 14;
+      const intensity = (this.shakeTimer / this.SHAKE_DURATION) * 28;
       shakeX = (Math.random() - 0.5) * intensity;
       shakeY = (Math.random() - 0.5) * intensity;
       this.shakeTimer--;
@@ -445,6 +447,10 @@ export class ParticleField {
     for (const goal of this.goals) {
       if (goal.scored) {
         goal.scoreTimer--;
+        if (goal.y >= viewTop && goal.y <= viewBottom && goal.scoreTimer > 55) {
+          const scoreFlash = Math.min(1, ((goal.scoreTimer - 55) / 60) * 1.2);
+          drawBlackHole(this.ctx, goal, this.isDark, this.goalHintStrength, scoreFlash);
+        }
         if (goal.scoreTimer <= 0) {
           goal.scored = false;
           const w = window.innerWidth;
@@ -464,7 +470,7 @@ export class ParticleField {
 
       if (goal.y < viewTop || goal.y > viewBottom) continue;
 
-      drawBlackHole(this.ctx, goal, this.isDark, this.goalHintStrength);
+      drawBlackHole(this.ctx, goal, this.isDark, this.goalHintStrength, 0);
     }
   }
 
@@ -501,7 +507,7 @@ export class ParticleField {
     const sessionScore = this.upgradeState.score;
     const milestoneNow = this.upgradeState.wouldTriggerMilestone(sessionScore);
 
-    this.onScoreCallback?.(points);
+    this.onScoreCallback?.(points, goal.y);
     this.progressBar.update(this.upgradeState.nextMilestoneProgress());
 
     if (!milestoneNow) {
@@ -576,19 +582,28 @@ export class ParticleField {
   }
 
   private checkMilestoneAndUpgrade(w: number, h: number, deferredNarrativeScore?: number): void {
-    if (!this.upgradeState.checkMilestone(this.upgradeState.score)) return;
+    if (!this.upgradeState.wouldTriggerMilestone(this.upgradeState.score)) return;
 
-    this.paused = true;
-    this.upgradeModal.show(this.upgradeState.stackMap, (upgrade) => {
-      this.upgradeState.applyUpgrade(upgrade);
-      this.applyStructuralUpgrades(w, h);
-      this.inventory.refresh(this.upgradeState.stackMap);
-      this.progressBar.update(this.upgradeState.nextMilestoneProgress());
-      this.paused = false;
-      if (deferredNarrativeScore !== undefined) {
-        this.gameNarrative.onSessionScore(deferredNarrativeScore);
-      }
-    });
+    if (this.pendingUpgradeTimer !== null) {
+      clearTimeout(this.pendingUpgradeTimer);
+    }
+
+    this.pendingUpgradeTimer = setTimeout(() => {
+      this.pendingUpgradeTimer = null;
+      if (!this.upgradeState.checkMilestone(this.upgradeState.score)) return;
+
+      this.paused = true;
+      this.upgradeModal.show(this.upgradeState.stackMap, (upgrade) => {
+        this.upgradeState.applyUpgrade(upgrade);
+        this.applyStructuralUpgrades(w, h);
+        this.inventory.refresh(this.upgradeState.stackMap);
+        this.progressBar.update(this.upgradeState.nextMilestoneProgress());
+        this.paused = false;
+        if (deferredNarrativeScore !== undefined) {
+          this.gameNarrative.onSessionScore(deferredNarrativeScore);
+        }
+      });
+    }, this.UPGRADE_CELEBRATION_MS);
   }
 
   private applyStructuralUpgrades(w: number, h: number): void {
@@ -639,6 +654,10 @@ export class ParticleField {
     }
     this.layoutObserver?.disconnect();
     this.layoutObserver = null;
+    if (this.pendingUpgradeTimer !== null) {
+      clearTimeout(this.pendingUpgradeTimer);
+      this.pendingUpgradeTimer = null;
+    }
     document.removeEventListener('mousemove', this.onMouseMove);
     document.removeEventListener('mouseleave', this.onMouseLeave);
     this.canvas?.remove();

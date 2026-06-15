@@ -18,6 +18,22 @@ html,body{
 
 a{color:inherit;text-decoration:none}
 
+/* Shader nebula clouds — sit behind anchor content, not over it */
+.shader-cloud-host {
+  isolation: isolate;
+  overflow: visible;
+}
+
+.shader-cloud-canvas {
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+app-work-reel {
+  display: block;
+}
+
 /* utility container */
 .container{max-width:900px;margin:0 auto;padding:0 28px}
 

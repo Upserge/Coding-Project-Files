@@ -48,6 +48,7 @@ export class App {
       this.resumeService.initScrollListener();
       this.resumeService.initCursorSpotlight();
       this.resumeService.initMagneticButtons();
+      this.resumeService.initShaderHero();
       this.resumeService.initParticleField();
       this.resumeService.initLeaderboard();
       this.resumeService.initFocusMode();

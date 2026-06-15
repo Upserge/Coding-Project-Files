@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, afterNextRender, DestroyRef, OnDestroy } from '@angular/core';
+import { Component, computed, inject, signal, afterNextRender, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -19,7 +19,7 @@ import { WorkReelComponent } from '../../components/work-reel/work-reel.componen
   templateUrl: './home-page.html',
   styleUrls: ['./home-page.css'],
 })
-export class HomePage implements OnDestroy {
+export class HomePage {
   private readonly resumeService = inject(ResumeService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly destroyRef = inject(DestroyRef);
@@ -57,10 +57,13 @@ export class HomePage implements OnDestroy {
   constructor() {
     afterNextRender(() => {
       this.resumeService.refreshReveal();
-      this.resumeService.initShaderHero();
       this.resumeService.initHeroLogo();
       this.resumeService.refreshMagneticButtons();
-      setTimeout(() => this.resumeService.refreshParticleFieldLayout(), 0);
+      setTimeout(() => {
+        this.resumeService.refreshParticleFieldLayout();
+        this.resumeService.refreshShaderAnchors();
+      }, 0);
+      setTimeout(() => this.resumeService.refreshShaderAnchors(), 300);
     });
 
     timer(1600).pipe(
@@ -87,10 +90,6 @@ export class HomePage implements OnDestroy {
       }),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe();
-  }
-
-  ngOnDestroy(): void {
-    this.resumeService.destroyShaderHero();
   }
 
   openLink(url: string) {
