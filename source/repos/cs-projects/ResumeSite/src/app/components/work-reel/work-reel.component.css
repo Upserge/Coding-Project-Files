@@ -71,7 +71,8 @@
   background: var(--panel-accent, rgba(124, 92, 255, 0.15));
 }
 
-.work-reel-visual img {
+.work-reel-visual img,
+.work-reel-visual-media {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -223,6 +224,7 @@
   }
 
   .work-reel-visual img,
+  .work-reel-visual-media,
   .work-reel-visual-placeholder {
     min-height: 380px;
   }

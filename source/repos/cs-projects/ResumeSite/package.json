@@ -6,6 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "build:pages": "ng build --configuration=github-pages",
+    "media:loops": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/media/render-loops.ps1",
     "deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./deploy.ps1",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

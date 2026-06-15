@@ -38,9 +38,9 @@ testem.log
 /typings
 __screenshots__/
 
-# System files
-.DS_Store
-Thumbs.db
+# Raw reel captures (large) — run npm run media:loops, commit public/work/loops/
+/media/*.mp4
+/media/source/
 
 # Security
 .environment.ts

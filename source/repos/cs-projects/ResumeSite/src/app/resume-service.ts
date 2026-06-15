@@ -26,6 +26,12 @@ export interface LinkItem {
   url: string;
 }
 
+export interface ProjectReelMedia {
+  type: 'image' | 'video' | 'loop';
+  src: string;
+  poster?: string;
+}
+
 export interface ProjectItem {
   title: string;
   description?: string;
@@ -35,6 +41,7 @@ export interface ProjectItem {
   tags?: string[];
   featured?: boolean;
   heroImage?: string;
+  reelMedia?: ProjectReelMedia;
 }
 
 export interface TechCategory {

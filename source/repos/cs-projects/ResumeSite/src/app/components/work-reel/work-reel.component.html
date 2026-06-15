@@ -3,8 +3,23 @@
   <div class="work-reel-track" tabindex="0">
     @for (item of items(); track item.title; let i = $index) {
     <article class="work-reel-panel" [attr.aria-label]="item.title">
-      <div class="work-reel-visual" [class.work-reel-visual--fallback]="!item.heroImage" [style.--panel-accent]="panelAccent(i)">
-        @if (item.heroImage) {
+      <div class="work-reel-visual" [class.work-reel-visual--fallback]="!item.heroImage && !reelMediaFor(item)" [style.--panel-accent]="panelAccent(i)">
+        @if (reelMediaFor(item); as media) {
+        <video
+          #reelVideo
+          class="work-reel-visual-media"
+          [poster]="media.poster"
+          muted
+          loop
+          playsinline
+          autoplay
+          preload="metadata"
+          [class.work-reel-visual-maze]="item.title === 'PAC-MAN'"
+          (error)="onVideoError(item)"
+        >
+          <source [src]="media.mp4" type="video/mp4" />
+        </video>
+        } @else if (item.heroImage) {
         <img
           [src]="item.heroImage"
           alt=""

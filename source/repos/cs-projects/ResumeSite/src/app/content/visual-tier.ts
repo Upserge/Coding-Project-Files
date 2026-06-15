@@ -6,7 +6,7 @@ export interface VisualFeatureFlags {
 }
 
 export const VISUAL_FEATURES: VisualFeatureFlags = {
-  reelMotion: false,
+  reelMotion: true,
   scrollNarrative: false,
 };
 
