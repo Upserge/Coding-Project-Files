@@ -3,6 +3,7 @@
 @import './styles/tokens.css';
 @import './styles/cinematic.css';
 @import './styles/studio-modals.css';
+@import './styles/combo-streak.css';
 @import './app/scroll/scroll-snap-home.css';
 
 /* Theme colors — aliases live in tokens.css (--bg, --text, --muted, --accent) */
@@ -700,67 +701,6 @@ button:active::before {
   50% { box-shadow: 0 0 36px rgba(239, 68, 68, 0.35), 0 4px 20px rgba(0, 0, 0, 0.35); }
 }
 
-/* ===== Combo Tracker ===== */
-.combo-tracker {
-  position: fixed;
-  top: 110px;
-  right: 24px;
-  z-index: 55;
-  display: none;
-}
-
-.combo-tracker.combo-active { display: flex; }
-
-.combo-ring {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: conic-gradient(
-    rgba(124, 92, 255, 0.6) calc(var(--combo-progress, 0) * 360deg),
-    rgba(255, 255, 255, 0.06) 0deg
-  );
-  transition: background 0.15s linear;
-  position: relative;
-}
-
-.combo-ring::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  border-radius: 50%;
-  background: rgba(10, 15, 25, 0.92);
-}
-
-.combo-label {
-  position: relative;
-  font-size: 18px;
-  font-weight: 800;
-  color: #c084fc;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 12px rgba(192, 132, 252, 0.4);
-}
-
-.combo-tracker.combo-hot .combo-label {
-  color: #fbbf24;
-  text-shadow: 0 0 16px rgba(251, 191, 36, 0.5);
-  animation: comboGlow 0.5s ease infinite;
-}
-
-.combo-tracker.combo-hot .combo-ring {
-  background: conic-gradient(
-    rgba(251, 191, 36, 0.7) calc(var(--combo-progress, 0) * 360deg),
-    rgba(255, 255, 255, 0.06) 0deg
-  );
-}
-
-@keyframes comboGlow {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-
 /* ===== Run Summary ===== */
 .run-summary-overlay {
   position: fixed;
@@ -849,9 +789,6 @@ button:active::before {
 @media (max-width: 480px) {
   .entropy-bar { top: 50px; padding: 5px 10px; }
   .entropy-track { width: 110px; }
-  .combo-tracker { top: 90px; right: 12px; }
-  .combo-ring { width: 48px; height: 48px; }
-  .combo-label { font-size: 14px; }
   .run-summary-content { padding: 28px 20px; max-width: calc(100vw - 48px); }
 }
 

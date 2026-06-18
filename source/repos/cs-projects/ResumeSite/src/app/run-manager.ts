@@ -1,8 +1,8 @@
 // Run lifecycle manager: idle → active → ended
-// Orchestrates entropy, combo, HUD visibility, and run-end summary
+// Orchestrates entropy, streak, HUD visibility, and run-end summary
 
 import { EntropyMeter } from './entropy-meter';
-import { ComboTracker } from './combo-tracker';
+import { ComboStreak } from './combo-streak';
 import { UpgradeInventory } from './upgrade-inventory';
 import { MilestoneProgressBar } from './milestone-progress-bar';
 import { MilestoneProgress } from './upgrade-state';
@@ -22,13 +22,13 @@ export class RunManager {
   private frameCount = 0;
 
   readonly entropy = new EntropyMeter();
-  readonly combo = new ComboTracker();
+  readonly streak = new ComboStreak();
 
   private onEndCallback: ((stats: RunStats) => void) | null = null;
 
   init(onEnd: (stats: RunStats) => void): void {
     this.entropy.init();
-    this.combo.init();
+    this.streak.init();
     this.onEndCallback = onEnd;
   }
 
@@ -49,7 +49,6 @@ export class RunManager {
     this.frameCount = 0;
 
     this.entropy.show();
-    this.combo.show();
     inventory.show();
     progressBar.show();
     progressBar.update(progress);
@@ -61,7 +60,7 @@ export class RunManager {
 
     this.frameCount++;
     this.entropy.setRateMultiplier(entropyRateMul);
-    this.combo.tick();
+    this.streak.tick();
 
     const dead = this.entropy.tick();
     if (!dead) return false;
@@ -70,9 +69,9 @@ export class RunManager {
     return true;
   }
 
-  /** Process a goal score: combo feed + entropy knockback. Returns combo multiplier. */
+  /** Process a goal score: streak feed + entropy knockback. Returns streak multiplier. */
   onGoalScored(ventFreezeChance: number): number {
-    const multiplier = this.combo.feed();
+    const multiplier = this.streak.feed();
     this.entropy.knockback(multiplier);
 
     if (ventFreezeChance > 0 && Math.random() < ventFreezeChance) {
@@ -86,7 +85,7 @@ export class RunManager {
   finalizeRun(score: number, upgradesCollected: number): void {
     const stats: RunStats = {
       score,
-      peakCombo: this.combo.peak,
+      peakCombo: this.streak.peak,
       timeSeconds: Math.floor(this.frameCount / 60),
       upgradesCollected,
     };
@@ -99,15 +98,14 @@ export class RunManager {
     this.frameCount = 0;
     this.entropy.reset();
     this.entropy.hide();
-    this.combo.reset();
-    this.combo.hide();
+    this.streak.reset();
     inventory.hide();
     progressBar.hide();
   }
 
   destroy(): void {
     this.entropy.destroy();
-    this.combo.destroy();
+    this.streak.destroy();
     this.onEndCallback = null;
   }
 }

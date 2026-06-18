@@ -1,5 +1,5 @@
 import { Component, inject, OnDestroy, OnInit, ElementRef, afterNextRender } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { CaseStudy } from '../../content/case-study.types';
 import { getCaseStudy } from '../../content/case-studies';
@@ -8,7 +8,7 @@ import { ResumeService } from '../../resume-service';
 @Component({
   selector: 'app-case-study-page',
   standalone: true,
-  imports: [RouterLink],
+  imports: [],
   templateUrl: './case-study-page.html',
   styleUrls: ['./case-study-page.css'],
 })

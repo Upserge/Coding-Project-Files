@@ -303,10 +303,10 @@ export class ParticleField {
 
     this.isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     this.updateGoalHintStrength();
-    this.tickRunSystems();
 
     this.drawGoals(viewTop, viewBottom);
     this.updateParticles(w, h, mousePageX, mousePageY, viewTop, viewBottom);
+    this.tickRunSystems();
     drawConnections(this.ctx, this.particles, viewTop, viewBottom, this.isDark);
     drawTaurusLines(this.ctx, this.taurusLines, viewTop, viewBottom, this.isDark);
     updateConfetti(this.ctx, this.confetti);

@@ -27,6 +27,7 @@ describe('RunManager', () => {
   let bar: MilestoneProgressBar;
 
   beforeEach(() => {
+    document.querySelectorAll('.combo-streak').forEach((el) => el.remove());
     mgr = new RunManager();
     mgr.init(jasmine.createSpy('onEnd'));
     inv = stubInventory();
@@ -35,7 +36,7 @@ describe('RunManager', () => {
 
   afterEach(() => {
     mgr.entropy.destroy();
-    mgr.combo.destroy();
+    mgr.streak.destroy();
     inv.destroy();
     bar.destroy();
   });
@@ -118,6 +119,6 @@ describe('RunManager', () => {
     expect(mgr.currentPhase).toBe('idle');
     expect(mgr.isActive).toBeFalse();
     expect(mgr.entropy.snapshot().value).toBe(0);
-    expect(mgr.combo.current).toBe(0);
+    expect(mgr.streak.current).toBe(0);
   });
 });

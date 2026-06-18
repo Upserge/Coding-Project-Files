@@ -102,7 +102,8 @@ h3,
 
 .upgrade-inventory,
 .milestone-bar,
-.entropy-bar {
+.entropy-bar,
+.combo-streak-pill {
   border-color: var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-md);

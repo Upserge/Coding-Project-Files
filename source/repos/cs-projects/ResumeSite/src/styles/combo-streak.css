@@ -1,0 +1,120 @@
+/* Streak chip — glass pill with depleting ring (matches home-hud motif) */
+
+.combo-streak {
+  position: fixed;
+  top: 68px;
+  right: 20px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition:
+    opacity var(--duration-normal) ease,
+    transform var(--duration-normal) var(--ease-spring),
+    visibility var(--duration-normal) ease;
+}
+
+.combo-streak--active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.combo-streak-ring {
+  --streak-progress: 1;
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: conic-gradient(
+    from -90deg,
+    var(--color-accent) calc(var(--streak-progress, 0) * 360deg),
+    rgba(255, 255, 255, 0.1) 0deg
+  );
+  box-shadow: 0 0 12px var(--accent-a18);
+}
+
+.combo-streak-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 118px;
+  padding: 8px 12px;
+  border-radius: calc(var(--radius-pill) - 2px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-display);
+  line-height: 1;
+}
+
+.combo-streak-kicker {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.combo-streak-mult {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent-muted);
+}
+
+/* Screen-reader-only progress; ring is the visual timer */
+.combo-streak-track {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.combo-streak--hot .combo-streak-ring {
+  background: conic-gradient(
+    from -90deg,
+    #fbbf24 calc(var(--streak-progress, 0) * 360deg),
+    rgba(255, 255, 255, 0.1) 0deg
+  );
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.22);
+}
+
+.combo-streak--hot .combo-streak-pill {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.combo-streak--hot .combo-streak-mult {
+  color: #fbbf24;
+}
+
+@media (max-width: 720px) {
+  .combo-streak {
+    top: 60px;
+    right: 14px;
+  }
+
+  .combo-streak-pill {
+    min-width: 108px;
+    padding: 7px 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combo-streak {
+    transition: none;
+    transform: none;
+  }
+}
