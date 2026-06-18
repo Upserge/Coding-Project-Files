@@ -316,10 +316,10 @@ No code deletion required — preset swap only.
 
 **Sign-off checklist**
 
-- [ ] Mobile grid unchanged (reel hidden < 768px today)
-- [ ] Broken video → poster + img fallback
-- [ ] No autoplay with sound
-- [ ] Total new assets < ~8 MB for all projects
+- [x] Mobile grid unchanged (reel hidden < 768px today)
+- [x] Broken video → poster + img fallback
+- [x] No autoplay with sound
+- [x] Total new assets < ~8 MB for all projects
 
 ---
 
@@ -372,9 +372,9 @@ No code deletion required — preset swap only.
 
 **Sign-off checklist**
 
-- [ ] Snap only on desktop; phone scroll feels unchanged
-- [ ] Focus mode + particle layout refresh unaffected
-- [ ] No wheel/touch `preventDefault`
+- [x] Snap only on desktop; phone scroll feels unchanged
+- [x] Focus mode + particle layout refresh unaffected
+- [x] No wheel/touch `preventDefault`
 
 ---
 

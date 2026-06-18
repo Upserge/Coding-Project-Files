@@ -2,6 +2,7 @@
 /* Global: minimalist portfolio-inspired styles with dark/light theme */
 @import './styles/tokens.css';
 @import './styles/cinematic.css';
+@import './app/scroll/scroll-snap-home.css';
 
 /* Theme colors — aliases live in tokens.css (--bg, --text, --muted, --accent) */
 

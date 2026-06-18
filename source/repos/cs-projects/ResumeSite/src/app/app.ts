@@ -32,6 +32,7 @@ export class App {
 
   protected readonly isDarkMode = computed(() => this.resumeService.isDarkMode());
   protected readonly highlightedSection = this.resumeService.highlightedSection;
+  protected readonly activeNavSection = this.resumeService.activeNavSection;
   protected readonly score = computed(() => this.resumeService.score());
   protected readonly isHome = computed(() => {
     const url = this.currentUrl();

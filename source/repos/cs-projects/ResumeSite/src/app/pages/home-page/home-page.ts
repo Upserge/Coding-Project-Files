@@ -11,6 +11,8 @@ import { CaseStudy } from '../../content/case-study.types';
 import { GAME_STORY_COPY } from '../../content/game-narrative';
 import { ABOUT_CONTENT } from '../../content/about';
 import { WorkReelComponent } from '../../components/work-reel/work-reel.component';
+import { VISUAL_FEATURES } from '../../content/visual-tier';
+import { ScrollSnapHome } from '../../scroll/scroll-snap-home';
 
 @Component({
   selector: 'app-home-page',
@@ -53,6 +55,7 @@ export class HomePage {
   private roleIndex = 0;
   private charIndex = 0;
   private isDeleting = false;
+  private scrollSnap: ScrollSnapHome | null = null;
 
   constructor() {
     afterNextRender(() => {
@@ -64,6 +67,18 @@ export class HomePage {
         this.resumeService.refreshShaderAnchors();
       }, 0);
       setTimeout(() => this.resumeService.refreshShaderAnchors(), 300);
+
+      if (VISUAL_FEATURES.scrollNarrative) {
+        this.scrollSnap = new ScrollSnapHome(VISUAL_FEATURES, (sectionId) => {
+          this.resumeService.setActiveNavSection(sectionId);
+        });
+        this.scrollSnap.init();
+      }
+    });
+
+    this.destroyRef.onDestroy(() => {
+      this.scrollSnap?.destroy();
+      this.scrollSnap = null;
     });
 
     timer(1600).pipe(

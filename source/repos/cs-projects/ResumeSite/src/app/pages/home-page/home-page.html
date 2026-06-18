@@ -1,4 +1,4 @@
-<header class="resume-header">
+<header class="resume-header scroll-snap-section">
   <div class="hero-orbit-wrap" aria-hidden="true">
     <div class="hero-orbit hero-orbit--1"></div>
     <div class="hero-orbit hero-orbit--2"></div>
@@ -55,7 +55,7 @@
 </section>
 
 <main class="resume-main">
-  <section id="work" class="section work-section" [class.highlighted]="highlightedSection() === 'work'">
+  <section id="work" class="section work-section scroll-snap-section" [class.highlighted]="highlightedSection() === 'work'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Case Studies</h2>
       <p class="work-lead reveal reveal-up" style="--delay: 0.15s">
@@ -93,7 +93,7 @@
     </div>
   </section>
 
-  <section id="summary" class="section" [class.highlighted]="highlightedSection() === 'summary'">
+  <section id="summary" class="section scroll-snap-section" [class.highlighted]="highlightedSection() === 'summary'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Summary</h2>
       <p class="summary-lead reveal reveal-up" style="--delay: 0.2s">
@@ -143,7 +143,7 @@
     </div>
   </section>
 
-  <section id="projects" class="section" [class.highlighted]="highlightedSection() === 'projects'">
+  <section id="projects" class="section scroll-snap-section" [class.highlighted]="highlightedSection() === 'projects'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Projects</h2>
       <p class="projects-lead reveal reveal-up" style="--delay: 0.15s">
@@ -246,7 +246,7 @@
     </div>
   </section>
 
-  <section id="experience" class="section" [class.highlighted]="highlightedSection() === 'experience'">
+  <section id="experience" class="section scroll-snap-section" [class.highlighted]="highlightedSection() === 'experience'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Experience</h2>
       @if (!resume().experience || resume().experience!.length === 0) {
@@ -281,7 +281,7 @@
     </div>
   </section>
 
-  <section id="technologies" class="section" [class.highlighted]="highlightedSection() === 'technologies'">
+  <section id="technologies" class="section scroll-snap-section" [class.highlighted]="highlightedSection() === 'technologies'">
     <div class="container">
       <h2 class="section-title reveal reveal-left" style="--delay: 0.1s">Technologies</h2>
       <div class="tech-categories">

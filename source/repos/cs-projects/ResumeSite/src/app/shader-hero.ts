@@ -134,7 +134,6 @@ export class ShaderHero {
   private program: WebGLProgram | null = null;
   private animationFrame: number | null = null;
   private resizeHandler: (() => void) | null = null;
-  private scrollHandler: (() => void) | null = null;
   private visibilityHandler: (() => void) | null = null;
   private intersectionObserver: IntersectionObserver | null = null;
   private scrollLayoutPending = false;
@@ -176,9 +175,6 @@ export class ShaderHero {
 
     this.resizeHandler = () => this.scheduleLayout();
     window.addEventListener('resize', this.resizeHandler);
-
-    this.scrollHandler = () => this.scheduleLayout();
-    window.addEventListener('scroll', this.scrollHandler, { passive: true });
 
     this.visibilityHandler = () => {
       this.tabVisible = !document.hidden;
@@ -275,10 +271,6 @@ export class ShaderHero {
     if (this.resizeHandler) {
       window.removeEventListener('resize', this.resizeHandler);
       this.resizeHandler = null;
-    }
-    if (this.scrollHandler) {
-      window.removeEventListener('scroll', this.scrollHandler);
-      this.scrollHandler = null;
     }
     if (this.visibilityHandler) {
       document.removeEventListener('visibilitychange', this.visibilityHandler);

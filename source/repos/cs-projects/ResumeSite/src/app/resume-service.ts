@@ -145,6 +145,7 @@ export class ResumeService {
   readonly isDarkMode = signal<boolean>(true);
   readonly isNavHidden = signal<boolean>(false);
   readonly highlightedSection = signal<string | null>(null);
+  readonly activeNavSection = signal<string | null>(null);
   readonly score = signal<number>(0);
 
   private lastScrollY = 0;
@@ -348,10 +349,16 @@ export class ResumeService {
   }
 
   // ===== User Interaction Methods =====
+  setActiveNavSection(id: string | null): void {
+    if (this.activeNavSection() === id) return;
+    this.activeNavSection.set(id);
+  }
+
   scrollTo(id: string) {
     const scrollToSection = () => {
       const el = document.getElementById(id);
       if (el) {
+        this.activeNavSection.set(id);
         this.highlightedSection.set(id);
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setTimeout(() => {
@@ -374,6 +381,7 @@ export class ResumeService {
   scrollToTop() {
     const onHome = this.router.url === '/' || this.router.url === '';
     if (onHome) {
+      this.activeNavSection.set(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }

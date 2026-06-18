@@ -1,0 +1,32 @@
+/* Phase 5d — desktop home scroll narrative (enabled via html.scroll-snap-enabled) */
+
+@media (min-width: 1024px) {
+  html.scroll-snap-enabled {
+    scroll-snap-type: y proximity;
+    scroll-padding-top: 52px;
+  }
+
+  html.scroll-snap-enabled .scroll-snap-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+    scroll-margin-top: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.scroll-snap-enabled {
+    scroll-snap-type: none;
+  }
+}
+
+/* Avoid double motion with snap + scroll-driven / IO reveals on desktop.
+   Do NOT force opacity/transform/filter — that paints every off-screen reveal at full blur cost. */
+@media (min-width: 1024px) {
+  html[data-scroll-snap='on'] .app-page-host--home .reveal,
+  html[data-scroll-snap='on'] .app-page-host--home .reveal-up,
+  html[data-scroll-snap='on'] .app-page-host--home .reveal-left,
+  html[data-scroll-snap='on'] .app-page-host--home .reveal-scale {
+    animation: none !important;
+    transition: none !important;
+  }
+}

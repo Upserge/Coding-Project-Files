@@ -5,6 +5,6 @@ describe('visual-tier', () => {
     const config = applyVisualTier(document.documentElement);
     expect(config).toBe(VISUAL_FEATURES);
     expect(config.reelMotion).toBe(true);
-    expect(config.scrollNarrative).toBe(false);
+    expect(config.scrollNarrative).toBe(true);
   });
 });
