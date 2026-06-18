@@ -1,39 +1,51 @@
 @if (isHome()) {
-<nav class="top-nav">
-  <div class="container nav-inner">
-    <div class="nav-links">
-      <a [class.active]="activeNavSection() === 'work'" (click)="scrollTo('work')">Work</a>
-      <a routerLink="/about">About</a>
-      <a [class.active]="activeNavSection() === 'summary'" (click)="scrollTo('summary')">Summary</a>
-      <a [class.active]="activeNavSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
-      <a [class.active]="activeNavSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
-      <a [class.active]="activeNavSection() === 'technologies'" (click)="scrollTo('technologies')">Technologies</a>
-    </div>
-    @if (score() > 0) {
-      <span class="score-counter" (click)="showLeaderboard()" title="View leaderboard">🏆 {{ score() }}</span>
-    }
-    <div class="nav-actions">
-      <button class="link-btn" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
-      <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
-      <button class="link-btn" (click)="scrollToTop()">Top</button>
-    </div>
-  </div>
-</nav>
+  @if (useMinimalHomeNav()) {
+    <app-home-hud
+      [score]="score()"
+      [showSessionScore]="hasScoredThisSession()"
+      [isDarkMode]="isDarkMode()"
+      (showCommandPalette)="openCommandPalette()"
+      (showShortcuts)="showKeyboardHints()"
+      (toggleTheme)="toggleDarkMode()"
+      (showLeaderboard)="showLeaderboard()"
+    />
+  } @else {
+    <nav class="top-nav">
+      <div class="container nav-inner">
+        <div class="nav-links">
+          <a [class.active]="activeNavSection() === 'work'" (click)="scrollTo('work')">Work</a>
+          <a routerLink="/about">About</a>
+          <a [class.active]="activeNavSection() === 'summary'" (click)="scrollTo('summary')">Summary</a>
+          <a [class.active]="activeNavSection() === 'projects'" (click)="scrollTo('projects')">Projects</a>
+          <a [class.active]="activeNavSection() === 'experience'" (click)="scrollTo('experience')">Experience</a>
+          <a [class.active]="activeNavSection() === 'technologies'" (click)="scrollTo('technologies')">Technologies</a>
+        </div>
+        @if (hasScoredThisSession()) {
+          <span class="score-counter" (click)="showLeaderboard()" title="View leaderboard">🏆 {{ score() }}</span>
+        }
+        <div class="nav-actions">
+          <button class="link-btn" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
+          <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
+          <button class="link-btn" (click)="scrollToTop()">Top</button>
+        </div>
+      </div>
+    </nav>
+  }
 } @else {
 <div class="subpage-dock" aria-label="Page controls">
   <a routerLink="/" class="subpage-dock-pill subpage-dock-home">← Home</a>
   <div class="subpage-dock-utils">
-    @if (score() > 0) {
+    @if (hasScoredThisSession()) {
       <button type="button" class="subpage-dock-pill subpage-dock-score" (click)="showLeaderboard()" title="View leaderboard">
         🏆 {{ score() }}
       </button>
     }
-    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
-    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
+    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><span class="dock-glyph" aria-hidden="true">?</span></button>
+    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode"><span class="dock-glyph" aria-hidden="true">{{ isDarkMode() ? '☀️' : '🌙' }}</span></button>
   </div>
 </div>
 }
 
-<main class="app-page-host" [class.app-page-host--home]="isHome()">
+<main class="app-page-host" [class.app-page-host--home]="isHome()" [class.app-page-host--minimal-nav]="isHome() && useMinimalHomeNav()">
   <router-outlet />
 </main>

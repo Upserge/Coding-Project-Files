@@ -147,6 +147,7 @@ export class ResumeService {
   readonly highlightedSection = signal<string | null>(null);
   readonly activeNavSection = signal<string | null>(null);
   readonly score = signal<number>(0);
+  readonly hasScoredThisSession = signal<boolean>(false);
 
   private lastScrollY = 0;
   // reveal observer for element reveal-on-scroll
@@ -263,7 +264,9 @@ export class ResumeService {
     this.particleField = new ParticleField();
     this.particleField.init(
       (points: number, scorePageY: number) => {
+        this.hasScoredThisSession.set(true);
         this.score.update((s) => s + points);
+        this.focusMode?.revealToggleOnSessionGoal();
         this.leaderboard?.onScore(this.score());
         this.focusMode?.onScore(this.score());
         this.shaderHero?.pulseOnScore(scorePageY);

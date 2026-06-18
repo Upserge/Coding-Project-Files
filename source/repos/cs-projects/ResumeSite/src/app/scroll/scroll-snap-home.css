@@ -3,13 +3,13 @@
 @media (min-width: 1024px) {
   html.scroll-snap-enabled {
     scroll-snap-type: y proximity;
-    scroll-padding-top: 52px;
+    scroll-padding-top: var(--nav-scroll-offset, 52px);
   }
 
   html.scroll-snap-enabled .scroll-snap-section {
     scroll-snap-align: start;
     scroll-snap-stop: normal;
-    scroll-margin-top: 52px;
+    scroll-margin-top: var(--nav-scroll-offset, 52px);
   }
 }
 

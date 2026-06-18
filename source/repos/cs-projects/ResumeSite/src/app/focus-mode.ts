@@ -11,15 +11,26 @@ const IDLE_RESTORE_MS = 12_000;
 const TRANSITION_SPEED = 'opacity 1.2s ease, filter 1.2s ease';
 
 export class FocusMode {
-  private toggle: HTMLElement | null = null;
+  private toggle: HTMLButtonElement | null = null;
+  private iconEl: HTMLElement | null = null;
+  private labelEl: HTMLElement | null = null;
   private manualMode: 'game' | 'resume' | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private currentScore = 0;
+  private toggleRevealed = false;
 
   init(): void {
     this.toggle = this.buildToggle();
     document.body.appendChild(this.toggle);
     this.applyResumeOpacity();
+  }
+
+  /** Reveal the toggle after the player scores a goal this session (not from restored score). */
+  revealToggleOnSessionGoal(): void {
+    if (this.toggleRevealed) return;
+    this.toggleRevealed = true;
+    this.toggle?.classList.add('focus-toggle--visible');
+    this.toggle?.removeAttribute('aria-hidden');
   }
 
   onScore(sessionScore: number): void {
@@ -33,15 +44,24 @@ export class FocusMode {
   destroy(): void {
     this.toggle?.remove();
     this.toggle = null;
+    this.iconEl = null;
+    this.labelEl = null;
     this.clearIdleTimer();
     this.resetResumeStyles();
   }
 
-  private buildToggle(): HTMLElement {
+  private buildToggle(): HTMLButtonElement {
     const btn = document.createElement('button');
+    btn.type = 'button';
     btn.className = 'focus-toggle';
-    btn.textContent = '🎮';
-    btn.title = 'Toggle: Game / Resume focus';
+    btn.setAttribute('aria-hidden', 'true');
+    btn.innerHTML = `
+      <span class="focus-toggle-icon" aria-hidden="true">🎮</span>
+      <span class="focus-toggle-label">Game focus</span>
+    `;
+    btn.title = 'Toggle game vs reading focus';
+    this.iconEl = btn.querySelector('.focus-toggle-icon');
+    this.labelEl = btn.querySelector('.focus-toggle-label');
     btn.addEventListener('click', () => this.handleToggleClick());
     return btn;
   }
@@ -60,17 +80,21 @@ export class FocusMode {
   }
 
   private updateToggleLabel(): void {
-    if (!this.toggle) return;
+    if (!this.toggle || !this.iconEl || !this.labelEl) return;
+
     const tier = this.resolveOpacityTier();
     const tierHint =
       tier.minScore === 0
         ? 'Full résumé visible'
         : `Résumé fades to ${Math.round(tier.opacity * 100)}% after ${tier.minScore}+ session pts`;
-    this.toggle.textContent = this.manualMode === 'game' ? '📄' : '🎮';
-    this.toggle.title =
-      this.manualMode === 'game'
-        ? 'Reading mode — restore full résumé opacity'
-        : `Game focus — ${tierHint}. Click to prioritize reading.`;
+
+    const reading = this.manualMode === 'game';
+    this.iconEl.textContent = reading ? '📄' : '🎮';
+    this.labelEl.textContent = reading ? 'Reading' : 'Game focus';
+    this.toggle.title = reading
+      ? 'Reading mode — restore full résumé opacity'
+      : `Game focus — ${tierHint}. Click to prioritize reading.`;
+    this.toggle.classList.toggle('focus-toggle--reading', reading);
   }
 
   private applyResumeOpacity(): void {
@@ -92,11 +116,7 @@ export class FocusMode {
   }
 
   private setResumeElements(opacity: number): void {
-    const selectors = [
-      '.resume-header',
-      '.resume-main',
-      '.resume-footer',
-    ];
+    const selectors = ['.resume-header', '.resume-main', '.resume-footer'];
 
     for (const sel of selectors) {
       const el = document.querySelector<HTMLElement>(sel);

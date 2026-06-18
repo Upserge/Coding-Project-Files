@@ -1,0 +1,41 @@
+<div class="home-hud" aria-label="Site controls">
+  <div class="home-hud-utils">
+    @if (showSessionScore()) {
+      <button
+        type="button"
+        class="home-hud-btn home-hud-btn--score"
+        (click)="showLeaderboard.emit()"
+        title="View leaderboard"
+      >
+        <span class="home-hud-glyph" aria-hidden="true">🏆</span>
+        <span>{{ score() }}</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="home-hud-btn home-hud-btn--text"
+      (click)="showCommandPalette.emit()"
+      title="Command palette (Ctrl+K)"
+    >
+      ⌘K
+    </button>
+    <button
+      type="button"
+      class="home-hud-btn home-hud-btn--icon"
+      (click)="showShortcuts.emit()"
+      title="Keyboard shortcuts (?)"
+      aria-label="Keyboard shortcuts"
+    >
+      <span class="home-hud-glyph" aria-hidden="true">?</span>
+    </button>
+    <button
+      type="button"
+      class="home-hud-btn home-hud-btn--icon"
+      (click)="toggleTheme.emit()"
+      title="Toggle dark mode"
+      aria-label="Toggle dark mode"
+    >
+      <span class="home-hud-glyph" aria-hidden="true">{{ isDarkMode() ? '☀️' : '🌙' }}</span>
+    </button>
+  </div>
+</div>

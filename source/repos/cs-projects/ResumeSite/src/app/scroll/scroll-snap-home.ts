@@ -19,6 +19,13 @@ export const SCROLL_SNAP_MIN_WIDTH = 1024;
 export const SCROLL_SNAP_NAV_OFFSET = 52;
 export const SCROLL_SNAP_NAV_SYNC_MS = 120;
 
+export function readNavScrollOffset(fallback = SCROLL_SNAP_NAV_OFFSET): number {
+  if (typeof window === 'undefined') return fallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--nav-scroll-offset').trim();
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 export function shouldEnableScrollSnap(flags: Pick<VisualFeatureFlags, 'scrollNarrative'>): boolean {
   if (!flags.scrollNarrative) {
     return false;
@@ -197,7 +204,7 @@ export class ScrollSnapHome {
   }
 
   private syncNavSection(): void {
-    const sectionId = resolveActiveNavSection(document, SCROLL_SNAP_NAV_OFFSET, this.snapTargets);
+    const sectionId = resolveActiveNavSection(document, readNavScrollOffset(), this.snapTargets);
     if (sectionId === this.lastNavSection) return;
     this.lastNavSection = sectionId;
     this.onSectionChange(sectionId);

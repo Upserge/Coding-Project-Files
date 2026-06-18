@@ -5,12 +5,13 @@ import { filter, map, startWith } from 'rxjs/operators';
 import { ResumeService } from './resume-service';
 import { KeyboardHintsModal } from './keyboard-hints-modal';
 import { CommandPalette } from './command-palette';
-import { applyVisualTier } from './content/visual-tier';
+import { applyVisualTier, isMinimalHomeNav, VISUAL_FEATURES } from './content/visual-tier';
+import { HomeHudComponent } from './components/home-hud/home-hud.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, RouterLink, HomeHudComponent],
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
 })
@@ -34,10 +35,12 @@ export class App {
   protected readonly highlightedSection = this.resumeService.highlightedSection;
   protected readonly activeNavSection = this.resumeService.activeNavSection;
   protected readonly score = computed(() => this.resumeService.score());
+  protected readonly hasScoredThisSession = this.resumeService.hasScoredThisSession;
   protected readonly isHome = computed(() => {
     const url = this.currentUrl();
     return url === '/' || url === '';
   });
+  protected readonly useMinimalHomeNav = computed(() => this.isHome() && isMinimalHomeNav(VISUAL_FEATURES.navVariant));
 
   constructor() {
     effect(() => {
@@ -149,6 +152,10 @@ export class App {
       this.keyboardHintsModal = new KeyboardHintsModal();
     }
     this.keyboardHintsModal.show();
+  }
+
+  openCommandPalette() {
+    this.commandPalette?.show();
   }
 
   private closeKeyboardHints() {

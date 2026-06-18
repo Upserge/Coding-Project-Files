@@ -178,23 +178,16 @@ export class Leaderboard {
     }
 
     this.panel = document.createElement('div');
-    this.panel.className = 'leaderboard-panel';
+    this.panel.className = 'studio-modal-overlay leaderboard-overlay';
+    this.panel.addEventListener('click', (e) => {
+      if (e.target === this.panel) this.closePanel();
+    });
     document.body.appendChild(this.panel);
     this.refreshPanel();
 
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        this.panel?.classList.add('visible');
-      });
+      this.panel?.classList.add('visible');
     });
-
-    const handleClose = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.lb-close')) {
-        this.closePanel();
-      }
-    };
-    this.panel.addEventListener('click', handleClose);
   }
 
   private refreshPanel() {
@@ -204,34 +197,46 @@ export class Leaderboard {
 
     let rowsHtml = '';
     if (entries.length === 0) {
-      rowsHtml = '<div class="lb-empty">No runs yet — herd a rocket into a black hole!</div>';
+      rowsHtml = '<div class="lb-empty">No runs yet — herd a rocket into a black hole to claim the board.</div>';
     } else {
-      rowsHtml = entries.map((e, i) => {
-        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="lb-rank">${i + 1}</span>`;
-        const isYou = e.name === currentName ? ' lb-you' : '';
-        return `
+      rowsHtml = entries
+        .map((e, i) => {
+          const medal =
+            i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="lb-rank">${i + 1}</span>`;
+          const isYou = e.name === currentName ? ' lb-you' : '';
+          return `
           <div class="lb-row${isYou}">
             <span class="lb-medal">${medal}</span>
             <span class="lb-name">${this.escapeHtml(e.name)}</span>
             <span class="lb-score">${e.score}</span>
           </div>`;
-      }).join('');
+        })
+        .join('');
     }
 
     this.panel.innerHTML = `
-      <div class="lb-header">
-        <h3>🏆 Leaderboard</h3>
-        <div class="lb-header-actions">
-          <button class="lb-close" aria-label="Close">✕</button>
+      <div class="studio-modal" role="dialog" aria-labelledby="leaderboard-title">
+        <header class="studio-modal-header">
+          <div>
+            <span class="studio-modal-kicker">Session</span>
+            <h3 id="leaderboard-title">Leaderboard</h3>
+          </div>
+          <button type="button" class="studio-modal-close lb-close" aria-label="Close">✕</button>
+        </header>
+        <div class="studio-modal-body lb-body">
+          ${rowsHtml}
         </div>
-      </div>
-      <div class="lb-body">
-        ${rowsHtml}
-      </div>
-      <div class="lb-footer">
-        ${currentName ? `Playing as <strong>${this.escapeHtml(currentName)}</strong>` : 'Score to join the leaderboard'}
+        <p class="studio-modal-foot">
+          ${
+            currentName
+              ? `Playing as <strong>${this.escapeHtml(currentName)}</strong>`
+              : 'Score once to join the board'
+          }
+        </p>
       </div>
     `;
+
+    this.panel.querySelector('.lb-close')?.addEventListener('click', () => this.closePanel());
   }
 
   closePanel() {
@@ -240,7 +245,7 @@ export class Leaderboard {
     setTimeout(() => {
       this.panel?.remove();
       this.panel = null;
-    }, 300);
+    }, 220);
   }
 
   private escapeHtml(str: string): string {

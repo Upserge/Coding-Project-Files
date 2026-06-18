@@ -1,77 +1,69 @@
-// Keyboard hints widget - subtle popup overlay
+// Keyboard hints — cinematic modal overlay
+
+const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
+  { keys: ['W'], label: 'Selected work' },
+  { keys: ['Ctrl', 'K'], label: 'Command palette' },
+  { keys: ['J'], label: 'Summary' },
+  { keys: ['K'], label: 'Technologies' },
+  { keys: ['L'], label: 'Experience' },
+  { keys: [';'], label: 'Projects' },
+  { keys: ['D'], label: 'Dark mode' },
+  { keys: ['S'], label: 'Leaderboard' },
+  { keys: ['?'], label: 'This panel' },
+  { keys: ['Esc'], label: 'Close overlays' },
+];
+
 export class KeyboardHintsModal {
-  private widget: HTMLElement | null = null;
+  private overlay: HTMLElement | null = null;
 
   show() {
-    if (this.widget) {
-      this.widget.classList.add('visible');
+    if (this.overlay) {
+      this.overlay.classList.add('visible');
       return;
     }
 
-    this.widget = document.createElement('div');
-    this.widget.className = 'keyboard-hints-widget';
-    this.widget.innerHTML = `
-      <div class="widget-header">
-        <h3>Keyboard Shortcuts</h3>
-        <button class="widget-close" aria-label="Close">✕</button>
-      </div>
-      <div class="widget-body">
-        <div class="shortcut-group">
-          <div class="shortcut-item">
-            <kbd>W</kbd>
-            <span>Selected work</span>
+    this.overlay = document.createElement('div');
+    this.overlay.className = 'studio-modal-overlay keyboard-hints-overlay';
+    this.overlay.innerHTML = `
+      <div class="studio-modal" role="dialog" aria-labelledby="keyboard-hints-title">
+        <header class="studio-modal-header">
+          <div>
+            <span class="studio-modal-kicker">Controls</span>
+            <h3 id="keyboard-hints-title">Keyboard shortcuts</h3>
           </div>
-          <div class="shortcut-item">
-            <kbd>Ctrl</kbd><span>+</span><kbd>K</kbd>
-            <span>Command palette</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>J</kbd>
-            <span>Summary</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>K</kbd>
-            <span>Technologies</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>L</kbd>
-            <span>Experience</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>;</kbd>
-            <span>Projects</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>D</kbd>
-            <span>Dark Mode</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>S</kbd>
-            <span>Leaderboard</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>Esc</kbd>
-            <span>Close</span>
+          <button type="button" class="studio-modal-close" aria-label="Close">✕</button>
+        </header>
+        <div class="studio-modal-body">
+          <div class="shortcut-grid">
+            ${SHORTCUTS.map(
+              (s) => `
+              <div class="shortcut-item">
+                <span class="shortcut-label">${s.label}</span>
+                <span class="shortcut-keys">${s.keys.map((k) => `<kbd>${k}</kbd>`).join('')}</span>
+              </div>`,
+            ).join('')}
           </div>
         </div>
+        <p class="studio-modal-foot">Press <strong>?</strong> anytime to reopen</p>
       </div>
     `;
 
-    document.body.appendChild(this.widget);
-    this.widget.classList.add('visible');
+    document.body.appendChild(this.overlay);
+    requestAnimationFrame(() => this.overlay?.classList.add('visible'));
 
-    const closeBtn = this.widget.querySelector('.widget-close');
-    closeBtn?.addEventListener('click', () => this.close());
+    this.overlay.querySelector('.studio-modal-close')?.addEventListener('click', () => this.close());
+    this.overlay.addEventListener('click', (e) => {
+      if (e.target === this.overlay) this.close();
+    });
   }
 
   close() {
-    if (this.widget) {
-      this.widget.classList.remove('visible');
-      setTimeout(() => {
-        this.widget?.remove();
-        this.widget = null;
-      }, 300);
-    }
+    if (!this.overlay) return;
+    this.overlay.classList.remove('visible');
+    setTimeout(() => {
+      this.overlay?.remove();
+      this.overlay = null;
+    }, 220);
   }
 
   destroy() {
