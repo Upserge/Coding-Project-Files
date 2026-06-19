@@ -123,9 +123,9 @@ export class EntropyMeter {
     const bar = document.createElement('div');
     bar.className = 'entropy-bar';
 
-    const icon = document.createElement('span');
-    icon.className = 'entropy-icon';
-    icon.textContent = '☠️';
+    const kicker = document.createElement('span');
+    kicker.className = 'hud-meter-kicker';
+    kicker.textContent = 'Entropy';
 
     const track = document.createElement('div');
     track.className = 'entropy-track';
@@ -138,9 +138,7 @@ export class EntropyMeter {
     this.label.textContent = '0%';
 
     track.appendChild(this.fill);
-    bar.appendChild(icon);
-    bar.appendChild(track);
-    bar.appendChild(this.label);
+    bar.append(kicker, track, this.label);
     return bar;
   }
 

@@ -1,4 +1,4 @@
-// Fullscreen upgrade picker modal — shows 3 random upgrade cards with rarity styling
+// Milestone upgrade picker — studio modal with rarity-styled choice cards
 
 import { Upgrade, getCategoryIcon, pickRandomUpgrades, RARITY_COLORS, RARITY_LABELS } from './upgrade-registry';
 import { UpgradeVFX } from './upgrade-vfx';
@@ -43,43 +43,59 @@ export class UpgradeModal {
 
   private buildOverlay(choices: Upgrade[]): HTMLElement {
     const overlay = document.createElement('div');
-    overlay.className = 'upgrade-overlay';
+    overlay.className = 'studio-modal-overlay upgrade-overlay';
+    overlay.setAttribute('role', 'presentation');
     overlay.innerHTML = this.buildHTML(choices);
     this.bindButtons(overlay, choices);
     return overlay;
   }
 
   private buildHTML(choices: Upgrade[]): string {
-    const cards = choices.map((u, i) => {
-      const color = RARITY_COLORS[u.rarity];
-      const label = RARITY_LABELS[u.rarity];
-      const flavor = getUpgradeFlavor(u.id);
-      const flavorHtml = flavor ? `<span class="upgrade-flavor">${flavor}</span>` : '';
-      return `
-      <button class="upgrade-card rarity-${u.rarity}" data-index="${i}"
-              style="--card-delay: ${i * 0.08}s; --rarity-color: ${color}">
+    const cards = choices.map((u, i) => this.buildCardHTML(u, i)).join('');
+
+    return `
+      <div class="studio-modal" role="dialog" aria-labelledby="upgrade-modal-title" aria-modal="true">
+        <header class="studio-modal-header">
+          <div>
+            <span class="studio-modal-kicker">Milestone</span>
+            <h3 id="upgrade-modal-title">Choose an upgrade</h3>
+          </div>
+        </header>
+        <div class="studio-modal-body upgrade-body">
+          <p class="upgrade-lead">Pick one enhancement for this run.</p>
+          <div class="upgrade-cards">${cards}</div>
+        </div>
+        <p class="studio-modal-foot">Duplicates stack until each upgrade reaches its max.</p>
+      </div>
+    `;
+  }
+
+  private buildCardHTML(u: Upgrade, index: number): string {
+    const color = RARITY_COLORS[u.rarity];
+    const label = RARITY_LABELS[u.rarity];
+    const flavor = getUpgradeFlavor(u.id);
+    const flavorHtml = flavor ? `<span class="upgrade-flavor">${flavor}</span>` : '';
+
+    return `
+      <button
+        type="button"
+        class="upgrade-card rarity-${u.rarity}"
+        data-index="${index}"
+        style="--card-delay: ${index * 0.06}s; --rarity-color: ${color}"
+      >
         <span class="upgrade-rarity-badge" style="color: ${color}; border-color: ${color}">${label}</span>
-        <span class="upgrade-icon">${getCategoryIcon(u.category)}</span>
+        <span class="upgrade-icon" aria-hidden="true">${getCategoryIcon(u.category)}</span>
         <span class="upgrade-name">${u.name}</span>
         <span class="upgrade-desc">${u.description}</span>
         ${flavorHtml}
         <span class="upgrade-category">${u.category}</span>
       </button>
     `;
-    }).join('');
-
-    return `
-      <div class="upgrade-content">
-        <h2 class="upgrade-title">⚡ System Upgrade Available</h2>
-        <p class="upgrade-subtitle">Choose one enhancement for your fleet</p>
-        <div class="upgrade-cards">${cards}</div>
-      </div>
-    `;
   }
 
   private bindButtons(overlay: HTMLElement, choices: Upgrade[]): void {
-    overlay.querySelectorAll('.upgrade-card').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    overlay.querySelectorAll('.upgrade-card').forEach((btn) => {
+      btn.addEventListener('click', () => {
         const index = Number((btn as HTMLElement).dataset['index']);
         const rect = (btn as HTMLElement).getBoundingClientRect();
         this.select(choices[index], rect.left + rect.width / 2, rect.top + rect.height / 2);

@@ -21,12 +21,16 @@
           <a [class.active]="activeNavSection() === 'technologies'" (click)="scrollTo('technologies')">Technologies</a>
         </div>
         @if (hasScoredThisSession()) {
-          <span class="score-counter" (click)="showLeaderboard()" title="View leaderboard">🏆 {{ score() }}</span>
+          <button type="button" class="score-counter" (click)="showLeaderboard()" title="View leaderboard">
+            <span class="hud-score-kicker">Score</span> {{ score() }}
+          </button>
         }
         <div class="nav-actions">
-          <button class="link-btn" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">&#9000;&#65039;</button>
-          <button class="link-btn" (click)="toggleDarkMode()" title="Toggle dark mode">{{ isDarkMode() ? '☀️' : '🌙' }}</button>
-          <button class="link-btn" (click)="scrollToTop()">Top</button>
+          <button type="button" class="link-btn" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><span aria-hidden="true">?</span></button>
+          <button type="button" class="link-btn link-btn--icon" (click)="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+            <ui-icon [name]="isDarkMode() ? 'sun' : 'moon'" />
+          </button>
+          <button type="button" class="link-btn" (click)="scrollToTop()">Top</button>
         </div>
       </div>
     </nav>
@@ -37,11 +41,13 @@
   <div class="subpage-dock-utils">
     @if (hasScoredThisSession()) {
       <button type="button" class="subpage-dock-pill subpage-dock-score" (click)="showLeaderboard()" title="View leaderboard">
-        🏆 {{ score() }}
+        <span class="hud-score-kicker">Score</span> {{ score() }}
       </button>
     }
     <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="showKeyboardHints()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><span class="dock-glyph" aria-hidden="true">?</span></button>
-    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode"><span class="dock-glyph" aria-hidden="true">{{ isDarkMode() ? '☀️' : '🌙' }}</span></button>
+    <button type="button" class="subpage-dock-pill subpage-dock-icon" (click)="toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
+      <ui-icon [name]="isDarkMode() ? 'sun' : 'moon'" />
+    </button>
   </div>
 </div>
 }

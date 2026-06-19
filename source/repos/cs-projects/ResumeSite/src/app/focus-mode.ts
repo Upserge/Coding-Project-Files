@@ -12,7 +12,6 @@ const TRANSITION_SPEED = 'opacity 1.2s ease, filter 1.2s ease';
 
 export class FocusMode {
   private toggle: HTMLButtonElement | null = null;
-  private iconEl: HTMLElement | null = null;
   private labelEl: HTMLElement | null = null;
   private manualMode: 'game' | 'resume' | null = null;
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -44,7 +43,6 @@ export class FocusMode {
   destroy(): void {
     this.toggle?.remove();
     this.toggle = null;
-    this.iconEl = null;
     this.labelEl = null;
     this.clearIdleTimer();
     this.resetResumeStyles();
@@ -55,14 +53,11 @@ export class FocusMode {
     btn.type = 'button';
     btn.className = 'focus-toggle';
     btn.setAttribute('aria-hidden', 'true');
-    btn.innerHTML = `
-      <span class="focus-toggle-icon" aria-hidden="true">🎮</span>
-      <span class="focus-toggle-label">Game focus</span>
-    `;
+    btn.innerHTML = `<span class="focus-toggle-label">Game focus</span>`;
     btn.title = 'Toggle game vs reading focus';
-    this.iconEl = btn.querySelector('.focus-toggle-icon');
     this.labelEl = btn.querySelector('.focus-toggle-label');
     btn.addEventListener('click', () => this.handleToggleClick());
+    btn.classList.add('focus-toggle--game');
     return btn;
   }
 
@@ -80,7 +75,7 @@ export class FocusMode {
   }
 
   private updateToggleLabel(): void {
-    if (!this.toggle || !this.iconEl || !this.labelEl) return;
+    if (!this.toggle || !this.labelEl) return;
 
     const tier = this.resolveOpacityTier();
     const tierHint =
@@ -89,12 +84,12 @@ export class FocusMode {
         : `Résumé fades to ${Math.round(tier.opacity * 100)}% after ${tier.minScore}+ session pts`;
 
     const reading = this.manualMode === 'game';
-    this.iconEl.textContent = reading ? '📄' : '🎮';
     this.labelEl.textContent = reading ? 'Reading' : 'Game focus';
     this.toggle.title = reading
       ? 'Reading mode — restore full résumé opacity'
       : `Game focus — ${tierHint}. Click to prioritize reading.`;
     this.toggle.classList.toggle('focus-toggle--reading', reading);
+    this.toggle.classList.toggle('focus-toggle--game', !reading);
   }
 
   private applyResumeOpacity(): void {

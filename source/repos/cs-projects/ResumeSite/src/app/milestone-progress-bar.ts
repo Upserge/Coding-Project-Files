@@ -52,9 +52,9 @@ export class MilestoneProgressBar {
     const wrapper = document.createElement('div');
     wrapper.className = 'milestone-bar';
 
-    const icon = document.createElement('span');
-    icon.className = 'milestone-icon';
-    icon.textContent = '⚡';
+    const kicker = document.createElement('span');
+    kicker.className = 'hud-meter-kicker';
+    kicker.textContent = 'Upgrade';
 
     const track = document.createElement('div');
     track.className = 'milestone-track';
@@ -67,9 +67,7 @@ export class MilestoneProgressBar {
     this.label.textContent = '0 / 1';
 
     track.appendChild(this.fill);
-    wrapper.appendChild(icon);
-    wrapper.appendChild(track);
-    wrapper.appendChild(this.label);
+    wrapper.append(kicker, track, this.label);
     return wrapper;
   }
 }

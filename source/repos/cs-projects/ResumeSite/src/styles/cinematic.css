@@ -14,9 +14,7 @@ h3,
 }
 
 .top-nav {
-  background: var(--color-surface-elevated);
-  border-bottom-color: var(--color-border);
-  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
 }
 
 .subpage-dock-pill {
@@ -63,13 +61,10 @@ h3,
 
 .link-btn {
   border-color: var(--color-border);
-  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease,
-    transform var(--duration-fast) ease;
 }
 
 .link-btn:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-glow);
 }
 
 .work-reel-panel {
@@ -100,10 +95,11 @@ h3,
   box-shadow: var(--shadow-glow);
 }
 
-.upgrade-inventory,
 .milestone-bar,
 .entropy-bar,
-.combo-streak-pill {
+.combo-streak-pill,
+.inventory-toggle,
+.upgrade-inventory:not(.collapsed) .inventory-drop {
   border-color: var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-md);

@@ -10,6 +10,7 @@ import {
   onSnapshot,
   Unsubscribe,
 } from '@angular/fire/firestore';
+import { leaderboardRankMarkup } from './icons/ui-icons';
 
 export interface LeaderboardEntry {
   name: string;
@@ -83,14 +84,14 @@ export class Leaderboard {
     this.prompt.className = 'name-prompt';
     this.prompt.innerHTML = `
       <div class="name-prompt-inner">
-        <span class="name-prompt-emoji">🚀</span>
-        <span class="name-prompt-text">Nice shot! Enter your name for the leaderboard</span>
+        <span class="studio-modal-kicker name-prompt-kicker">Leaderboard</span>
+        <span class="name-prompt-text">Nice shot! Enter your name for the leaderboard.</span>
         <div class="name-prompt-input-wrap">
           <input type="text" class="name-prompt-input" placeholder="Your name" maxlength="20" spellcheck="false" autocomplete="off" />
-          <button class="name-prompt-submit">→</button>
+          <button type="button" class="studio-btn-primary name-prompt-submit">Save</button>
         </div>
         <span class="name-prompt-error"></span>
-        <button class="name-prompt-dismiss">Maybe later</button>
+        <button type="button" class="name-prompt-dismiss">Maybe later</button>
       </div>
     `;
     document.body.appendChild(this.prompt);
@@ -201,8 +202,7 @@ export class Leaderboard {
     } else {
       rowsHtml = entries
         .map((e, i) => {
-          const medal =
-            i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="lb-rank">${i + 1}</span>`;
+          const medal = leaderboardRankMarkup(i + 1);
           const isYou = e.name === currentName ? ' lb-you' : '';
           return `
           <div class="lb-row${isYou}">

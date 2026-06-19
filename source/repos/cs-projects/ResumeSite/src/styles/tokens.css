@@ -62,6 +62,31 @@ html[data-theme='dark'] {
   --duration-normal: 0.35s;
   --duration-slow: 0.5s;
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /*
+   * UI pattern reference (implementation lives in component CSS files):
+   *
+   * HUD pill — glass control for session chrome
+   *   surface: var(--color-surface) + blur(12px)
+   *   shape: var(--radius-pill), border: var(--color-border)
+   *   type: var(--font-display), kickers use var(--color-accent-secondary)
+   *   refs: home-hud, focus-toggle, combo-streak, upgrade-inventory, game-hud-bars
+   *
+   * Studio modal — shared overlay shell for dialogs
+   *   overlay: .studio-modal-overlay (+ .visible / .closing)
+   *   panel: .studio-modal → .studio-modal-header | .studio-modal-body | .studio-modal-foot
+   *   primary CTA: .studio-btn-primary · secondary/ghost: .link-btn
+   *   refs: keyboard-hints, leaderboard, upgrade-modal, run-summary, game-tutorial, command-palette
+   *
+   * Toast — unified transient feedback
+   *   base: .toast · action (bottom-right): .toast--action · story beat (top-center): .toast--narrative
+   *   exit: .toast--exit · file: styles/game-toasts.css
+   *
+   * Score accent — gold reserved for session score / rewards only
+   *   border rgba(251,191,36,0.28) · text #fbbf24 · kicker .hud-score-kicker
+   * Icons — stroke SVG via ui-icons.ts + ui-icon component (no decorative emoji)
+   *   theme: sun/moon · upgrades: geometric category marks · ranks: lb-rank pills
+   */
 }
 
 html[data-theme='light'] {

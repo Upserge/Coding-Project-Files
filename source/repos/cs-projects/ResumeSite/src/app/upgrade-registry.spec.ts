@@ -72,11 +72,12 @@ describe('upgrade-registry', () => {
   });
 
   describe('getCategoryIcon', () => {
-    it('should return an emoji for each category', () => {
-      expect(getCategoryIcon('mobility')).toBeTruthy();
-      expect(getCategoryIcon('control')).toBeTruthy();
-      expect(getCategoryIcon('scoring')).toBeTruthy();
-      expect(getCategoryIcon('chaos')).toBeTruthy();
+    it('should return an icon markup for each category', () => {
+      expect(getCategoryIcon('mobility')).toContain('<svg');
+      expect(getCategoryIcon('control')).toContain('<svg');
+      expect(getCategoryIcon('scoring')).toContain('<svg');
+      expect(getCategoryIcon('chaos')).toContain('<svg');
+      expect(getCategoryIcon('survival')).toContain('<svg');
     });
   });
 

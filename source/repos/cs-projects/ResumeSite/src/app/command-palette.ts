@@ -29,12 +29,15 @@ export class CommandPalette {
       this.input.value = '';
     }
     this.renderList();
+    this.overlay.classList.remove('closing');
     this.overlay.classList.add('visible');
     requestAnimationFrame(() => this.input?.focus());
   }
 
   close(): void {
-    this.overlay?.classList.remove('visible');
+    if (!this.overlay) return;
+    this.overlay.classList.add('closing');
+    this.overlay.classList.remove('visible');
   }
 
   destroy(): void {
@@ -46,18 +49,29 @@ export class CommandPalette {
 
   private buildOverlay(): HTMLElement {
     const overlay = document.createElement('div');
-    overlay.className = 'command-palette-overlay';
+    overlay.className = 'studio-modal-overlay command-palette-overlay';
     overlay.innerHTML = `
-      <div class="command-palette" role="dialog" aria-label="Command palette">
-        <input class="command-palette-input" type="text" placeholder="Jump to…" aria-label="Command search" />
-        <ul class="command-palette-list" role="listbox"></ul>
-        <p class="command-palette-foot">↑↓ navigate · Enter run · Esc close</p>
+      <div class="studio-modal command-palette-modal" role="dialog" aria-labelledby="command-palette-title">
+        <header class="studio-modal-header">
+          <div>
+            <span class="studio-modal-kicker">Navigate</span>
+            <h3 id="command-palette-title">Command palette</h3>
+          </div>
+          <button type="button" class="studio-modal-close command-palette-close" aria-label="Close">✕</button>
+        </header>
+        <div class="studio-modal-body command-palette-body">
+          <input class="command-palette-input" type="text" placeholder="Jump to…" aria-label="Command search" />
+          <ul class="command-palette-list" role="listbox"></ul>
+        </div>
+        <p class="studio-modal-foot">↑↓ navigate · Enter run · Esc close</p>
       </div>
     `;
 
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) this.close();
     });
+
+    overlay.querySelector('.command-palette-close')?.addEventListener('click', () => this.close());
 
     this.input = overlay.querySelector('.command-palette-input');
     this.list = overlay.querySelector('.command-palette-list');
@@ -118,8 +132,10 @@ export class CommandPalette {
     this.list.innerHTML = this.filtered
       .map((action, i) => {
         const active = i === this.activeIndex ? ' active' : '';
-        const hint = action.hint ? `<span class="command-palette-hint">${action.hint}</span>` : '';
-        return `<li class="command-palette-item${active}" role="option" data-index="${i}">${action.label}${hint}</li>`;
+        const hint = action.hint
+          ? `<span class="command-palette-hint">${action.hint}</span>`
+          : '';
+        return `<li class="studio-stat-row command-palette-item${active}" role="option" data-index="${i}"><span class="studio-stat-label">${action.label}</span>${hint}</li>`;
       })
       .join('');
 

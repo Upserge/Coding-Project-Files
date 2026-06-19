@@ -1,5 +1,7 @@
 // Upgrade definitions and random selection logic
 
+import { upgradeCategoryIcon } from './icons/ui-icons';
+
 export type UpgradeCategory = 'mobility' | 'control' | 'scoring' | 'chaos' | 'survival';
 export type UpgradeRarity = 'common' | 'uncommon' | 'rare' | 'ultra-rare';
 
@@ -156,16 +158,8 @@ export const UPGRADE_POOL: readonly Upgrade[] = [
   },
 ] as const;
 
-const CATEGORY_ICONS: Record<UpgradeCategory, string> = {
-  mobility: '🚀',
-  control: '🎯',
-  scoring: '⭐',
-  chaos: '🌀',
-  survival: '🛡️',
-};
-
 export function getCategoryIcon(category: UpgradeCategory): string {
-  return CATEGORY_ICONS[category];
+  return upgradeCategoryIcon(category);
 }
 
 export function pickRandomUpgrades(

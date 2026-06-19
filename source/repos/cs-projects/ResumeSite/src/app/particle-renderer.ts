@@ -1,5 +1,115 @@
-// Particle and rocket (Ranger) rendering
+// Particle and player-craft rendering (luminous arrowhead of light)
 import { Particle, GoalPost } from './particle-field-types';
+
+/** Naboo N-1 draw scale — slightly oversized for canvas readability. */
+export const SHIP_LEN_MUL = 3.65;
+const SHIP_WID_MUL = 1.45;
+/** Forward fraction of the hull that reads as polished chrome (movie-accurate). */
+const CHROME_FRONT_FRACTION = 0.3;
+
+function chromeBoundaryX(noseX: number, tailX: number): number {
+  return noseX - CHROME_FRONT_FRACTION * (noseX - tailX);
+}
+
+/** Shimmering silver chrome overlay clipped to a region's forward 30%. */
+function paintChromeShimmer(
+  ctx: CanvasRenderingContext2D,
+  outline: () => void,
+  noseX: number,
+  tailX: number,
+  spanY: number,
+  animate: boolean,
+): void {
+  const endX = chromeBoundaryX(noseX, tailX);
+  const width = noseX - endX;
+  if (width <= 0) return;
+
+  ctx.save();
+  outline();
+  ctx.clip();
+  ctx.beginPath();
+  ctx.rect(endX, -spanY, width + 2, spanY * 2);
+  ctx.clip();
+
+  // Cool mirrored base (silver ↔ white bands)
+  const base = ctx.createLinearGradient(endX, -spanY, noseX, spanY);
+  base.addColorStop(0, 'rgba(196, 204, 218, 0.88)');
+  base.addColorStop(0.22, 'rgba(255, 255, 255, 0.98)');
+  base.addColorStop(0.48, 'rgba(184, 192, 210, 0.82)');
+  base.addColorStop(0.72, 'rgba(255, 255, 255, 0.96)');
+  base.addColorStop(1, 'rgba(245, 248, 255, 1)');
+  ctx.fillStyle = base;
+  ctx.fillRect(endX, -spanY, width + 2, spanY * 2);
+
+  if (animate) {
+    const t = performance.now() * 0.0028;
+    const sweep = (Math.sin(t) + 1) * 0.5;
+    const bandCenter = endX + width * sweep;
+    const bandW = width * 0.28;
+    ctx.globalCompositeOperation = 'lighter';
+    const band = ctx.createLinearGradient(bandCenter - bandW, -spanY, bandCenter + bandW, spanY);
+    band.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    band.addColorStop(0.5, 'rgba(255, 255, 255, 0.78)');
+    band.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = band;
+    ctx.fillRect(endX, -spanY, width + 2, spanY * 2);
+
+    const diag = (Math.sin(t * 1.6 + 1.2) + 1) * 0.5;
+    const streakX = endX + width * diag;
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.32 + Math.sin(t * 3) * 0.14})`;
+    ctx.lineWidth = Math.max(0.4, spanY * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(streakX, -spanY * 0.9);
+    ctx.lineTo(streakX + width * 0.15, spanY * 0.9);
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    // Reduced motion: static specular band (still reads as chrome, no sweep).
+    const band = ctx.createLinearGradient(endX + width * 0.52, -spanY, endX + width * 0.78, spanY);
+    band.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    band.addColorStop(0.5, 'rgba(255, 255, 255, 0.42)');
+    band.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = band;
+    ctx.fillRect(endX, -spanY, width + 2, spanY * 2);
+  }
+
+  ctx.restore();
+}
+
+/** Full chrome cap on engine intakes (entire cap shimmers). */
+function paintPodChromeCap(
+  ctx: CanvasRenderingContext2D,
+  traceCap: () => void,
+  capAftX: number,
+  capForwardX: number,
+  spanY: number,
+  animate: boolean,
+): void {
+  const x0 = Math.min(capAftX, capForwardX);
+  const x1 = Math.max(capAftX, capForwardX);
+  const w = x1 - x0 + 2;
+
+  ctx.save();
+  traceCap();
+  ctx.clip();
+
+  const base = ctx.createLinearGradient(x0, -spanY, x1, spanY);
+  base.addColorStop(0, 'rgba(210, 218, 232, 0.9)');
+  base.addColorStop(0.5, 'rgba(255, 255, 255, 0.98)');
+  base.addColorStop(1, 'rgba(190, 198, 214, 0.85)');
+  ctx.fillStyle = base;
+  ctx.fillRect(x0, -spanY * 1.2, w, spanY * 2.4);
+
+  if (animate) {
+    const t = performance.now() * 0.0035;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.35 + Math.sin(t * 2.2) * 0.2})`;
+    ctx.fillRect(x0, -spanY * 1.2, w, spanY * 2.4);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  ctx.restore();
+}
 
 export function drawParticle(
   ctx: CanvasRenderingContext2D,
@@ -37,8 +147,10 @@ function drawRocket(
 ): void {
   const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
   const heading = spd > 0.01 ? Math.atan2(p.vy, p.vx) : 0;
-  const len = p.r * 3.2;
-  const wid = p.r * 1.3;
+  const len = p.r * SHIP_LEN_MUL;
+  const wid = p.r * SHIP_WID_MUL;
+  const chromeAnimate = typeof window === 'undefined'
+    || !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   ctx.save();
   ctx.translate(p.x, p.y);
@@ -51,195 +163,154 @@ function drawRocket(
   ctx.rotate(heading);
   ctx.globalAlpha = p.opacity;
 
-  // Glow behind ship
-  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, len * 2.2);
-  glow.addColorStop(0, 'rgba(200, 210, 230, 0.08)');
-  glow.addColorStop(1, 'rgba(200, 210, 230, 0)');
+  // === Luminous Naboo N-1 Starfighter ===
+  // Stingray central fuselage with a long chrome needle nose and a trailing
+  // tail finial, flanked by twin J-type engine pods that each trail a finial.
+  // Rendered as a craft of light in the Naboo palette: yellow hull + chrome.
+  const gold = '245, 197, 40'; // Naboo yellow
+  const goldLight = '255, 228, 140'; // sunlit highlight
+
+  // Thrust drives intensity (0..1); a subtle idle breath keeps it alive.
+  const thrust = Math.min(p.pushTime / 120, 1);
+  const breath = 0.85 + Math.sin(performance.now() * 0.004) * 0.15;
+
+  const noseX = len * 1.28; // long needle nose
+  const tailX = -len * 1.1; // central finial tip
+  const engineY = wid * 1.25; // lateral engine offset
+  const podR = wid * 0.34; // engine pod half-thickness
+  const podFrontX = len * 0.6;
+  const podRearX = -len * 0.5;
+  const podFinialX = -len * 0.95;
+
+  // --- Twin engine exhaust (gold, additive) ---
+  if (thrust > 0.02 || spd > 0.08) {
+    const flameLen = len * (0.5 + thrust * 1.8 + Math.min(spd, 2));
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let ni = -1; ni <= 1; ni += 2) {
+      const ey = ni * engineY;
+      const flame = ctx.createLinearGradient(podRearX, ey, podRearX - flameLen, ey);
+      flame.addColorStop(0, `rgba(255, 244, 210, ${0.5 * (0.4 + thrust * 0.6)})`);
+      flame.addColorStop(0.4, `rgba(${gold}, ${0.3 * (0.4 + thrust)})`);
+      flame.addColorStop(1, `rgba(${gold}, 0)`);
+      ctx.beginPath();
+      ctx.moveTo(podRearX, ey - podR * 0.7);
+      ctx.lineTo(podRearX - flameLen, ey);
+      ctx.lineTo(podRearX, ey + podR * 0.7);
+      ctx.closePath();
+      ctx.fillStyle = flame;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // --- Glow halo (warm gold) ---
+  const glowR = len * (1.9 + thrust * 0.8) * breath;
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowR);
+  glow.addColorStop(0, `rgba(255, 230, 150, ${0.18 + thrust * 0.16})`);
+  glow.addColorStop(0.45, `rgba(${gold}, 0.08)`);
+  glow.addColorStop(1, `rgba(${gold}, 0)`);
   ctx.beginPath();
-  ctx.arc(0, 0, len * 2.2, 0, Math.PI * 2);
+  ctx.arc(0, 0, glowR, 0, Math.PI * 2);
   ctx.fillStyle = glow;
   ctx.fill();
 
-  // === Ranger-inspired flat angular wedge ===
-  // Proportions: wider and flatter than a traditional rocket
-  const hw = wid * 1.8; // half-width (the ship is WIDE)
-  const noseX = len * 1.0; // nose tip
-  const rearX = -len * 0.55; // rear edge
-  const wingX = -len * 0.3; // widest point of delta wings
-  const wingW = hw * 1.5; // wing tip half-width
-
-  // --- Main hull body (center wedge) ---
-  ctx.beginPath();
-  ctx.moveTo(noseX, 0); // nose tip (blunted later)
-  ctx.lineTo(len * 0.4, -hw * 0.55); // upper shoulder
-  ctx.lineTo(wingX, -wingW); // upper wing tip
-  ctx.lineTo(rearX, -wingW * 0.65); // rear upper corner
-  ctx.lineTo(rearX, wingW * 0.65); // rear lower corner
-  ctx.lineTo(wingX, wingW); // lower wing tip
-  ctx.lineTo(len * 0.4, hw * 0.55); // lower shoulder
-  ctx.closePath();
-
-  // Thermal tile gradient (top-lit like shuttle tiles)
-  const tileGrad = ctx.createLinearGradient(0, -hw, 0, hw);
-  tileGrad.addColorStop(0, isDark ? '#e8e4ee' : '#dcd8e4');
-  tileGrad.addColorStop(0.3, isDark ? '#d8d2e2' : '#ccc6d6');
-  tileGrad.addColorStop(0.7, isDark ? '#c8c0d4' : '#bab2c6');
-  tileGrad.addColorStop(1, isDark ? '#b0a8c0' : '#a29ab4');
-  ctx.fillStyle = tileGrad;
-  ctx.fill();
-  ctx.strokeStyle = isDark ? 'rgba(80,70,100,0.35)' : 'rgba(50,40,70,0.35)';
-  ctx.lineWidth = 0.6;
-  ctx.stroke();
-
-  // --- Dark leading edge (spine) along top ---
-  ctx.beginPath();
-  ctx.moveTo(noseX, 0);
-  ctx.lineTo(len * 0.4, -hw * 0.55);
-  ctx.lineTo(wingX, -wingW);
-  ctx.lineTo(rearX, -wingW * 0.65);
-  ctx.lineTo(rearX, -wingW * 0.5);
-  ctx.lineTo(wingX, -wingW * 0.78);
-  ctx.lineTo(len * 0.35, -hw * 0.35);
-  ctx.lineTo(noseX * 0.85, 0);
-  ctx.closePath();
-  const edgeGrad = ctx.createLinearGradient(rearX, 0, noseX, 0);
-  edgeGrad.addColorStop(0, isDark ? '#3a3248' : '#2a2238');
-  edgeGrad.addColorStop(1, isDark ? '#4a4260' : '#3a3250');
-  ctx.fillStyle = edgeGrad;
-  ctx.fill();
-
-  // --- Dark leading edge (bottom spine) ---
-  ctx.beginPath();
-  ctx.moveTo(noseX, 0);
-  ctx.lineTo(len * 0.4, hw * 0.55);
-  ctx.lineTo(wingX, wingW);
-  ctx.lineTo(rearX, wingW * 0.65);
-  ctx.lineTo(rearX, wingW * 0.5);
-  ctx.lineTo(wingX, wingW * 0.78);
-  ctx.lineTo(len * 0.35, hw * 0.35);
-  ctx.lineTo(noseX * 0.85, 0);
-  ctx.closePath();
-  ctx.fillStyle = edgeGrad;
-  ctx.fill();
-
-  // --- Hull panel seam lines (thermal tile grid) ---
-  ctx.strokeStyle = isDark ? 'rgba(90,80,120,0.18)' : 'rgba(60,50,90,0.18)';
-  ctx.lineWidth = 0.35;
-  // Longitudinal seams
-  for (let si = -2; si <= 2; si++) {
-    const sy = si * hw * 0.18;
+  // --- Twin engine pods (yellow body + shimmering chrome intakes) ---
+  const drawPod = (dir: number) => {
+    const ey = dir * engineY;
     ctx.beginPath();
-    ctx.moveTo(len * 0.6, sy * 0.6);
-    ctx.lineTo(rearX * 0.8, sy);
-    ctx.stroke();
-  }
-  // Transverse seams
-  for (let si = 0; si < 4; si++) {
-    const sx = len * 0.5 - si * len * 0.25;
-    const sw = hw * (0.3 + (3 - si) * 0.12);
-    ctx.beginPath();
-    ctx.moveTo(sx, -sw);
-    ctx.lineTo(sx, sw);
-    ctx.stroke();
-  }
-
-  // --- Blunted nose cap ---
-  ctx.beginPath();
-  ctx.moveTo(noseX, 0);
-  ctx.quadraticCurveTo(noseX * 0.92, -hw * 0.2, noseX * 0.78, -hw * 0.3);
-  ctx.quadraticCurveTo(noseX * 0.92, 0, noseX * 0.78, hw * 0.3);
-  ctx.quadraticCurveTo(noseX * 0.92, hw * 0.2, noseX, 0);
-  ctx.closePath();
-  ctx.fillStyle = isDark ? '#504868' : '#403858';
-  ctx.fill();
-
-  // --- Cockpit windows (cluster of small angular shapes) ---
-  const winColor = isDark ? 'rgba(60,180,220,0.7)' : 'rgba(40,140,180,0.7)';
-  const winFrame = isDark ? 'rgba(30,25,50,0.5)' : 'rgba(20,15,40,0.5)';
-  // Main forward window
-  ctx.beginPath();
-  ctx.moveTo(len * 0.55, -hw * 0.08);
-  ctx.lineTo(len * 0.42, -hw * 0.18);
-  ctx.lineTo(len * 0.28, -hw * 0.15);
-  ctx.lineTo(len * 0.28, hw * 0.15);
-  ctx.lineTo(len * 0.42, hw * 0.18);
-  ctx.lineTo(len * 0.55, hw * 0.08);
-  ctx.closePath();
-  ctx.fillStyle = winColor;
-  ctx.fill();
-  ctx.strokeStyle = winFrame;
-  ctx.lineWidth = 0.5;
-  ctx.stroke();
-  // Side windows (smaller)
-  for (let wi = 0; wi < 2; wi++) {
-    const wx = len * (0.15 - wi * 0.15);
-    const wy = hw * 0.22;
-    ctx.beginPath();
-    ctx.moveTo(wx + len * 0.05, -wy);
-    ctx.lineTo(wx - len * 0.03, -wy * 1.1);
-    ctx.lineTo(wx - len * 0.06, -wy * 0.85);
-    ctx.lineTo(wx - len * 0.02, -wy * 0.7);
+    ctx.moveTo(podFrontX, ey);
+    ctx.quadraticCurveTo(podFrontX, ey - podR, len * 0.38, ey - podR);
+    ctx.lineTo(podRearX, ey - podR * 0.8);
+    ctx.lineTo(podFinialX, ey); // finial spike
+    ctx.lineTo(podRearX, ey + podR * 0.8);
+    ctx.lineTo(len * 0.38, ey + podR);
+    ctx.quadraticCurveTo(podFrontX, ey + podR, podFrontX, ey);
     ctx.closePath();
-    ctx.fillStyle = winColor;
+    const podGrad = ctx.createLinearGradient(0, ey - podR, 0, ey + podR);
+    podGrad.addColorStop(0, `rgba(${goldLight}, 0.95)`);
+    podGrad.addColorStop(0.5, `rgba(${gold}, 0.92)`);
+    podGrad.addColorStop(1, `rgba(${gold}, 0.7)`);
+    ctx.fillStyle = podGrad;
     ctx.fill();
-    ctx.strokeStyle = winFrame;
-    ctx.lineWidth = 0.4;
-    ctx.stroke();
-    // Mirror on bottom
-    ctx.beginPath();
-    ctx.moveTo(wx + len * 0.05, wy);
-    ctx.lineTo(wx - len * 0.03, wy * 1.1);
-    ctx.lineTo(wx - len * 0.06, wy * 0.85);
-    ctx.lineTo(wx - len * 0.02, wy * 0.7);
-    ctx.closePath();
-    ctx.fillStyle = winColor;
-    ctx.fill();
-    ctx.strokeStyle = winFrame;
-    ctx.lineWidth = 0.4;
-    ctx.stroke();
-  }
 
-  // --- Rear engine section (dark block with nozzle ports) ---
+    paintPodChromeCap(
+      ctx,
+      () => {
+        ctx.beginPath();
+        ctx.moveTo(podFrontX, ey);
+        ctx.quadraticCurveTo(podFrontX, ey - podR, len * 0.42, ey - podR * 0.85);
+        ctx.lineTo(len * 0.42, ey + podR * 0.85);
+        ctx.quadraticCurveTo(podFrontX, ey + podR, podFrontX, ey);
+        ctx.closePath();
+      },
+      len * 0.42,
+      podFrontX,
+      podR,
+      chromeAnimate,
+    );
+  };
+  drawPod(-1);
+  drawPod(1);
+
+  // --- Wing struts connecting fuselage to pods ---
+  ctx.strokeStyle = `rgba(${gold}, 0.8)`;
+  ctx.lineWidth = Math.max(0.8, wid * 0.22);
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(rearX, -wingW * 0.5);
-  ctx.lineTo(rearX - len * 0.08, -wingW * 0.45);
-  ctx.lineTo(rearX - len * 0.08, wingW * 0.45);
-  ctx.lineTo(rearX, wingW * 0.5);
-  ctx.closePath();
-  ctx.fillStyle = isDark ? '#4a4260' : '#3a3250';
-  ctx.fill();
-  ctx.strokeStyle = isDark ? 'rgba(60,50,80,0.4)' : 'rgba(40,30,60,0.4)';
-  ctx.lineWidth = 0.5;
+  ctx.moveTo(len * 0.26, -wid * 0.34);
+  ctx.lineTo(len * 0.16, -(engineY - podR));
+  ctx.moveTo(len * 0.26, wid * 0.34);
+  ctx.lineTo(len * 0.16, engineY - podR);
   ctx.stroke();
 
-  // Engine nozzle ports (small circles)
-  const nozzleX = rearX - len * 0.06;
-  ctx.fillStyle = isDark ? '#2a2238' : '#1a1228';
-  for (let ni = -1; ni <= 1; ni++) {
+  // --- Central fuselage (stingray body + tail finial) ---
+  const traceHull = () => {
     ctx.beginPath();
-    ctx.arc(nozzleX, ni * wingW * 0.22, wid * 0.18, 0, Math.PI * 2);
-    ctx.fill();
-    // Inner glow
-    ctx.beginPath();
-    ctx.arc(nozzleX, ni * wingW * 0.22, wid * 0.1, 0, Math.PI * 2);
-    ctx.fillStyle = isDark ? 'rgba(80,70,100,0.4)' : 'rgba(60,50,80,0.4)';
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#2a2238' : '#1a1228';
-  }
+    ctx.moveTo(noseX, 0);
+    ctx.quadraticCurveTo(len * 1.0, -wid * 0.16, len * 0.5, -wid * 0.3);
+    ctx.lineTo(len * 0.1, -wid * 0.5); // cockpit shoulder
+    ctx.lineTo(-len * 0.4, -wid * 0.26);
+    ctx.lineTo(-len * 0.78, -wid * 0.09);
+    ctx.lineTo(tailX, 0); // tail finial tip
+    ctx.lineTo(-len * 0.78, wid * 0.09);
+    ctx.lineTo(-len * 0.4, wid * 0.26);
+    ctx.lineTo(len * 0.1, wid * 0.5);
+    ctx.lineTo(len * 0.5, wid * 0.3);
+    ctx.quadraticCurveTo(len * 1.0, wid * 0.16, noseX, 0);
+    ctx.closePath();
+  };
+  traceHull();
+  const body = ctx.createLinearGradient(0, -wid * 0.5, 0, wid * 0.5);
+  body.addColorStop(0, `rgba(${goldLight}, 0.97)`);
+  body.addColorStop(0.5, `rgba(${gold}, 0.95)`);
+  body.addColorStop(1, `rgba(${gold}, 0.78)`);
+  ctx.fillStyle = body;
+  ctx.shadowColor = 'rgba(255, 220, 130, 0.85)';
+  ctx.shadowBlur = len * (0.6 + thrust * 0.5);
+  ctx.fill();
+  ctx.shadowBlur = 0;
 
-  // --- Idle engine flicker ---
-  if (p.pushTime <= 3) {
-    const flickLen = 3 + Math.random() * 4;
-    for (let ni = -1; ni <= 1; ni++) {
-      ctx.beginPath();
-      ctx.moveTo(nozzleX, ni * wingW * 0.22 - wid * 0.1);
-      ctx.lineTo(nozzleX - flickLen, ni * wingW * 0.22);
-      ctx.lineTo(nozzleX, ni * wingW * 0.22 + wid * 0.1);
-      ctx.closePath();
-      ctx.fillStyle = `rgba(255, 160, 40, ${0.2 + Math.random() * 0.25})`;
-      ctx.fill();
-    }
-  }
+  // --- Forward 30%: shimmering movie chrome (needle nose + leading edges) ---
+  paintChromeShimmer(ctx, traceHull, noseX, tailX, wid * 0.55, chromeAnimate);
+
+  // --- Crisp hull edge ---
+  traceHull();
+  ctx.strokeStyle = `rgba(${goldLight}, 0.9)`;
+  ctx.lineWidth = Math.max(0.5, wid * 0.09);
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // --- Cockpit core (the "spark") ---
+  const coreR = wid * 0.42 * breath;
+  const core = ctx.createRadialGradient(len * 0.18, 0, 0, len * 0.18, 0, coreR);
+  core.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  core.addColorStop(0.5, `rgba(${goldLight}, 0.75)`);
+  core.addColorStop(1, `rgba(${gold}, 0)`);
+  ctx.beginPath();
+  ctx.arc(len * 0.18, 0, coreR, 0, Math.PI * 2);
+  ctx.fillStyle = core;
+  ctx.fill();
 
   ctx.restore();
 }

@@ -12,6 +12,8 @@ export interface Particle {
   galaxyColor?: { r: number; g: number; b: number };
   anchorX?: number;
   anchorY?: number;
+  /** Recent rear positions for the luminous contrail ribbon (newest first). */
+  wake?: { x: number; y: number }[];
 }
 
 export interface GoalPost {
@@ -26,29 +28,24 @@ export interface GoalPost {
   spinSpeed: number;
 }
 
+/** Celebration spark: implodes -> charges at the core -> bursts violently outward. */
 export interface ConfettiPiece {
   x: number;
   y: number;
+  px: number;
+  py: number;
   vx: number;
   vy: number;
+  cx: number;
+  cy: number;
   r: number;
-  rotation: number;
-  rotationSpeed: number;
   color: string;
   life: number;
   decay: number;
-  shape: 'rect' | 'circle';
-}
-
-export interface TrailPiece {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  decay: number;
-  size: number;
-  hot: boolean;
+  phase: 'implode' | 'charge' | 'burst';
+  age: number;
+  spin: number;
+  kind: 'spark' | 'core';
 }
 
 export interface SpaghettiStream {

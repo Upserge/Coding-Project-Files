@@ -424,13 +424,13 @@ npm run build:pages
 
 ### Manual regression checklist (every sub-phase)
 
-- [ ] Home hero, typewriter, links, copy email
-- [ ] Case studies load (`/work/resume-site`, `/work/riot-valorant`)
-- [ ] About page loads
-- [ ] Game: score, upgrades, milestone modal, inventory toggle, entropy, combo, focus toggle
-- [ ] Leaderboard, command palette (Ctrl+K), keyboard shortcuts
-- [ ] Dark/light toggle
-- [ ] Deploy path: `npm run build:pages` → dist has chunks + `public/work`
+- [x] Home hero, typewriter, links, copy email
+- [x] Case studies load (`/work/resume-site`, `/work/riot-valorant`)
+- [x] About page loads
+- [x] Game: score, upgrades, milestone modal, inventory toggle, entropy, combo, focus toggle
+- [x] Leaderboard, command palette (Ctrl+K), keyboard shortcuts
+- [x] Dark/light toggle
+- [x] Deploy path: `npm run build:pages` → dist has chunks + `public/work`
 
 ### Optional (later)
 

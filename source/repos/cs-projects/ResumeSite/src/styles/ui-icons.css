@@ -1,0 +1,26 @@
+/* Shared stroke icons — HUD, upgrades, leaderboard */
+
+.ui-icon {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.ui-icon--upgrade {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.upgrade-icon .ui-icon,
+.inventory-item-icon .ui-icon {
+  display: block;
+}
+
+.hud-score-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(251, 191, 36, 0.82);
+}

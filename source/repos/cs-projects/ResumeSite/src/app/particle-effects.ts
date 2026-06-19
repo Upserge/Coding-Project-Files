@@ -1,130 +1,253 @@
-// Visual effects: confetti, thruster trails, spaghetti streams, cursor spaghettification
-import { Particle, ConfettiPiece, TrailPiece, SpaghettiStream, GoalPost } from './particle-field-types';
+// Visual effects: contrail wake, celebration sparks, spaghetti streams, cursor spaghettification
+import { Particle, ConfettiPiece, SpaghettiStream, GoalPost } from './particle-field-types';
+import { SHIP_LEN_MUL } from './particle-renderer';
 
-export function spawnThrusterTrails(p: Particle): TrailPiece[] {
-  if (!p.golden || p.pushTime <= 3) return [];
+const MAX_WAKE = 16;
+// If the craft teleports (screen wrap), this distance resets the ribbon.
+const WAKE_BREAK_DIST = 220;
+
+/** Record the craft's rear position into its wake ribbon (T3 contrail). */
+export function recordWake(p: Particle): void {
+  if (!p.golden) return;
+  if (!p.wake) p.wake = [];
 
   const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-  if (spd <= 0.05) return [];
+  const active = p.pushTime > 3 && spd > 0.05;
 
-  const heading = Math.atan2(p.vy, p.vx);
-  const perpX = -Math.sin(heading);
-  const perpY = Math.cos(heading);
-  const rearDist = p.r * 4.0;
-  const nozzleSpread = p.r * 1.3 * 1.8 * 1.5 * 0.22;
-  const count = Math.min(Math.floor(p.pushTime / 15) + 1, 5);
-  const trails: TrailPiece[] = [];
-
-  for (let ni = -1; ni <= 1; ni++) {
-    const nx = p.x - Math.cos(heading) * rearDist + perpX * ni * nozzleSpread;
-    const ny = p.y - Math.sin(heading) * rearDist + perpY * ni * nozzleSpread;
-    for (let t = 0; t < count; t++) {
-      trails.push({
-        x: nx + (Math.random() - 0.5) * 3,
-        y: ny + (Math.random() - 0.5) * 3,
-        vx: -Math.cos(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.6,
-        vy: -Math.sin(heading) * (1 + Math.random() * 2) + (Math.random() - 0.5) * 0.6,
-        life: 1,
-        decay: 0.03 + Math.random() * 0.03,
-        size: 1.2 + Math.random() * 2,
-        hot: Math.random() > 0.35,
-      });
+  if (active) {
+    const heading = Math.atan2(p.vy, p.vx);
+    const rearDist = p.r * SHIP_LEN_MUL * 1.1; // matches tail finial (tailX ratio)
+    const rx = p.x - Math.cos(heading) * rearDist;
+    const ry = p.y - Math.sin(heading) * rearDist;
+    const head = p.wake[0];
+    if (head) {
+      const jump = Math.hypot(rx - head.x, ry - head.y);
+      if (jump > WAKE_BREAK_DIST) p.wake.length = 0; // screen wrap -> cut ribbon
     }
+    p.wake.unshift({ x: rx, y: ry });
+    if (p.wake.length > MAX_WAKE) p.wake.length = MAX_WAKE;
+  } else if (p.wake.length > 0) {
+    // Idle: retract the ribbon quickly so it dissolves behind the craft.
+    p.wake.pop();
+    if (p.wake.length > 0) p.wake.pop();
   }
-  return trails;
 }
 
+/** Draw the tapered, additive white -> violet contrail behind the craft. */
+export function drawContrail(ctx: CanvasRenderingContext2D, p: Particle, isDark: boolean): void {
+  const wake = p.wake;
+  if (!wake || wake.length < 3) return;
+
+  const n = wake.length;
+  const thrust = Math.min(p.pushTime / 120, 1);
+  const baseW = p.r * 1.15 * (0.55 + thrust * 0.7);
+  const gold = isDark ? '245, 197, 40' : '214, 163, 20';
+  const goldLight = '255, 228, 140';
+
+  const left: { x: number; y: number }[] = [];
+  const right: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    const w = baseW * (1 - t) * (1 - t); // quadratic taper -> sharp tail
+    const a = wake[Math.max(0, i - 1)];
+    const b = wake[Math.min(n - 1, i + 1)];
+    let dx = b.x - a.x;
+    let dy = b.y - a.y;
+    const dl = Math.hypot(dx, dy) || 1;
+    dx /= dl; dy /= dl;
+    const nx = -dy;
+    const ny = dx;
+    left.push({ x: wake[i].x + nx * w, y: wake[i].y + ny * w });
+    right.push({ x: wake[i].x - nx * w, y: wake[i].y - ny * w });
+  }
+
+  const grad = ctx.createLinearGradient(wake[0].x, wake[0].y, wake[n - 1].x, wake[n - 1].y);
+  grad.addColorStop(0, `rgba(255, 248, 220, ${0.5 * (0.4 + thrust * 0.6)})`);
+  grad.addColorStop(0.4, `rgba(${goldLight}, ${0.28 * (0.4 + thrust)})`);
+  grad.addColorStop(1, `rgba(${gold}, 0)`);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.beginPath();
+  ctx.moveTo(left[0].x, left[0].y);
+  for (let i = 1; i < n; i++) ctx.lineTo(left[i].x, left[i].y);
+  for (let i = n - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+}
+
+// White, lavender, violet, teal — straight from the token palette.
+const SPARK_COLORS = ['255, 255, 255', '196, 181, 253', '124, 92, 255', '94, 234, 212'];
+
+// Celebration sequence timing (frames @ ~60fps): pull in, then gather energy.
+const IMPLODE_FRAMES = 40;
+const CHARGE_FRAMES = 24;
+const CHARGE_END = IMPLODE_FRAMES + CHARGE_FRAMES;
+
+/** C4 celebration: sparks implode, gather into a charging core, then burst. */
 export function createConfetti(x: number, y: number, count: number): ConfettiPiece[] {
-  const colors = ['#ffd700', '#ff6b35', '#ff1493', '#00e5ff', '#76ff03', '#fff', '#ffab00'];
   const pieces: ConfettiPiece[] = [];
+
+  // Central energy core that grows during the implosion/charge, then flashes.
+  pieces.push({
+    x, y, px: x, py: y,
+    vx: 0, vy: 0,
+    cx: x, cy: y,
+    r: 13 + count * 0.12,
+    color: '255, 255, 255',
+    life: 1,
+    decay: 0.06,
+    phase: 'implode',
+    age: 0,
+    spin: 0,
+    kind: 'core',
+  });
+
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 2 + Math.random() * 6;
+    const radius = 60 + Math.random() * 80; // start wide so the pull-in reads
+    const sx = x + Math.cos(angle) * radius;
+    const sy = y + Math.sin(angle) * radius;
+    const swirl = (Math.random() < 0.5 ? -1 : 1) * (0.25 + Math.random() * 0.4);
     pieces.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 3,
-      r: 2 + Math.random() * 4,
-      rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 15,
-      color: colors[Math.floor(Math.random() * colors.length)],
+      x: sx, y: sy,
+      px: sx, py: sy,
+      vx: -Math.sin(angle) * swirl,
+      vy: Math.cos(angle) * swirl,
+      cx: x, cy: y,
+      r: 1.3 + Math.random() * 2.3,
+      color: SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)],
       life: 1,
-      decay: 0.008 + Math.random() * 0.012,
-      shape: Math.random() > 0.5 ? 'rect' : 'circle',
+      decay: 0.016 + Math.random() * 0.02,
+      phase: 'implode',
+      age: Math.floor(Math.random() * 5), // slight stagger
+      spin: swirl,
+      kind: 'spark',
     });
   }
   return pieces;
 }
 
-export function updateConfetti(ctx: CanvasRenderingContext2D, confetti: ConfettiPiece[]): void {
-  if (confetti.length === 0) return;
+/** Returns true on the frame a core ignites (so callers can punch a screen shake). */
+export function updateConfetti(ctx: CanvasRenderingContext2D, confetti: ConfettiPiece[]): boolean {
+  if (confetti.length === 0) return false;
+
+  let ignited = false;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
 
   for (let i = confetti.length - 1; i >= 0; i--) {
     const c = confetti[i];
-    c.vy += 0.12;
-    c.vx *= 0.98;
+    c.px = c.x;
+    c.py = c.y;
+    c.age++;
+
+    if (c.kind === 'core') {
+      if (c.phase !== 'burst' && c.age >= CHARGE_END) {
+        c.phase = 'burst';
+        ignited = true;
+      }
+      if (c.phase === 'burst') c.life -= c.decay;
+      if (c.life <= 0) { confetti.splice(i, 1); continue; }
+
+      const charge = Math.min(c.age / CHARGE_END, 1);
+      if (c.phase !== 'burst') {
+        // Tight, pulsing point of light that swells as energy gathers.
+        const pulse = 0.7 + Math.sin(c.age * 0.6) * 0.3;
+        const rad = c.r * (0.12 + charge * charge * 0.7) * pulse;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, rad * 2.4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(196, 181, 253, ${0.06 + charge * 0.22})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, rad, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + charge * 0.6})`;
+        ctx.fill();
+      } else {
+        // Detonation flash: expands fast and fades.
+        const t = 1 - c.life;
+        const rad = c.r * (1 + t * 4);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, rad, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${c.life * 0.5})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, rad * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(196, 181, 253, ${c.life * 0.5})`;
+        ctx.fill();
+      }
+      continue;
+    }
+
+    // --- Spark ---
+    if (c.phase !== 'burst') {
+      const dx = c.cx - c.x;
+      const dy = c.cy - c.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const tx = -dy / d;
+      const ty = dx / d;
+
+      if (c.age >= CHARGE_END) {
+        // Ignite: violent radial fling outward from the core.
+        const a = d < 4 ? Math.random() * Math.PI * 2 : Math.atan2(c.y - c.cy, c.x - c.cx);
+        const burst = 5 + Math.random() * 7;
+        c.vx = Math.cos(a) * burst + (Math.random() - 0.5) * 2.4;
+        c.vy = Math.sin(a) * burst + (Math.random() - 0.5) * 2.4;
+        c.phase = 'burst';
+      } else if (c.age >= IMPLODE_FRAMES) {
+        // Charge: orbit tightly and vibrate as energy collects.
+        c.phase = 'charge';
+        c.vx += (dx / d) * 0.55 + tx * c.spin * 4;
+        c.vy += (dy / d) * 0.55 + ty * c.spin * 4;
+        c.vx = c.vx * 0.8 + (Math.random() - 0.5) * 0.8;
+        c.vy = c.vy * 0.8 + (Math.random() - 0.5) * 0.8;
+      } else {
+        // Implode: accelerate inward (ramping) with a gentle spiral.
+        const inward = 0.16 + (c.age / IMPLODE_FRAMES) * 0.55;
+        c.vx += (dx / d) * inward + tx * c.spin;
+        c.vy += (dy / d) * inward + ty * c.spin;
+        c.vx *= 0.93;
+        c.vy *= 0.93;
+      }
+    } else {
+      c.vx *= 0.95;
+      c.vy *= 0.95;
+      c.life -= c.decay;
+    }
+
     c.x += c.vx;
     c.y += c.vy;
-    c.rotation += c.rotationSpeed;
-    c.life -= c.decay;
 
-    if (c.life <= 0) {
-      confetti.splice(i, 1);
-      continue;
-    }
+    if (c.life <= 0) { confetti.splice(i, 1); continue; }
 
-    ctx.save();
-    ctx.translate(c.x, c.y);
-    ctx.rotate((c.rotation * Math.PI) / 180);
-    ctx.globalAlpha = c.life;
-
-    if (c.shape === 'rect') {
-      ctx.fillStyle = c.color;
-      ctx.fillRect(-c.r / 2, -c.r / 4, c.r, c.r / 2);
-    } else {
-      ctx.beginPath();
-      ctx.arc(0, 0, c.r / 2, 0, Math.PI * 2);
-      ctx.fillStyle = c.color;
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
-}
-
-export function updateTrails(ctx: CanvasRenderingContext2D, trails: TrailPiece[]): void {
-  if (trails.length === 0) return;
-
-  for (let i = trails.length - 1; i >= 0; i--) {
-    const t = trails[i];
-    t.x += t.vx;
-    t.y += t.vy;
-    t.vx *= 0.94;
-    t.vy *= 0.94;
-    t.life -= t.decay;
-
-    if (t.life <= 0) {
-      trails.splice(i, 1);
-      continue;
-    }
-
+    // Motion streak (longer while bursting)
     ctx.beginPath();
-    ctx.arc(t.x, t.y, t.size * t.life, 0, Math.PI * 2);
-    if (t.hot) {
-      // Hot core: white → yellow
-      const r = 255;
-      const g = Math.floor(200 + t.life * 55);
-      const b = Math.floor(100 * t.life);
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${t.life * 0.8})`;
-    } else {
-      // Cooler: orange → red smoke
-      const r = 255;
-      const g = Math.floor(120 * t.life);
-      const b = Math.floor(30 * t.life);
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${t.life * 0.6})`;
-    }
+    ctx.moveTo(c.px, c.py);
+    ctx.lineTo(c.x, c.y);
+    ctx.strokeStyle = `rgba(${c.color}, ${c.life * 0.45})`;
+    ctx.lineWidth = c.r * 0.6;
+    ctx.stroke();
+
+    // Soft glow + bright core
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r * 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${c.color}, ${c.life * 0.16})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r * 1.05, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${c.color}, ${c.life * 0.5})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 255, 255, ${c.life * 0.95})`;
     ctx.fill();
   }
+
+  ctx.restore();
+  return ignited;
 }
 
 export function updateSpaghettiStreams(ctx: CanvasRenderingContext2D, streams: SpaghettiStream[]): void {

@@ -1,6 +1,6 @@
-// Collapsible sticky panel showing acquired upgrades with stack counts
+// Collapsible HUD panel showing acquired upgrades with stack counts
 
-import { Upgrade, UPGRADE_POOL, RARITY_COLORS, RARITY_LABELS, getCategoryIcon, UpgradeRarity } from './upgrade-registry';
+import { Upgrade, UPGRADE_POOL, RARITY_COLORS, RARITY_LABELS, getCategoryIcon } from './upgrade-registry';
 
 export class UpgradeInventory {
   private panel: HTMLElement | null = null;
@@ -29,7 +29,7 @@ export class UpgradeInventory {
 
     const acquired = this.getAcquiredUpgrades(stacks);
     this.badgeEl.textContent = String(acquired.length);
-    this.badgeEl.style.display = acquired.length > 0 ? 'flex' : 'none';
+    this.badgeEl.hidden = acquired.length === 0;
     this.listEl.innerHTML = this.buildListHTML(acquired, stacks);
   }
 
@@ -49,20 +49,33 @@ export class UpgradeInventory {
     toggle.className = 'inventory-toggle';
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-controls', 'upgrade-inventory-list');
-    toggle.innerHTML = '<span class="inventory-icon">🛡️</span><span class="inventory-label">Upgrades</span>';
-    toggle.addEventListener('click', () => this.toggleCollapse());
+    toggle.title = 'Show acquired upgrades';
+
+    const label = document.createElement('span');
+    label.className = 'inventory-label';
+    label.textContent = 'Upgrades';
 
     this.badgeEl = document.createElement('span');
     this.badgeEl.className = 'inventory-badge';
-    this.badgeEl.style.display = 'none';
-    toggle.appendChild(this.badgeEl);
+    this.badgeEl.hidden = true;
+
+    const chevron = document.createElement('span');
+    chevron.className = 'inventory-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '▾';
+
+    toggle.append(label, this.badgeEl, chevron);
+    toggle.addEventListener('click', () => this.toggleCollapse());
+
+    const drop = document.createElement('div');
+    drop.className = 'inventory-drop';
 
     this.listEl = document.createElement('div');
     this.listEl.className = 'inventory-list';
     this.listEl.id = 'upgrade-inventory-list';
 
-    panel.appendChild(toggle);
-    panel.appendChild(this.listEl);
+    drop.appendChild(this.listEl);
+    panel.append(toggle, drop);
     return panel;
   }
 
@@ -80,12 +93,10 @@ export class UpgradeInventory {
 
   private buildListHTML(upgrades: Upgrade[], stacks: ReadonlyMap<string, number>): string {
     if (upgrades.length === 0) {
-      return '<div class="inventory-empty">No upgrades yet</div>';
+      return '<div class="inventory-empty">No upgrades yet — score milestones to add enhancements.</div>';
     }
 
-    return upgrades
-      .map(u => this.buildItemHTML(u, stacks.get(u.id) ?? 0))
-      .join('');
+    return upgrades.map(u => this.buildItemHTML(u, stacks.get(u.id) ?? 0)).join('');
   }
 
   private buildItemHTML(upgrade: Upgrade, count: number): string {
@@ -93,16 +104,16 @@ export class UpgradeInventory {
     const rarityLabel = RARITY_LABELS[upgrade.rarity];
     const icon = getCategoryIcon(upgrade.category);
     const stackLabel = count >= upgrade.maxStacks ? 'MAX' : `${count}/${upgrade.maxStacks}`;
-    const maxed = count >= upgrade.maxStacks ? ' maxed' : '';
+    const maxed = count >= upgrade.maxStacks ? ' inventory-item--maxed' : '';
 
     return `
       <div class="inventory-item${maxed}" style="--rarity-color: ${color}">
-        <span class="item-icon">${icon}</span>
-        <div class="item-info">
-          <span class="item-name">${upgrade.name}</span>
-          <span class="item-rarity" style="color: ${color}">${rarityLabel}</span>
+        <span class="inventory-item-icon" aria-hidden="true">${icon}</span>
+        <div class="inventory-item-info">
+          <span class="inventory-item-name">${upgrade.name}</span>
+          <span class="inventory-item-rarity" style="color: ${color}">${rarityLabel}</span>
         </div>
-        <span class="item-stacks">${stackLabel}</span>
+        <span class="inventory-item-stacks">${stackLabel}</span>
       </div>`;
   }
 }

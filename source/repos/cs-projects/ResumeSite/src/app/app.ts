@@ -7,11 +7,12 @@ import { KeyboardHintsModal } from './keyboard-hints-modal';
 import { CommandPalette } from './command-palette';
 import { applyVisualTier, isMinimalHomeNav, VISUAL_FEATURES } from './content/visual-tier';
 import { HomeHudComponent } from './components/home-hud/home-hud.component';
+import { UiIconComponent } from './icons/ui-icon.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, HomeHudComponent],
+  imports: [RouterOutlet, RouterLink, HomeHudComponent, UiIconComponent],
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
 })

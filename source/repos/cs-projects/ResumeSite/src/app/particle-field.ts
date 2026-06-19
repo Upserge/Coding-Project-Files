@@ -2,11 +2,11 @@
 // Full-page interactive particle field background with score game
 // Particles drift slowly and are gently repulsed by the mouse cursor
 // Rocket particles can be corralled into black holes for points
-import { Particle, GoalPost, ConfettiPiece, TrailPiece, SpaghettiStream, TaurusLine } from './particle-field-types';
+import { Particle, GoalPost, ConfettiPiece, SpaghettiStream, TaurusLine } from './particle-field-types';
 import { drawParticle } from './particle-renderer';
 import { drawBlackHole } from './black-hole-renderer';
 import { spawnGalaxies, spawnTaurus, drawTaurusLines } from './celestial-spawner';
-import { createConfetti, updateConfetti, updateTrails, updateSpaghettiStreams, updateCursorSpaghetti, spawnThrusterTrails, findNearestGoal, isNearAnyGoal, trySpawnSpaghettiStream } from './particle-effects';
+import { createConfetti, updateConfetti, updateSpaghettiStreams, updateCursorSpaghetti, recordWake, drawContrail, findNearestGoal, isNearAnyGoal, trySpawnSpaghettiStream } from './particle-effects';
 import { UpgradeState } from './upgrade-state';
 import { UpgradeModal } from './upgrade-modal';
 import { UpgradeInventory } from './upgrade-inventory';
@@ -73,7 +73,6 @@ export class ParticleField {
   private readonly UPGRADE_CELEBRATION_MS = 900;
   private pendingUpgradeTimer: ReturnType<typeof setTimeout> | null = null;
   private confetti: ConfettiPiece[] = [];
-  private trails: TrailPiece[] = [];
   private spaghettiStreams: SpaghettiStream[] = [];
   private taurusLines: TaurusLine[] = [];
   private goalHintStrength = 0;
@@ -225,7 +224,6 @@ export class ParticleField {
     const h = this.pageHeight || window.innerHeight;
     this.appendCelestialBackground(w, h);
     this.confetti = [];
-    this.trails = [];
     this.spaghettiStreams = [];
   }
 
@@ -309,8 +307,9 @@ export class ParticleField {
     this.tickRunSystems();
     drawConnections(this.ctx, this.particles, viewTop, viewBottom, this.isDark);
     drawTaurusLines(this.ctx, this.taurusLines, viewTop, viewBottom, this.isDark);
-    updateConfetti(this.ctx, this.confetti);
-    updateTrails(this.ctx, this.trails);
+    if (updateConfetti(this.ctx, this.confetti)) {
+      this.shakeTimer = this.SHAKE_DURATION; // detonation lands the heavy shake
+    }
     updateSpaghettiStreams(this.ctx, this.spaghettiStreams);
     updateCursorSpaghetti(this.mouse, mousePageX, mousePageY, this.goals, this.SPAGHETTI_RADIUS);
 
@@ -387,14 +386,8 @@ export class ParticleField {
       if (p.y < -20) p.y = h + 20;
       if (p.y > h + 20) p.y = -20;
 
-      // Thruster trail for Ranger when being pushed
-      const newTrails = spawnThrusterTrails(p);
-      if (newTrails.length > 0) {
-        this.trails.push(...newTrails);
-        if (this.trails.length > this.density.maxTrailCount) {
-          this.trails.splice(0, this.trails.length - this.density.maxTrailCount);
-        }
-      }
+      // Record the craft's contrail ribbon while it's under thrust
+      recordWake(p);
 
       // Tractor aim: gently steer pushed rockets toward nearest black hole
       if (p.golden && p.pushTime > 2 && mods.tractorAimStrength > 0) {
@@ -436,6 +429,7 @@ export class ParticleField {
 
       // Only draw particles near the viewport
       if (p.y > viewTop && p.y < viewBottom) {
+        if (p.golden) drawContrail(this.ctx!, p, this.isDark);
         drawParticle(this.ctx!, p, spaghettiGoal, spaghettiDist, this.isDark, this.SPAGHETTI_RADIUS);
       }
     }
@@ -501,7 +495,7 @@ export class ParticleField {
     this.respawnScoredRocket(p, w, h, goal);
     this.ensureRocketFleet(w, h);
 
-    this.shakeTimer = this.SHAKE_DURATION;
+    this.shakeTimer = Math.max(this.shakeTimer, 12); // light tap on the goal hit
     this.confetti.push(...createConfetti(goal.x, goal.y, this.density.confettiCount));
 
     const sessionScore = this.upgradeState.score;
