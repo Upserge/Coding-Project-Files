@@ -1,0 +1,16 @@
+.sort-controls {
+  align-self: end;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sort-controls:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

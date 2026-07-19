@@ -1,0 +1,68 @@
+import type { Employee } from '../types/employee'
+
+export const mockEmployees: Employee[] = [
+  {
+    id: 'emp-001',
+    firstName: 'Ava',
+    lastName: 'Nguyen',
+    email: 'ava.nguyen@example.com',
+    title: 'Product Manager',
+    department: 'Product',
+  },
+  {
+    id: 'emp-002',
+    firstName: 'Jordan',
+    lastName: 'Brooks',
+    email: 'jordan.brooks@example.com',
+    title: 'Software Engineer',
+    department: 'Engineering',
+  },
+  {
+    id: 'emp-003',
+    firstName: 'Maya',
+    lastName: 'Patel',
+    email: 'maya.patel@example.com',
+    title: 'UX Designer',
+    department: 'Design',
+  },
+  {
+    id: 'emp-004',
+    firstName: 'Chris',
+    lastName: 'Ortiz',
+    email: 'chris.ortiz@example.com',
+    title: 'HR Specialist',
+    department: 'People',
+  },
+  {
+    id: 'emp-005',
+    firstName: 'Sam',
+    lastName: 'Keller',
+    email: 'sam.keller@example.com',
+    title: 'Data Analyst',
+    department: 'Analytics',
+  },
+  {
+    id: 'emp-006',
+    firstName: 'Riley',
+    lastName: 'Chen',
+    email: 'riley.chen@example.com',
+    title: 'DevOps Engineer',
+    department: 'Engineering',
+  },
+  {
+    id: 'emp-007',
+    firstName: 'Taylor',
+    lastName: 'Adams',
+    email: 'taylor.adams@example.com',
+    title: 'Marketing Lead',
+    department: 'Marketing',
+  },
+  {
+    id: 'emp-008',
+    firstName: 'Morgan',
+    lastName: 'Singh',
+    email: 'morgan.singh@example.com',
+    title: 'Customer Success',
+    department: 'Support',
+  },
+]

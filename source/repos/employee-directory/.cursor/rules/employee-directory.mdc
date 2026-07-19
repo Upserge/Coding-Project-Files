@@ -1,0 +1,86 @@
+---
+description: Clean-code constraints for the Employee Directory app
+alwaysApply: true
+---
+
+# Employee Directory — Coding Rules
+
+Apply these rules to all work in this project. If a requirement is ambiguous, **ask before assuming**.
+
+## Principles
+
+- Prefer small, single-purpose functions and modules
+- Name things for intent; avoid clever or opaque code
+- Keep components thin; put data and lifecycle logic in hooks/utils
+- Surface specific errors early; avoid generic catch-all messages when a typed error exists
+- Prefer lookup maps and early returns over branching trees
+
+## Guarded clauses (prefer over if/else)
+
+Use early returns and guard clauses. Avoid `if/else` chains when a guard, map, or ternary-free early exit works.
+
+```ts
+// ❌ BAD
+function label(status: Status) {
+  if (status === "started") {
+    return "Starting…";
+  } else if (status === "inProgress") {
+    return "Working…";
+  } else {
+    return "Done";
+  }
+}
+
+// ✅ GOOD
+function label(status: Status) {
+  const labels: Record<Status, string> = {
+    started: "Starting…",
+    inProgress: "Working…",
+    finished: "Done",
+    idle: "",
+  };
+  return labels[status];
+}
+```
+
+```ts
+// ❌ BAD
+function save(employee: Employee | null) {
+  if (employee) {
+    return api.update(employee);
+  } else {
+    throw new Error("Missing employee");
+  }
+}
+
+// ✅ GOOD
+function save(employee: Employee | null) {
+  if (!employee) {
+    throw new ValidationError("Employee is required before saving");
+  }
+  return api.update(employee);
+}
+```
+
+## No nested for-loops
+
+Do not nest `for` / `for…of` / `forEach` loops. Use `.filter`, `.map`, `.sort`, or a `Map`/`Set` for lookups.
+
+```ts
+// ❌ BAD
+for (const employee of employees) {
+  for (const term of terms) {
+    // …
+  }
+}
+
+// ✅ GOOD
+const termSet = new Set(terms.map((t) => t.toLowerCase()));
+const matches = employees.filter((employee) =>
+  termSet.has(employee.department.toLowerCase())
+);
+```
+
+## Clarification
+
+When requirements, UX copy, data shape, or error behavior is unclear — **stop and ask** before choosing an approach.

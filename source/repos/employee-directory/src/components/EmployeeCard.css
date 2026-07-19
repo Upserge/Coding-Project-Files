@@ -1,0 +1,74 @@
+.employee-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: #fff;
+}
+
+.employee-card__header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.employee-card__header p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+}
+
+.employee-card__meta {
+  margin: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.employee-card__meta div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.employee-card__meta dt {
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.employee-card__meta dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.employee-card__meta a {
+  color: inherit;
+}
+
+.employee-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.employee-card__actions button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: #f7f5f1;
+  font: inherit;
+  cursor: pointer;
+}
+
+.employee-card__actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.employee-card__delete {
+  color: #6e2418;
+}
